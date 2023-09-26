@@ -26,27 +26,6 @@ export default {
   margin-top: 60px;
 }
 
-.settings_block {
-  margin: 1%;
-  margin-top: 2%;
-
-}
-
-.settings_elem {
-  border: 1px solid;
-  border-radius: 5px;
-  padding: 1%;
-  margin-bottom: 1%;
-}
-
-.settings_elem h2 {
-  font-weight: bold;
-}
-
-.settings_input {
-  width: 100%;
-}
-
 .switch {
   position: relative;
   display: inline-block;
