@@ -1,29 +1,56 @@
-<template>
-  <div class="m-2">
-    <BiotronPage :id="'Biotron Page 2'"/>
-  </div>
-</template>
-
 <script>
 
-import BiotronPage from "@/components/BiotronPage.vue";
+import {SysExCommand} from "@/assets/js/SysExCommand";
 
 export default {
-  name: 'App',
-  components: {BiotronPage},
-
+  props: {
+    commandLabel: {
+      default: "",
+      type: String
+    },
+    commandObject: {
+      required: true,
+      type: SysExCommand
+    }
+  },
+  data() {
+    return {
+      Value: 0,
+      Checked: true,
+    }
+  },
+  watch: {
+    Checked() {
+      if (this.Checked) {
+        this.Value = 1
+      }
+      else this.Value = 0;
+      this.commandObject.set_value(this.Value)
+    }
+  },
+  mounted() {
+    this.Value = this.commandObject.value;
+    this.Checked = this.Value > 0;
+  }
 }
 </script>
 
-<style>
+<template>
+    <label for="checkbox_input">{{ this.commandLabel }}</label>
+    <div class="container">
+      <div class="col w-100">
+        <label class="switch">
+          <input id="checkbox_input" type="checkbox" v-model="this.Checked">
+          <span class="slider round"></span>
+        </label>
+      </div>
+    </div>
 
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+</template>
+
+<style scoped>
+.settings_input {
+  width: 100%;
 }
 
 .switch {

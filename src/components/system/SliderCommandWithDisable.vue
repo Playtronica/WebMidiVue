@@ -1,59 +1,56 @@
 <script>
 
+import {SysExCommand} from "@/assets/js/SysExCommand";
+
 export default {
   props: {
     commandLabel: {
       default: "",
       type: String
     },
-    minValue: {
-      default: 0,
-      type: Number
-    },
-    maxValue: {
-      default: 100,
-      type: Number
-    },
-    step: {
-      default: 1,
-      type: Number
-    },
-    defaultChecked: {
-      default: true,
-      type: Boolean,
-    },
-    defaultValue: {
-      default: 0,
-      type: Number
+    commandObject: {
+      required: true,
+      type: SysExCommand
     }
   },
   data() {
     return {
       Value: 0,
-      Checked: true
+      Checked: true,
+      Disabled: false
     }
   },
   methods: {
     checkboxEvent() {
-      if (!this.Checked) {
-        this.Value = this.defaultValue;
+      if (this.Checked) {
+        this.Value = this.commandObject.max_value;
+        this.Disabled = false;
       }
       else {
-        this.Value = this.minValue;
+        this.Value = this.commandObject.min_value;
+        this.Disabled = true;
       }
     },
     checkLimit() {
-      if (this.Value > this.maxValue) {
-        this.Value = this.maxValue
+      if (this.Value > this.commandObject.max_value) {
+        this.Value = this.commandObject.max_value
       }
-      if (this.Value < this.minValue) {
-        this.Value = this.minValue
+      if (this.Value < this.commandObject.min_value) {
+        this.Value = this.commandObject.min_value
       }
     }
   },
+  watch: {
+    Value() {
+      this.commandObject.set_value(this.Value)
+      this.checkLimit()
+    },
+    Checked() {
+      this.checkboxEvent()
+    }
+  },
   mounted() {
-    this.Value = this.defaultValue;
-    this.Checked = this.defaultChecked;
+    this.Value = this.commandObject.value;
   }
 }
 </script>
@@ -65,17 +62,20 @@ export default {
     </div>
     <div class="row">
       <div class="col-9">
-        <input type="number" id="value_input" class="form-control" :disabled="!this.Checked" @input="this.checkLimit"
-               v-model="this.Value" :min="this.minValue" :max="this.maxValue"/>
+        <input type="number" id="value_input" class="form-control"
+               v-model="this.Value" :min="this.commandObject.min_value" :max="this.commandObject.max_value"
+               :disabled="this.Disabled"/>
 
         <input type="range" id="range_input" class="settings_input"
-               v-model="this.Value" :min="this.minValue" :max="this.maxValue" :step="this.step"/>
+               v-model="this.Value" :min="this.commandObject.min_value" :max="this.commandObject.max_value"
+               :step="this.commandObject.step"
+                :disabled="this.Disabled"/>
       </div>
       <div class="col-3">
         <div class="container">
           <div class="col w-100">
             <label class="switch">
-              <input id="checkbox_input" type="checkbox" v-model="Checked" @click="this.checkboxEvent()">
+              <input id="checkbox_input" type="checkbox" v-model="this.Checked" @click="this.checkboxEvent()">
               <span class="slider round"></span>
             </label>
           </div>

@@ -1,4 +1,6 @@
 <script>
+import {SysExCommand} from "@/assets/js/SysExCommand";
+
 export default {
   props: {
     commandLabel: {
@@ -8,9 +10,9 @@ export default {
     listOfVariants: {
       default: {},
     },
-    defaultValue: {
-      default: 0,
-      type: Number
+    commandObject: {
+      required: true,
+      type: SysExCommand
     }
   },
   data() {
@@ -18,8 +20,13 @@ export default {
       Value: 0
     }
   },
+  watch: {
+    Value() {
+      this.commandObject.set_value(this.Value)
+    }
+  },
   mounted() {
-    this.Value = this.defaultValue;
+    this.Value = this.commandObject.value;
   }
 }
 </script>
@@ -28,8 +35,8 @@ export default {
   <div class="row m-2">
     <label for="value_input">{{ this.commandLabel }}</label>
 
-    <select id="scale" class="form-control">
-      <option v-for="item in this.listOfVariants" v-bind:key="item">
+    <select v-model="this.Value" id="scale" class="form-control">
+      <option v-for="(item, index) in this.listOfVariants" v-bind:key="index" :value="index">
         {{item}}
       </option>
     </select>

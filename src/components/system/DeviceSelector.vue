@@ -1,7 +1,7 @@
 <template>
   <div class="form-floating mb-3">
-    <select class="form-control">
-      <option v-for="midi in midiOut" v-bind:key="midi.id">{{midi.name}}</option>
+    <select v-model="currentMidiNum" class="form-control">
+      <option v-for="(midi, item) in midiOut" v-bind:key="midi.id" :value="item">{{midi.name}}</option>
     </select>
     <label for="device">Select device</label>
   </div>
@@ -13,13 +13,19 @@
       regexName: {
         default: ".*",
         type: String
-      }
+      },
     },
     name: "DeviceSelector",
     data() {
       return {
         midiIn: [],
-        midiOut: []
+        midiOut: [],
+        currentMidiNum: 0
+      }
+    },
+    watch: {
+      currentMidiNum() {
+        this.deviceChanged();
       }
     },
     methods: {
@@ -42,7 +48,14 @@
           if (output.value.name.match(this.regexName))
             this.midiOut.push(output.value)
         }
+
+        if (outputs.length !== 0) {
+          this.$emit("device_changed", this.midiOut[this.currentMidiNum])
+        }
       },
+      deviceChanged() {
+        this.$emit("device_changed", this.midiOut[this.currentMidiNum])
+      }
     },
     mounted() {
         navigator.requestMIDIAccess({sysex: true})

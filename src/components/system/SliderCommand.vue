@@ -1,25 +1,14 @@
 <script>
+import { SysExCommand } from "@/assets/js/SysExCommand"
 export default {
   props: {
     commandLabel: {
       default: "",
       type: String
     },
-    minValue: {
-      default: 0,
-      type: Number
-    },
-    maxValue: {
-      default: 100,
-      type: Number
-    },
-    step: {
-      default: 1,
-      type: Number
-    },
-    defaultValue: {
-      default: 0,
-      type: Number
+    commandObject: {
+      required: true,
+      type: SysExCommand
     }
   },
   data() {
@@ -30,21 +19,21 @@ export default {
   watch: {
     Value() {
       this.checkLimit()
-      this.$emit("change-value", parseInt(this.Value))
+      this.commandObject.set_value(this.Value)
     }
   },
   methods: {
     checkLimit() {
-      if (this.Value > this.maxValue) {
-        this.Value = this.maxValue
+      if (this.Value > this.commandObject.max_value) {
+        this.Value = this.commandObject.max_value
       }
-      if (this.Value < this.minValue) {
-        this.Value = this.minValue
+      if (this.Value < this.commandObject.min_value) {
+        this.Value = this.commandObject.min_value
       }
     }
   },
   mounted() {
-    this.Value = this.defaultValue;
+    this.Value = this.commandObject.value;
   }
 }
 </script>
@@ -54,10 +43,11 @@ export default {
     <label for="value_input">{{ this.commandLabel }}</label>
 
     <input type="number" id="value_input" class="form-control"
-           v-model="this.Value" :min="this.minValue" :max="this.maxValue" />
+           v-model="this.Value" :min="this.commandObject.min_value" :max="this.commandObject.max_value" />
 
     <input type="range" id="range_input" class="settings_input"
-           v-model="this.Value" :min="this.minValue" :max="this.maxValue" :step="this.step"/>
+           v-model="this.Value" :min="this.commandObject.min_value" :max="this.commandObject.max_value"
+           :step="this.commandObject.step"/>
   </div>
 </template>
 
