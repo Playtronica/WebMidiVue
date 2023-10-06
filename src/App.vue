@@ -1,6 +1,6 @@
 <template>
   <div class="m-2">
-    <BiotronPage :id="'Biotron Page 2'"/>
+    <BiotronPage :id="'Biotron Page 3'"/>
   </div>
 </template>
 

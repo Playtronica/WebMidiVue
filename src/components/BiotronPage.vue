@@ -1,47 +1,51 @@
 <template>
-  <h1 class="text-center">Biotron change settings</h1>
-  <DeviceSelector regex-name="" @device_changed="(x) => {this.device = x} "/>
-  <GroupOfCommands name-of-group="BPM">
-    <template v-slot:objects>
-      <SliderCommand command-label="Plant Bpm" :key="this.forceRerender" :command-object="this.commands_data.plantBpm"/>
-      <SliderCommand command-label="Note Off Percent" :key="this.forceRerender" :command-object="this.commands_data.noteOffPercent"/>
-      <SliderCommand command-label="Light Bpm" :key="this.forceRerender" :command-object="this.commands_data.lightBpm"/>
-    </template>
-  </GroupOfCommands>
-  <GroupOfCommands name-of-group="Sensitivity (fib)">
-    <template v-slot:objects>
-      <SliderCommand command-label="Note Distance" :key="this.forceRerender" :command-object="this.commands_data.noteDistance"/>
-      <SliderCommand command-label="First Value" :key="this.forceRerender" :command-object="this.commands_data.firstValue"/>
-    </template>
-  </GroupOfCommands>
-  <GroupOfCommands name-of-group="Smoothness">
-    <template v-slot:objects>
-      <SliderCommand :key="this.forceRerender" :command-object="this.commands_data.smoothness" />
-    </template>
-  </GroupOfCommands>
-  <GroupOfCommands name-of-group="Scale">
-    <template v-slot:objects>
-      <SelectCommand :key="this.forceRerender" :list-of-variants="this.scales" :command-object="commands_data.scale"/>
-    </template>
-  </GroupOfCommands>
-  <GroupOfCommands name-of-group="Velocity">
-    <template v-slot:objects>
-      <SliderCommandWithDisable :key="this.forceRerender" command-label="Plant Velocity" :command-object="commands_data.plantVelocity"/>
-      <SliderCommandWithDisable :key="this.forceRerender" command-label="Light Velocity" :command-object="commands_data.lightVelocity"/>
-    </template>
-  </GroupOfCommands>
-  <GroupOfCommands name-of-group="Randomness">
-    <template v-slot:objects>
-      <DisableCommand :key="this.forceRerender" :command-object="commands_data.randomness"/>
-    </template>
-  </GroupOfCommands>
-  <GroupOfCommands name-of-group="Same Note">
-    <template v-slot:objects>
-      <SliderCommand :key="this.forceRerender" :command-object="commands_data.same_note" />
-    </template>
-  </GroupOfCommands>
-  <button @click="this.sendData" class="btn btn-primary mb-1" style="width: 70%">Send</button>
-  <button @click="this.returnDefault" class="btn btn-primary mb-1" style="width: 70%">Set Default</button>
+  <div @keyup.enter="this.sendData">
+    <h1 class="text-center">Biotron change settings</h1>
+    <DeviceSelector regex-name="" @device_changed="(x) => {this.device = x} "/>
+    <GroupOfCommands name-of-group="BPM">
+      <template v-slot:objects>
+        <SliderCommand command-label="Plant Bpm" :key="this.forceRerender" :command-object="this.commands_data.plantBpm"/>
+        <SliderCommand command-label="Note Off Percent" :key="this.forceRerender" :command-object="this.commands_data.noteOffPercent"/>
+        <SliderCommand command-label="Light Bpm" :key="this.forceRerender" :command-object="this.commands_data.lightBpm"/>
+      </template>
+    </GroupOfCommands>
+    <GroupOfCommands name-of-group="Sensitivity (fib)">
+      <template v-slot:objects>
+        <SliderCommand command-label="Note Distance" :key="this.forceRerender" :command-object="this.commands_data.noteDistance"/>
+        <SliderCommand command-label="First Value" :key="this.forceRerender" :command-object="this.commands_data.firstValue"/>
+      </template>
+    </GroupOfCommands>
+    <GroupOfCommands name-of-group="Smoothness">
+      <template v-slot:objects>
+        <SliderCommand :key="this.forceRerender" :command-object="this.commands_data.smoothness" />
+      </template>
+    </GroupOfCommands>
+    <GroupOfCommands name-of-group="Scale">
+      <template v-slot:objects>
+        <SelectCommand :key="this.forceRerender" :list-of-variants="this.scales" :command-object="commands_data.scale"/>
+      </template>
+    </GroupOfCommands>
+    <GroupOfCommands name-of-group="Velocity">
+      <template v-slot:objects>
+        <SliderCommandWithDisable :key="this.forceRerender" command-label="Plant Velocity" :command-object="commands_data.plantVelocity"/>
+        <SliderCommandWithDisable :key="this.forceRerender" command-label="Light Velocity" :command-object="commands_data.lightVelocity"/>
+      </template>
+    </GroupOfCommands>
+    <GroupOfCommands name-of-group="Randomness">
+      <template v-slot:objects>
+        <DisableCommand :key="this.forceRerender" :command-object="commands_data.randomness"/>
+      </template>
+    </GroupOfCommands>
+    <GroupOfCommands name-of-group="Same Note">
+      <template v-slot:objects>
+        <SliderCommand :key="this.forceRerender" :command-object="commands_data.same_note" />
+      </template>
+    </GroupOfCommands>
+    <button @click="this.sendData" class="btn btn-primary mb-1" style="width: 70%">Send</button>
+    <button @click="this.returnDefault" class="btn btn-primary mb-1" style="width: 70%">Set Default</button>
+    <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
+    <FileDropArea name="Drop Preset Here" @get_drop="(e) => loadDataFromPreset(e)"/>
+  </div>
 </template>
 
 <script>
@@ -52,9 +56,13 @@ import DeviceSelector from "@/components/system/DeviceSelector.vue";
 import SliderCommandWithDisable from "@/components/system/SliderCommandWithDisable.vue";
 import { SysExCommand, sleep } from "@/assets/js/SysExCommand"
 import DisableCommand from "@/components/system/DisableCommand.vue";
+import FileDropArea from "@/components/system/FileDropArea.vue";
+import { saveAs } from '@progress/kendo-file-saver';
 
 export default  {
-  components: {DisableCommand, SliderCommandWithDisable, DeviceSelector, SelectCommand, GroupOfCommands, SliderCommand},
+  components: {
+    FileDropArea,
+    DisableCommand, SliderCommandWithDisable, DeviceSelector, SelectCommand, GroupOfCommands, SliderCommand},
   props: {
     id: {
       type: String,
@@ -91,6 +99,23 @@ export default  {
       }
       this.saveData();
       this.forceRerender += 1
+    },
+    createPreset() {
+      let state = []
+      for (let item in this.commands_data) {
+        state.push(this.commands_data[item].toString())
+      }
+      let value = {"commands": state}
+      let myFile = new File([JSON.stringify(value)], "params_biotron.txt",
+          {type: "text/plain;charset=utf-8"})
+      saveAs(myFile);
+    },
+    loadDataFromPreset(e) {
+      for (let item of JSON.parse(e).commands) {
+        let value = JSON.parse(item)
+        this.commands_data[value.name].set_value(value.value);
+      }
+      this.forceRerender += 1
     }
   },
   data() {
@@ -119,7 +144,7 @@ export default  {
           name: "noteOffPercent",
           number_command: 12,
           default_value: 100,
-          max_value: 30
+          max_value: 100
         }),
         "noteDistance": new SysExCommand({
           name: "noteDistance",
@@ -172,6 +197,11 @@ export default  {
   created() {
     if (localStorage.getItem(this.id) === null) this.saveData();
     else this.loadData();
+
+    document.addEventListener( 'keyup', event => {
+      if (event.code === 'Enter') this.sendData();
+    })
+
   },
 }
 </script>
