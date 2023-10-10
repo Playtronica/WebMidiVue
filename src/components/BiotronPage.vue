@@ -41,6 +41,14 @@
         <SliderCommand :key="this.forceRerender" :command-object="commands_data.same_note" />
       </template>
     </GroupOfCommands>
+    <GroupOfCommands name-of-group="Light Notes Range">
+      <template v-slot:objects>
+        <SliderRangeCommand
+            :key="this.forceRerender"
+            :max-command-object="commands_data.max_range_light_note"
+            :min-command-object="commands_data.min_range_light_note"/>
+      </template>
+    </GroupOfCommands>
     <button @click="this.sendData" class="btn btn-primary mb-1" style="width: 70%">Send</button>
     <button @click="this.returnDefault" class="btn btn-primary mb-1" style="width: 70%">Set Default</button>
     <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
@@ -58,9 +66,11 @@ import { SysExCommand, sleep } from "@/assets/js/SysExCommand"
 import DisableCommand from "@/components/system/DisableCommand.vue";
 import FileDropArea from "@/components/system/FileDropArea.vue";
 import { saveAs } from '@progress/kendo-file-saver';
+import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
 
 export default  {
   components: {
+    SliderRangeCommand,
     FileDropArea,
     DisableCommand, SliderCommandWithDisable, DeviceSelector, SelectCommand, GroupOfCommands, SliderCommand},
   props: {
@@ -99,6 +109,7 @@ export default  {
       }
       this.saveData();
       this.forceRerender += 1
+      this.device.send([240, 11, 7, 247])
     },
     createPreset() {
       let state = []
@@ -183,13 +194,23 @@ export default  {
         "randomness": new SysExCommand({
           name: "randomness",
           number_command: 10,
-          default_value: 1
+          default_value: 0
         }),
         "same_note": new SysExCommand({
           name: "same_note",
           number_command: 11,
           default_value: 0,
           max_value: 10
+        }),
+        "min_range_light_note": new SysExCommand({
+          name: "min_range_light_note",
+          number_command: 13,
+          default_value: 24,
+        }),
+        "max_range_light_note": new SysExCommand({
+          name: "max_range_light_note",
+          number_command: 14,
+          default_value: 48,
         }),
       }
     }

@@ -22,7 +22,7 @@ export class SysExCommand {
                     number_command = 0,
                     value = null,
                     min_value = 0,
-                    max_value = 0,
+                    max_value = 127,
                     step = 1,
                     default_value = 0
                 }
@@ -86,6 +86,7 @@ export class SysExCommand {
     }
 
 }
+
 
 export function sleep(milliseconds) {
     const date = Date.now();

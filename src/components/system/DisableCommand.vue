@@ -22,9 +22,10 @@ export default {
   watch: {
     Checked() {
       if (this.Checked) {
-        this.Value = 1
+        this.Value = 127
       }
       else this.Value = 0;
+
       this.commandObject.set_value(this.Value)
     }
   },
