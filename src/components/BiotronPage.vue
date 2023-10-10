@@ -117,9 +117,9 @@ export default  {
         state.push(this.commands_data[item].toString())
       }
       let value = {"commands": state}
-      let myFile = new File([JSON.stringify(value)], "params_biotron.txt",
+      let myFile = new File([JSON.stringify(value)], "biotron_preset.txt",
           {type: "text/plain;charset=utf-8"})
-      saveAs(myFile, "params_biotron.txt");
+      saveAs(myFile, "biotron_preset.txt");
     },
     loadDataFromPreset(e) {
       for (let item of JSON.parse(e).commands) {
