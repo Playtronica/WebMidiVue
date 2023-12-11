@@ -1,47 +1,28 @@
 <template>
-  <header class="d-flex justify-content-center ">
-    <ul class="nav nav-pills">
-      <li class="nav-item">
-        <a v-if="this.url === '/touchme'" href="/touchme" class="nav-link active">TouchMe</a>
-        <a v-else href="/touchme" class="nav-link">TouchMe</a>
-      </li>
-      <li class="nav-item">
-        <a v-if="this.url === '/biotron'" href="/biotron" class="nav-link active">Biotron</a>
-        <a v-else href="/biotron" class="nav-link">Biotron</a>
-      </li>
-    </ul>
-  </header>
-  <div class="m-2">
-    <router-view></router-view>
+  <div class="container">
+    <div class="col w-100">
+      <label class="switch">
+        <input id="checkbox_input" type="checkbox" :checked="modelValue"
+               @click="$emit('update:modelValue', $event.target.checked)">
+        <span class="slider round"></span>
+      </label>
+    </div>
   </div>
 </template>
 
-
 <script>
 export default {
-  name: 'App',
-  data() {
-    return {
-      url: String
+  name: "SwitchComponent",
+  props: {
+    modelValue: {
+      type: Boolean,
     }
   },
-  mounted() {
-    this.url = window.location.pathname
-  }
+  emits: ["update:modelValue"],
 }
 </script>
 
-<style>
-
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 1%;
-}
-
+<style scoped>
 .switch {
   position: relative;
   display: inline-block;

@@ -45,9 +45,10 @@
 
         const outputs = midi.outputs.values();
         for (let output = outputs.next(); output && !output.done; output = outputs.next()) {
-          if (output.value.name.match(this.regexName))
+          if (output.value.name.match(this.regexName)) {
             this.midiOut.push(output.value)
             output.value.send([]);
+          }
         }
 
         if (outputs.length !== 0) {

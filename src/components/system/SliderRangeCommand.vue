@@ -40,11 +40,15 @@ export default {
     update_oBarValues(e) {
       this.minValue = e.minValue;
       this.maxValue = e.maxValue;
+
     },
   },
   mounted() {
     this.minValue = this.minCommandObject.value;
     this.maxValue = this.maxCommandObject.value;
+    if (this.minValue > this.maxValue) {
+      this.minValue = this.maxValue
+    }
   }
 }
 </script>

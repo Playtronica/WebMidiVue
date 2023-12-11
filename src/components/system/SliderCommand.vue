@@ -11,6 +11,7 @@ export default {
       type: SysExCommand
     }
   },
+  emits: ["changedValue"],
   data() {
     return {
       Value: 0
@@ -19,7 +20,7 @@ export default {
   watch: {
     Value() {
       this.checkLimit()
-      this.commandObject.set_value(this.Value)
+      this.commandObject.set_value(parseInt(this.Value))
     }
   },
   methods: {
