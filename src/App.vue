@@ -1,13 +1,13 @@
 <template>
-  <header class="d-flex justify-content-center ">
+  <header class="d-flex justify-content-center">
     <ul class="nav nav-pills">
       <li class="nav-item">
-        <a v-if="this.url === '/touchme'" href="/touchme" class="nav-link active">TouchMe</a>
-        <a v-else href="/touchme" class="nav-link">TouchMe</a>
+        <router-link v-if="this.url === '/biotron'" to="/biotron" @click="this.update" class="nav-link active">Biotron</router-link>
+        <router-link v-else to="/biotron" @click="this.update" class="nav-link">Biotron</router-link>
       </li>
       <li class="nav-item">
-        <a v-if="this.url === '/biotron'" href="/biotron" class="nav-link active">Biotron</a>
-        <a v-else href="/biotron" class="nav-link">Biotron</a>
+        <router-link v-if="this.url === '/touchme'" @click="this.update" to="/touchme" class="nav-link active">TouchMe</router-link>
+        <router-link v-else to="/touchme" @click="this.update" class="nav-link">TouchMe</router-link>
       </li>
     </ul>
   </header>
@@ -22,11 +22,15 @@ export default {
   name: 'App',
   data() {
     return {
-      url: String
+      url: String,
+      forceRerender: 0
     }
   },
   mounted() {
-    this.url = window.location.pathname
+    console.log("Hello! You`re curious, aren`t you?")
+  },
+  methods: {
+    update() { this.forceRerender++ }
   }
 }
 </script>

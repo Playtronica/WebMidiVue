@@ -197,7 +197,6 @@ export default  {
 
       for (let item of JSON.parse(localStorage.getItem(this.id)).commands) {
         let value = JSON.parse(item)
-        console.log(value.name)
         this.commands_data[value.name].set_value(value.value);
       }
     },

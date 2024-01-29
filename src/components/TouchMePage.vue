@@ -14,6 +14,56 @@
       </template>
     </GroupOfCommands>
 
+    <GroupOfCommands name-of-group="Velocity">
+      <template v-slot:objects>
+        <div class="row">
+          <div class="col">
+            <label for="humanizeSwitch">Humanize</label>
+            <SwitchComponent id="humanizeSwitch" :model-value="this.isHumanize" @update:model-value="newVal => {
+                  this.isHumanize = newVal
+                  forceRerender++
+                }"/>
+          </div>
+          <div class="col">
+            <label for="velocityDisableSwitch">Mute</label>
+            <SwitchComponent id="velocityDisableSwitch" :model-value="this.isMute" @update:model-value="newVal => {
+                  this.isMute = newVal
+                }"/>
+          </div>
+        </div>
+        <div v-if="!this.isMute">
+          <div v-if="!this.isHumanize">
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.touch_me_commands_data.maxVelocity"/>
+          </div>
+          <div v-else>
+            <SliderRangeCommand :key="this.forceRerender"
+                                :max-command-object="this.touch_me_commands_data.maxVelocity"
+                                :min-command-object="this.touch_me_commands_data.minVelocity"/>
+          </div>
+        </div>
+      </template>
+    </GroupOfCommands>
+
+    <GroupOfCommands name-of-group="Notes Range">
+      <template v-slot:objects>
+        <div class="row">
+          <div class="col">
+            <label for="notesRangeSwitch">Custom Range</label>
+            <SwitchComponent id="notesRangeSwitch" :model-value="this.customRange" @update:model-value="newVal => {
+                    this.customRange = newVal
+                    forceRerender++
+                  }"/>
+          </div>
+        </div>
+        <div v-if="this.customRange">
+          <SliderRangeCommand :key="this.forceRerender"
+                              :max-command-object="this.touch_me_commands_data.highestNote"
+                              :min-command-object="this.touch_me_commands_data.lowestNote"/>
+        </div>
+      </template>
+    </GroupOfCommands>
+
     <button @click="this.sendData" :disabled="this.device == null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
     <button @click="this.returnDefault" class="btn btn-primary mb-1" style="width: 70%">Set Default</button>
     <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
@@ -30,9 +80,13 @@ import DeviceSelector from "@/components/system/DeviceSelector.vue";
 import SliderCommand from "@/components/system/SliderCommand.vue";
 import FileDropArea from "@/components/system/FileDropArea.vue";
 import {saveAs} from "@progress/kendo-file-saver";
+import SwitchComponent from "@/components/system/Switch.vue";
+import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
 
 export default  {
   components: {
+    SliderRangeCommand,
+    SwitchComponent,
     FileDropArea,
     SliderCommand,
     DeviceSelector,
@@ -47,6 +101,9 @@ export default  {
   },
   methods: {
     sendData() {
+      this.device.send([240, 11, 5, this.isMute ? 1 : 0, 247])
+      this.device.send([240, 11, 4, this.isHumanize ? 1 : 0, 247])
+      this.device.send([240, 11, 6, this.customRange ? 0 : 1, 247])
       for (let comm in this.touch_me_commands_data) {
           this.touch_me_commands_data[comm].sendToMidi(this.device)
           sleep(100);
@@ -66,7 +123,6 @@ export default  {
 
       for (let item of JSON.parse(localStorage.getItem(this.id)).commands) {
         let value = JSON.parse(item)
-        console.log(value.name)
         this.touch_me_commands_data[value.name].set_value(value.value);
       }
     },
@@ -105,6 +161,9 @@ export default  {
         "Majpen", "Diminished"],
       device: null,
       forceRerender: 0,
+      isHumanize: false,
+      isMute: false,
+      customRange: false,
 
       touch_me_commands_data: {
         "Scale": new SysExCommand( {
@@ -119,6 +178,30 @@ export default  {
           default_value: 1,
           min_value: 1,
           max_value: 12
+        }),
+        "maxVelocity": new SysExCommand( {
+          name: "maxVelocity",
+          number_command: 2,
+          default_value: 70,
+          max_value: 127
+        }),
+        "minVelocity": new SysExCommand( {
+          name: "minVelocity",
+          number_command: 3,
+          default_value: 50,
+          max_value: 127
+        }),
+        "highestNote": new SysExCommand( {
+          name: "highestNote",
+          number_command: 8,
+          default_value: 84,
+          max_value: 127
+        }),
+        "lowestNote": new SysExCommand( {
+          name: "lowestNote",
+          number_command: 7,
+          default_value: 48,
+          max_value: 127
         }),
       }
     }

@@ -1,20 +1,22 @@
 import { createApp } from 'vue'
-import { createRouter, createWebHistory } from 'vue-router'
+import {createRouter, createWebHashHistory} from 'vue-router'
 import App from './App.vue'
 import "bootstrap"
 import "bootstrap/dist/css/bootstrap.min.css"
 import BiotronPage from "@/components/BiotronPage.vue";
 import TouchMePage from "@/components/TouchMePage.vue";
+import ScalaPage from "@/components/ScalaPage.vue";
 
 
 const routes = [
-    { path: '/', },
+    { path: '/'},
     { path: '/biotron', component: BiotronPage, props: {id: "BiotronWebMidiId"} },
     { path: '/touchme', component: TouchMePage, props: {id: "TouchmeWebMidiId"} },
+    { path: '/scala', component: ScalaPage}
 ]
 
 const router = createRouter({
-    history: createWebHistory(),
+    history: createWebHashHistory(),
     linkActiveClass: 'active',
     routes
 })

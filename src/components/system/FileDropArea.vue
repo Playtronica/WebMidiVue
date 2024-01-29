@@ -9,12 +9,13 @@
         e.preventDefault();
         let file = e.dataTransfer.files[0], reader = new FileReader();
         let vm = this;
+
         reader.onload = function(event) {
           // console.log(event.target.result);
           vm.$emit("get_drop", event.target.result)
         };
 
-        if (file.type !== "text/plain") return
+        if (file.type !== "text/plain" && file.name.substring(file.name.lastIndexOf(".")) !== ".scl") return
         reader.readAsText(file);
       },
       loadPresetChanged(e) {
@@ -24,6 +25,7 @@
           // console.log(event.target.result);
           vm.$emit("get_drop", event.target.result)
         };
+
 
         if (file.type !== "text/plain") return
         reader.readAsText(file);
