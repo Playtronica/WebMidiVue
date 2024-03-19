@@ -47,6 +47,7 @@
         for (let output = outputs.next(); output && !output.done; output = outputs.next()) {
           if (output.value.name.match(this.regexName)) {
             this.midiOut.push(output.value)
+            console.log(output.value)
             output.value.send([]);
           }
         }

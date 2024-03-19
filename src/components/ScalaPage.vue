@@ -19,6 +19,7 @@
 
 import DeviceSelector from "@/components/system/DeviceSelector.vue";
 import FileDropArea from "@/components/system/FileDropArea.vue";
+import { sleep } from "@/assets/js/SysExCommand"
 
 export default  {
   components: {
@@ -71,19 +72,30 @@ export default  {
       this.sendCents(cents)
     },
     sendCents(lst) {
-      let message = [0xF0, 0x0B, 0x14, 0x0D, 0x01]
+      if (!this.device) return
+      let start_scala_message = [0xF0, 0x0B, 0x14, 0x0D, 0x01, 0xF7]
+      this.device.send(start_scala_message)
+      console.log(start_scala_message)
+
+      let message = []
       for (const number of lst) {
+        message = [0xF0, 0x0B, 0x14, 0x0D, 0x01]
         for (let _ = 0; _ < Math.floor(number / 0x7F); _++) {
           message.push(0x7F)
         }
         if (number % 0x7F !== 0) {
           message.push(number % 0x7F)
         }
-        message.push(0)
+        message.push(0xF7)
+        this.device.send(message)
+        console.log(message)
+        sleep(1000);
       }
-      message.push(0xF7)
-      console.log(message)
-      this.device.send(message)
+
+      let stop_message = [0xF0, 0x0B, 0x14, 0x0D, 0x7F, 0xF7]
+      this.device.send(stop_message)
+      console.log(stop_message)
+
     }
 
   },

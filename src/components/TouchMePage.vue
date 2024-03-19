@@ -115,7 +115,13 @@ export default  {
       for (let item in this.touch_me_commands_data) {
         state.push(this.touch_me_commands_data[item].toString())
       }
-      let value = {"commands": state}
+
+      let extra = {
+        "mute": this.isMute,
+        "humanize": this.isHumanize
+      }
+
+      let value = {"commands": state, "extra": extra}
       localStorage.setItem(this.id, JSON.stringify(value))
     },
     loadData() {
@@ -125,6 +131,10 @@ export default  {
         let value = JSON.parse(item)
         this.touch_me_commands_data[value.name].set_value(value.value);
       }
+
+      let extra = JSON.parse(localStorage.getItem(this.id)).extra
+      this.isMute = extra.mute
+      this.isHumanize = extra.humanize
     },
     returnDefault() {
       this.randomPlantVelocity = false
@@ -141,6 +151,9 @@ export default  {
         let value = JSON.parse(item)
         this.touch_me_commands_data[value.name].set_value(value.value);
       }
+      let extra = JSON.parse(localStorage.getItem(this.id)).extra
+      this.isMute = extra.mute
+      this.isHumanize = extra.humanize
       this.forceRerender += 1
     },
     createPreset() {
@@ -148,7 +161,13 @@ export default  {
       for (let item in this.touch_me_commands_data) {
         state.push(this.touch_me_commands_data[item].toString())
       }
-      let value = {"commands": state}
+
+      let extra = {
+        "mute": this.isMute,
+        "humanize": this.isHumanize
+      }
+
+      let value = {"commands": state, "extra": extra}
       let myFile = new File([JSON.stringify(value)], "touchme_preset.txt",
           {type: "text/plain;charset=utf-8"})
       saveAs(myFile, "touchme_preset.txt");

@@ -140,6 +140,7 @@ export default  {
   },
   methods: {
     sendData() {
+      if (!this.device) return;
       let extraComp = []
       if (this.randomPlantVelocity) {
         this.device.send([240, 11, 16, 127, 247])
@@ -177,6 +178,7 @@ export default  {
 
       for (let comm in this.commands_data) {
         if (!extraComp.includes(comm)) {
+
           this.commands_data[comm].sendToMidi(this.device)
           sleep(100);
         }
@@ -189,7 +191,15 @@ export default  {
       for (let item in this.commands_data) {
         state.push(this.commands_data[item].toString())
       }
-      let value = {"commands": state}
+
+      let extra = {
+        "plant_humanize": this.randomPlantVelocity,
+        "light_humanize": this.randomLightVelocity,
+        "plant_mute": this.disablePlantVel,
+        "light_mute": this.disableLightVel
+      }
+
+      let value = {"commands": state, "extra": extra}
       localStorage.setItem(this.id, JSON.stringify(value))
     },
     loadData() {
@@ -199,6 +209,12 @@ export default  {
         let value = JSON.parse(item)
         this.commands_data[value.name].set_value(value.value);
       }
+      let extra = JSON.parse(localStorage.getItem(this.id)).extra
+      this.randomPlantVelocity = extra.plant_humanize
+      this.randomLightVelocity = extra.light_humanize
+      this.disablePlantVel = extra.plant_mute
+      this.disableLightVel = extra.light_mute
+
     },
     returnDefault() {
       this.randomPlantVelocity = false
@@ -215,7 +231,15 @@ export default  {
       for (let item in this.commands_data) {
         state.push(this.commands_data[item].toString())
       }
-      let value = {"commands": state}
+
+      let extra = {
+        "plant_humanize": this.randomPlantVelocity,
+        "light_humanize": this.randomLightVelocity,
+        "plant_mute": this.disablePlantVel,
+        "light_mute": this.disableLightVel
+      }
+
+      let value = {"commands": state, "extra": extra}
       let myFile = new File([JSON.stringify(value)], "biotron_preset.txt",
           {type: "text/plain;charset=utf-8"})
       saveAs(myFile, "biotron_preset.txt");
@@ -225,6 +249,11 @@ export default  {
         let value = JSON.parse(item)
         this.commands_data[value.name].set_value(value.value);
       }
+      let extra = JSON.parse(localStorage.getItem(this.id)).extra
+      this.randomPlantVelocity = extra.plant_humanize
+      this.randomLightVelocity = extra.light_humanize
+      this.disablePlantVel = extra.plant_mute
+      this.disableLightVel = extra.light_mute
       this.forceRerender += 1
     }
   },
@@ -326,7 +355,9 @@ export default  {
           number_command: 14,
           default_value: 48,
         }),
-      }
+
+      },
+
     }
   },
   created() {
