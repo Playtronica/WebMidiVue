@@ -11,7 +11,7 @@ import ScalaPage from "@/components/ScalaPage.vue";
 const routes = [
     { path: '/'},
     { path: '/biotron', component: BiotronPage, props: {id: "BiotronWebMidiId_1"} },
-    { path: '/touchme', component: TouchMePage, props: {id: "TouchmeWebMidiId"} },
+    { path: '/touchme', component: TouchMePage, props: {id: "TouchmeWebMidiId_1"} },
     { path: '/scala', component: ScalaPage}
 ]
 
