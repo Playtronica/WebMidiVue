@@ -1,21 +1,33 @@
 <script>
   import {getTransitionRawChildren} from "@vue/runtime-core";
+  import HintComp from "@/components/system/HintComponent.vue";
 
   export default {
     name: "GroupOfCommands",
+    components: {HintComp},
     methods: {getTransitionRawChildren},
     props: {
       nameOfGroup: {
         default: "",
         type: String
+      },
+      description: {
+        type: String,
+        default: ""
       }
+    },
+    mounted() {
+      // console.log(this.description)
     }
   }
 </script>
 
 <template>
   <div class="settings_elem">
-    <h2>{{this.nameOfGroup}}</h2>
+    <h2>
+      {{this.nameOfGroup}}
+      <hint-comp :description="this.description"/>
+    </h2>
     <slot name="objects"></slot>
   </div>
 </template>
