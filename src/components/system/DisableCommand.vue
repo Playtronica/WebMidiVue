@@ -39,7 +39,7 @@ export default {
 <template>
     <label for="checkbox_input">{{ this.commandLabel }}</label>
     <div class="container">
-      <div class="col w-100">
+      <div class="col w-100" style="margin-bottom: 2%">
         <label class="switch">
           <input id="checkbox_input" type="checkbox" v-model="this.Checked">
           <span class="slider round"></span>
