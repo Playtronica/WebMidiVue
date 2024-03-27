@@ -25,5 +25,5 @@ jobs:
           REPO: self
           BRANCH: deploy_branch # The branch name where you want to push the assets
           FOLDER: dist # The directory where your assets are generated
-          GITHUB_TOKEN: ${{ github-pages.MY_SECRET_GITHUB_KEY }}
+          GITHUB_TOKEN: ${{ secrets.MY_SECRET_GITHUB_KEY }}
           MESSAGE: "Build: ({sha}) {msg}" # The commit message
