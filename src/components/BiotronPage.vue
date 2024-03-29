@@ -169,6 +169,7 @@ import FileDropArea from "@/components/system/FileDropArea.vue";
 import { saveAs } from '@progress/kendo-file-saver';
 import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
 import SwitchComponent from "@/components/system/Switch.vue";
+import { BiotronDb } from "@/assets/js/PresetBiotrons"
 
 export default  {
   components: {
@@ -231,6 +232,9 @@ export default  {
       this.saveData();
     },
     saveData() {
+      const db = new BiotronDb();
+      db.openDB();
+
       let state = []
       for (let item in this.commands_data) {
         state.push(this.commands_data[item].toString())
@@ -244,7 +248,7 @@ export default  {
       }
 
       let value = {"commands": state, "extra": extra}
-      localStorage.setItem(this.id, JSON.stringify(value))
+      db.createPreset(value)
     },
     loadData() {
       if (localStorage.getItem(this.id) === null) this.saveData();
@@ -299,7 +303,7 @@ export default  {
       this.disablePlantVel = extra.plant_mute
       this.disableLightVel = extra.light_mute
       this.forceRerender += 1
-    }
+    },
   },
   data() {
     return {
@@ -405,13 +409,16 @@ export default  {
     }
   },
   created() {
-    if (localStorage.getItem(this.id) === null) this.saveData();
-    else this.loadData();
+    // if (localStorage.getItem(this.id) === null) this.saveData();
+    // else this.loadData();
 
-    document.addEventListener( 'keyup', event => {
-      if (event.code === 'Enter') this.sendData();
-    })
+    // document.addEventListener( 'keyup', event => {
+    //   if (event.code === 'Enter') this.sendData();
+    // })
 
+    // eslint-disable-next-line no-unused-vars
+
+    this.saveData()
   },
 }
 </script>
