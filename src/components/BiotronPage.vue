@@ -181,7 +181,7 @@ export default  {
     id: {
       type: String,
       required: true,
-    }
+    },
   },
   methods: {
     sendData() {
@@ -231,10 +231,8 @@ export default  {
 
       this.saveData();
     },
-    saveData() {
-      const db = new BiotronDb();
-      db.openDB();
 
+    saveData() {
       let state = []
       for (let item in this.commands_data) {
         state.push(this.commands_data[item].toString())
@@ -247,17 +245,21 @@ export default  {
         "light_mute": this.disableLightVel
       }
 
+      // eslint-disable-next-line no-unused-vars
       let value = {"commands": state, "extra": extra}
-      db.createPreset(value)
+      // this.db.createPreset(value)
     },
-    loadData() {
-      if (localStorage.getItem(this.id) === null) this.saveData();
 
-      for (let item of JSON.parse(localStorage.getItem(this.id)).commands) {
+    async loadData() {
+      console.log(1)
+      let preset = await this.db.getPreset(localStorage.getItem(this.id))
+      console.log(preset)
+      for (let item of JSON.parse(preset.data).commands) {
         let value = JSON.parse(item)
         this.commands_data[value.name].set_value(value.value);
       }
-      let extra = JSON.parse(localStorage.getItem(this.id)).extra
+      let extra = JSON.parse(preset.data).extra
+
       this.randomPlantVelocity = extra.plant_humanize
       this.randomLightVelocity = extra.light_humanize
       this.disablePlantVel = extra.plant_mute
@@ -316,6 +318,9 @@ export default  {
       disableLightVel: false,
       randomPlantVelocity: false,
       randomLightVelocity: false,
+      db: {
+        type: BiotronDb
+      },
 
       commands_data: {
         "plantBpm": new SysExCommand( {
@@ -408,17 +413,23 @@ export default  {
 
     }
   },
-  created() {
-    // if (localStorage.getItem(this.id) === null) this.saveData();
-    // else this.loadData();
+  async created() {
+    if (localStorage.getItem(this.id) === null) {
+      localStorage.setItem(this.id, 1)
+    }
+
+    this.db = new BiotronDb();
+    this.db.openDB();
+
+    this.saveData();
+    let a = await this.db.getPreset(1);
+    console.log(a)
 
     // document.addEventListener( 'keyup', event => {
     //   if (event.code === 'Enter') this.sendData();
     // })
 
     // eslint-disable-next-line no-unused-vars
-
-    this.saveData()
   },
 }
 </script>
