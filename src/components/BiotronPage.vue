@@ -169,7 +169,7 @@ import FileDropArea from "@/components/system/FileDropArea.vue";
 import { saveAs } from '@progress/kendo-file-saver';
 import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
 import SwitchComponent from "@/components/system/Switch.vue";
-import { BiotronDb } from "@/assets/js/PresetBiotrons"
+import { BiotronDb } from "@/assets/js/PatchBiotrons"
 
 export default  {
   components: {
@@ -185,47 +185,46 @@ export default  {
   },
   methods: {
     sendData() {
-      if (!this.device) return;
-      let extraComp = []
-      if (this.randomPlantVelocity) {
-        this.device.send([240, 11, 16, 127, 247])
-        sleep(100);
-      }
-      else {
-        this.device.send([240, 11, 16, 0, 247])
-        sleep(100);
-      }
-      if (this.disablePlantVel) {
-        this.device.send([240, 11, 5, 0, 247])
-        sleep(100)
-        this.device.send([240, 11, 15, 0, 247])
-        sleep(100)
-        extraComp.push("minPlantVelocity")
-        extraComp.push("maxPlantVelocity")
-      }
-      if (this.disableLightVel) {
-        this.device.send([240, 11, 6, 0, 247])
-        sleep(100)
-        this.device.send([240, 11, 17, 0, 247])
-        sleep(100)
-        extraComp.push("minLightVelocity")
-        extraComp.push("maxLightVelocity")
-      }
-      if (this.randomLightVelocity) {
-        this.device.send([240, 11, 18, 127, 247])
-        sleep(100);
-      }
-      else {
-        this.device.send([240, 11, 18, 0, 247])
-        sleep(100);
-      }
-
-
-      for (let comm in this.commands_data) {
-        if (!extraComp.includes(comm)) {
-
-          this.commands_data[comm].sendToMidi(this.device)
+      if (this.device) {
+        let extraComp = []
+        if (this.randomPlantVelocity) {
+          this.device.send([240, 11, 16, 127, 247])
           sleep(100);
+        } else {
+          this.device.send([240, 11, 16, 0, 247])
+          sleep(100);
+        }
+        if (this.disablePlantVel) {
+          this.device.send([240, 11, 5, 0, 247])
+          sleep(100)
+          this.device.send([240, 11, 15, 0, 247])
+          sleep(100)
+          extraComp.push("minPlantVelocity")
+          extraComp.push("maxPlantVelocity")
+        }
+        if (this.disableLightVel) {
+          this.device.send([240, 11, 6, 0, 247])
+          sleep(100)
+          this.device.send([240, 11, 17, 0, 247])
+          sleep(100)
+          extraComp.push("minLightVelocity")
+          extraComp.push("maxLightVelocity")
+        }
+        if (this.randomLightVelocity) {
+          this.device.send([240, 11, 18, 127, 247])
+          sleep(100);
+        } else {
+          this.device.send([240, 11, 18, 0, 247])
+          sleep(100);
+        }
+
+
+        for (let comm in this.commands_data) {
+          if (!extraComp.includes(comm)) {
+
+            this.commands_data[comm].sendToMidi(this.device)
+            sleep(100);
+          }
         }
       }
 
@@ -234,6 +233,7 @@ export default  {
 
     saveData() {
       let state = []
+      console.log(1)
       for (let item in this.commands_data) {
         state.push(this.commands_data[item].toString())
       }
@@ -247,24 +247,24 @@ export default  {
 
       // eslint-disable-next-line no-unused-vars
       let value = {"commands": state, "extra": extra}
-      // this.db.createPreset(value)
+      this.db.updatePreset(localStorage.getItem(this.id), value)
     },
 
     async loadData() {
-      console.log(1)
       let preset = await this.db.getPreset(localStorage.getItem(this.id))
-      console.log(preset)
-      for (let item of JSON.parse(preset.data).commands) {
+      console.log(preset.data)
+
+      for (let item of preset.data.commands) {
         let value = JSON.parse(item)
         this.commands_data[value.name].set_value(value.value);
       }
-      let extra = JSON.parse(preset.data).extra
+      let extra = preset.data.extra
 
       this.randomPlantVelocity = extra.plant_humanize
       this.randomLightVelocity = extra.light_humanize
       this.disablePlantVel = extra.plant_mute
       this.disableLightVel = extra.light_mute
-
+      this.forceRerender++;
     },
     returnDefault() {
       this.randomPlantVelocity = false
@@ -413,7 +413,7 @@ export default  {
 
     }
   },
-  async created() {
+  created() {
     if (localStorage.getItem(this.id) === null) {
       localStorage.setItem(this.id, 1)
     }
@@ -421,15 +421,16 @@ export default  {
     this.db = new BiotronDb();
     this.db.openDB();
 
-    this.saveData();
-    let a = await this.db.getPreset(1);
-    console.log(a)
+    this.loadData();
 
-    // document.addEventListener( 'keyup', event => {
-    //   if (event.code === 'Enter') this.sendData();
-    // })
+    document.addEventListener( 'keyup', event => {
+      if (event.code === 'Enter') this.sendData();
+    })
 
-    // eslint-disable-next-line no-unused-vars
+    document.addEventListener( 'SysExChanged', () => {
+      console.log(1)
+    })
+
   },
 }
 </script>

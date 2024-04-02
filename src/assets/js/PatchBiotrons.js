@@ -105,6 +105,42 @@ export class BiotronDb {
                 };
             }
         });
+    }
 
+    updatePreset(id, data) {
+        if (!id || !data) return;
+
+        const request = indexedDB.open(this.DB_NAME, this.VERSION);
+
+        request.onerror = function (event) {
+            console.error("An error occurred with IndexedDB");
+            console.error(event);
+        };
+
+        request.onupgradeneeded = function () {
+            console.log("Update Page")
+        }
+
+        request.onsuccess = function () {
+            const db = request.result;
+            const transaction = db.transaction(this.STORE_NAME, "readwrite");
+            const store = transaction.objectStore(this.STORE_NAME);
+
+            let res;
+            if (id) {
+                res = store.get(parseInt(id));
+            } else {
+                res = store.getAll();
+            }
+
+            res.onsuccess = function () {
+                res.result.data = data
+                store.put(res.result)
+            }
+
+            transaction.oncomplete = function () {
+                db.close();
+            };
+        }
     }
 }

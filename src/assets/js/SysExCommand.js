@@ -11,7 +11,7 @@ export class SysExCommand {
 
     set_value(value) {
         this.value = value
-        // console.log(value) // Debug
+        document.dispatchEvent(new CustomEvent("SysExChanged"))
     }
 
     set_default() {
