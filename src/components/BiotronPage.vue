@@ -2,6 +2,7 @@
   <div @keyup.enter="this.sendData">
     <h1 class="text-center">Biotron change settings</h1>
     <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} "/>
+    <PatchSelector :patches="this.patches" :key="this.forceRerender" :page_id="this.id"/>
     <GroupOfCommands name-of-group="BPM">
       <template v-slot:objects>
         <SliderCommand command-label="Plant Bpm" :key="this.forceRerender" :command-object="this.commands_data.plantBpm"/>
@@ -170,9 +171,11 @@ import { saveAs } from '@progress/kendo-file-saver';
 import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
 import SwitchComponent from "@/components/system/Switch.vue";
 import { BiotronDb } from "@/assets/js/PatchBiotrons"
+import PatchSelector from "@/components/system/PatchSelector.vue";
 
 export default  {
   components: {
+    PatchSelector,
     SwitchComponent,
     SliderRangeCommand,
     FileDropArea,
@@ -233,9 +236,8 @@ export default  {
 
     saveData() {
       let state = []
-      console.log(1)
       for (let item in this.commands_data) {
-        state.push(this.commands_data[item].toString())
+        state.push(this.commands_data[item].toShortDict())
       }
 
       let extra = {
@@ -252,11 +254,14 @@ export default  {
 
     async loadData() {
       let preset = await this.db.getPreset(localStorage.getItem(this.id))
+      if (!preset) {
+        localStorage.setItem(this.id, 1)
+        preset = await this.db.getPreset(localStorage.getItem(this.id))
+      }
       console.log(preset.data)
 
       for (let item of preset.data.commands) {
-        let value = JSON.parse(item)
-        this.commands_data[value.name].set_value(value.value);
+        this.commands_data[item.name].set_value(item.value);
       }
       let extra = preset.data.extra
 
@@ -321,7 +326,8 @@ export default  {
       db: {
         type: BiotronDb
       },
-
+      patches: [],
+      patch_id: 0,
       commands_data: {
         "plantBpm": new SysExCommand( {
           name: "plantBpm",
@@ -413,8 +419,8 @@ export default  {
 
     }
   },
-  created() {
-    if (localStorage.getItem(this.id) === null) {
+  async created() {
+    if (localStorage.getItem(this.id) === undefined) {
       localStorage.setItem(this.id, 1)
     }
 
@@ -422,13 +428,15 @@ export default  {
     this.db.openDB();
 
     this.loadData();
-
+    this.patches = await this.db.getPreset();
+    this.patch_id = parseInt(localStorage.getItem(this.id));
+    this.forceRerender++;
     document.addEventListener( 'keyup', event => {
       if (event.code === 'Enter') this.sendData();
     })
 
     document.addEventListener( 'SysExChanged', () => {
-      console.log(1)
+      this.saveData()
     })
 
   },

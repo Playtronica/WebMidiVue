@@ -48,6 +48,13 @@ export class SysExCommand {
         }}`
     }
 
+    toShortDict() {
+        return {
+            name: this.name,
+            value: this.value
+        }
+    }
+
     check_params() {
         if (this.min_value > this.max_value) {
             return false;
