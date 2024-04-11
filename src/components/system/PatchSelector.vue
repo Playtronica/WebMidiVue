@@ -32,7 +32,9 @@
     watch: {
       id() {
         localStorage.setItem(this.page_id, this.id)
-        console.log(this.patches)
+
+        if (!this.patches) return;
+
         let current_item
 
         for (let patch of this.patches) {
@@ -44,6 +46,7 @@
 
         if (!current_item) {
           console.error("Paths with current id has not been found")
+          return
         }
 
         this.active_button_enabled = current_item.editable

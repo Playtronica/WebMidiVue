@@ -48,20 +48,15 @@
             <div class="row">
               <div class="col">
                   <label for="randomPlantVelSwitch">Humanize</label>
-                  <SwitchComponent id="randomPlantVelSwitch" :model-value="randomPlantVelocity" @update:model-value="newVal => {
-                    randomPlantVelocity = newVal
-                    forceRerender++
-                  }"/>
+                  <SwitchComponent id="randomPlantVelSwitch" :model-value="this.commands_data.randomPlantVelocity"/>
               </div>
               <div class="col">
                   <label for="plantVelDis">Mute</label>
-                  <SwitchComponent id="plantVelDis" :model-value="disablePlantVel" @update:model-value="newVal => {
-                    disablePlantVel = newVal
-                  }"/>
+                  <SwitchComponent id="plantVelDis" :model-value="commands_data.plant_no_velocity"/>
               </div>
             </div>
-            <div v-if="!disablePlantVel">
-              <div v-if="!randomPlantVelocity">
+            <div v-if="!commands_data.plant_no_velocity.value">
+              <div v-if="!this.commands_data.randomPlantVelocity.value">
                 <SliderCommand :key="this.forceRerender"
                                :command-object="commands_data.maxPlantVelocity"/>
               </div>
@@ -81,20 +76,15 @@
             <div class="row">
               <div class="col">
                 <label for="randomLightVelSwitch">Humanize</label>
-                <SwitchComponent id="randomLightVelSwitch" :model-value="randomLightVelocity" @update:model-value="newVal => {
-                    randomLightVelocity = newVal
-                    forceRerender++
-                  }"/>
+                <SwitchComponent id="randomLightVelSwitch" :model-value="this.commands_data.randomLightVelocity"/>
               </div>
               <div class="col">
                 <label for="lightVelDis">Mute</label>
-                <SwitchComponent id="lightVelDis" :model-value="disableLightVel" @update:model-value="newVal => {
-                    disableLightVel = newVal
-                  }"/>
+                <SwitchComponent id="lightVelDis" :model-value="commands_data.light_no_velocity"/>
               </div>
             </div>
-            <div class="row" v-if="!disableLightVel">
-              <div v-if="!randomLightVelocity">
+            <div class="row" v-if="!commands_data.light_no_velocity.value">
+              <div v-if="!this.commands_data.randomLightVelocity.value">
                 <SliderCommand :key="this.forceRerender"
                                           :command-object="commands_data.maxLightVelocity"/>
               </div>
@@ -175,6 +165,7 @@ import PatchSelector from "@/components/system/PatchSelector.vue";
 
 export default  {
   components: {
+    // eslint-disable-next-line vue/no-unused-components
     PatchSelector,
     SwitchComponent,
     SliderRangeCommand,
@@ -220,8 +211,6 @@ export default  {
           this.device.send([240, 11, 18, 0, 247])
           sleep(100);
         }
-
-
         for (let comm in this.commands_data) {
           if (!extraComp.includes(comm)) {
 
@@ -240,16 +229,7 @@ export default  {
         state.push(this.commands_data[item].toShortDict())
       }
 
-      let extra = {
-        "plant_humanize": this.randomPlantVelocity,
-        "light_humanize": this.randomLightVelocity,
-        "plant_mute": this.disablePlantVel,
-        "light_mute": this.disableLightVel
-      }
-
-      // eslint-disable-next-line no-unused-vars
-      let value = {"commands": state, "extra": extra}
-      this.db.updatePreset(localStorage.getItem(this.id), value)
+      this.db.updatePreset(localStorage.getItem(this.id), state)
     },
 
     async loadData() {
@@ -258,17 +238,12 @@ export default  {
         localStorage.setItem(this.id, 1)
         preset = await this.db.getPreset(localStorage.getItem(this.id))
       }
-      console.log(preset.data)
+      console.log(preset)
 
-      for (let item of preset.data.commands) {
+      for (let item of preset.data) {
         this.commands_data[item.name].set_value(item.value);
       }
-      let extra = preset.data.extra
 
-      this.randomPlantVelocity = extra.plant_humanize
-      this.randomLightVelocity = extra.light_humanize
-      this.disablePlantVel = extra.plant_mute
-      this.disableLightVel = extra.light_mute
       this.forceRerender++;
     },
     returnDefault() {
@@ -287,14 +262,7 @@ export default  {
         state.push(this.commands_data[item].toString())
       }
 
-      let extra = {
-        "plant_humanize": this.randomPlantVelocity,
-        "light_humanize": this.randomLightVelocity,
-        "plant_mute": this.disablePlantVel,
-        "light_mute": this.disableLightVel
-      }
-
-      let value = {"commands": state, "extra": extra}
+      let value = {"commands": state}
       let myFile = new File([JSON.stringify(value)], "biotron_preset.txt",
           {type: "text/plain;charset=utf-8"})
       saveAs(myFile, "biotron_preset.txt");
@@ -307,8 +275,6 @@ export default  {
       let extra = JSON.parse(localStorage.getItem(this.id)).extra
       this.randomPlantVelocity = extra.plant_humanize
       this.randomLightVelocity = extra.light_humanize
-      this.disablePlantVel = extra.plant_mute
-      this.disableLightVel = extra.light_mute
       this.forceRerender += 1
     },
   },
@@ -319,10 +285,7 @@ export default  {
         "Majpen", "Diminished"],
       device: null,
       forceRerender: 0,
-      disablePlantVel: false,
-      disableLightVel: false,
-      randomPlantVelocity: false,
-      randomLightVelocity: false,
+
       db: {
         type: BiotronDb
       },
@@ -414,7 +377,26 @@ export default  {
           number_command: 14,
           default_value: 48,
         }),
-
+        "plant_no_velocity": new SysExCommand({
+          name: "plant_no_velocity",
+          default_value: 0,
+          sendable: false,
+        }),
+        "light_no_velocity": new SysExCommand({
+          name: "light_no_velocity",
+          default_value: 0,
+          sendable: false,
+        }),
+        "randomPlantVelocity": new SysExCommand({
+          name: "randomPlantVelocity",
+          default_value: 0,
+          sendable: false,
+        }),
+        "randomLightVelocity": new SysExCommand({
+          name: "randomLightVelocity",
+          default_value: 0,
+          sendable: false,
+        }),
       },
 
     }
@@ -425,9 +407,10 @@ export default  {
     }
 
     this.db = new BiotronDb();
-    this.db.openDB();
+    await this.db.openDB();
 
-    this.loadData();
+    await this.loadData()
+
     this.patches = await this.db.getPreset();
     this.patch_id = parseInt(localStorage.getItem(this.id));
     this.forceRerender++;

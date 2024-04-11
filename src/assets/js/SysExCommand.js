@@ -8,6 +8,7 @@ export class SysExCommand {
     min_value;
     max_value;
     step;
+    sendable;
 
     set_value(value) {
         this.value = value
@@ -24,7 +25,8 @@ export class SysExCommand {
                     min_value = 0,
                     max_value = 127,
                     step = 1,
-                    default_value = 0
+                    default_value = 0,
+                    sendable = true
                 }
     ) {
         if (number_command === null) throw "Number Command is null";
@@ -36,6 +38,7 @@ export class SysExCommand {
         this.max_value = max_value;
         this.step = step;
         this.default_value = default_value
+        this.sendable = sendable
     }
 
     toString() {
@@ -69,6 +72,7 @@ export class SysExCommand {
     }
 
     sendToMidi(device) {
+        if (!this.sendable) return;
         if (!this.check_params()) return;
 
         let sys_ex_message = [0xF0]
