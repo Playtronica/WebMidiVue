@@ -40,8 +40,10 @@ export default {
     update_oBarValues(e) {
       this.minValue = e.minValue;
       this.maxValue = e.maxValue;
-
     },
+    changed() {
+      document.dispatchEvent(new CustomEvent('InputChanged'))
+    }
   },
   mounted() {
     this.minValue = this.minCommandObject.value;
@@ -58,12 +60,12 @@ export default {
     <label for="value_input">{{ this.commandLabel }}</label>
       <div class="row">
         <div class="col">
-          <input type="number" id="value_input_min" class="form-control"
+          <input type="number" id="value_input_min" class="form-control" @input="this.changed"
                  v-model="this.minValue" :min="this.minCommandObject.min_value" :max="this.minCommandObject.max_value" />
         </div>
         -
         <div class="col">
-          <input type="number" id="value_input_max" class="form-control"
+          <input type="number" id="value_input_max" class="form-control" @input="this.changed"
                  v-model="this.maxValue" :min="this.minCommandObject.min_value" :max="this.maxCommandObject.max_value" />
         </div>
       </div>

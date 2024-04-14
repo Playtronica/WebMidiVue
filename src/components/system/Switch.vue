@@ -3,7 +3,7 @@
     <div class="col w-100">
       <label class="switch">
         <input id="checkbox_input" type="checkbox" :checked="modelValue.value"
-               @click="modelValue.set_value($event.target.checked)">
+               @click="modelValue.set_value($event.target.checked)" @input="this.changed">
         <span class="slider round"></span>
       </label>
     </div>
@@ -21,9 +21,10 @@ export default {
     }
   },
   emits: ["update:modelValue"],
-  mounted() {
-    console.log("Switch State")
-    console.log(this.modelValue)
+  methods: {
+    changed() {
+      document.dispatchEvent(new CustomEvent('InputChanged'))
+    }
   }
 }
 </script>

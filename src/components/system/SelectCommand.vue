@@ -20,6 +20,11 @@ export default {
       Value: 0
     }
   },
+  methods: {
+    changed() {
+      document.dispatchEvent(new CustomEvent('InputChanged'))
+    }
+  },
   watch: {
     Value() {
       this.commandObject.set_value(this.Value)
@@ -35,7 +40,7 @@ export default {
   <div class="row m-2">
     <label for="value_input">{{ this.commandLabel }}</label>
 
-    <select v-model="this.Value" id="scale" class="form-control">
+    <select v-model="this.Value" id="scale" class="form-control" @input="changed">
       <option v-for="(item, index) in this.listOfVariants" v-bind:key="index" :value="index">
         {{item}}
       </option>

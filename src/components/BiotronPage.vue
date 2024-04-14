@@ -219,8 +219,6 @@ export default  {
           }
         }
       }
-
-      this.saveData();
     },
 
     saveData() {
@@ -270,12 +268,16 @@ export default  {
     loadDataFromPreset(e) {
       for (let item of JSON.parse(e).commands) {
         let value = JSON.parse(item)
-        this.commands_data[value.name].set_value(value.value);
+        this.commands_data[value.name].set_value_quiet(value.value);
       }
+      this.saveData();
       let extra = JSON.parse(localStorage.getItem(this.id)).extra
       this.randomPlantVelocity = extra.plant_humanize
       this.randomLightVelocity = extra.light_humanize
       this.forceRerender += 1
+    },
+    patchChanged() {
+
     },
   },
   data() {
@@ -418,11 +420,12 @@ export default  {
       if (event.code === 'Enter') this.sendData();
     })
 
-    document.addEventListener( 'SysExChanged', () => {
-      this.saveData()
-    })
-
   },
+  mounted() {
+    document.addEventListener( 'InputChanged', () => {
+        this.patchChanged();
+    })
+  }
 }
 </script>
 
