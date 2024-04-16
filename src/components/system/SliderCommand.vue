@@ -53,7 +53,8 @@ export default {
 
     <input type="range" id="range_input" class="settings_input"
            v-model="this.Value" :min="this.commandObject.min_value" :max="this.commandObject.max_value"
-           :step="this.commandObject.step" @input="this.changed"/>
+           :step="this.commandObject.step"
+           @input="this.changed"/>
   </div>
 </template>
 

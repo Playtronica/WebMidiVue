@@ -25,27 +25,28 @@ export default {
     }
   },
   watch: {
-    minValue() {
-      if (this.minValue < this.minCommandObject.min_value) this.minValue = this.minCommandObject;
-      if (this.minValue > this.maxValue) this.minValue = this.maxValue;
-      this.minCommandObject.set_value(this.minValue);
-    },
-    maxValue() {
-      if (this.maxValue < this.minValue) this.maxValue = this.minValue;
-      if (this.maxValue > this.maxCommandObject.max_value) this.minValue = this.maxCommandObject.max_value;
-      this.maxCommandObject.set_value(this.maxValue);
-    }
   },
   methods: {
     update_oBarValues(e) {
       this.minValue = e.minValue;
       this.maxValue = e.maxValue;
+      this.updateValue()
+      document.dispatchEvent(new CustomEvent('InputChanged'))
     },
     changed() {
-      document.dispatchEvent(new CustomEvent('InputChanged'))
+
+    },
+    updateValue() {
+      if (this.minValue < this.minCommandObject.min_value) this.minValue = this.minCommandObject;
+      if (this.minValue > this.maxValue) this.minValue = this.maxValue;
+      this.minCommandObject.set_value(this.minValue);
+
+      if (this.maxValue < this.minValue) this.maxValue = this.minValue;
+      if (this.maxValue > this.maxCommandObject.max_value) this.minValue = this.maxCommandObject.max_value;
+      this.maxCommandObject.set_value(this.maxValue);
     }
   },
-  mounted() {
+  created() {
     this.minValue = this.minCommandObject.value;
     this.maxValue = this.maxCommandObject.value;
     if (this.minValue > this.maxValue) {
@@ -85,9 +86,5 @@ export default {
 </template>
 
 <style scoped>
-.settings_input {
-  width: 100%;
-}
-
 
 </style>

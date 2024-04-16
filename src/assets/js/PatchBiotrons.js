@@ -1,93 +1,16 @@
 import {toRaw} from "vue";
 
 
-export class BiotronDb {
+class Db {
     DB_NAME = "Playtronica_WebMIDI_db"
     STORE_NAME = "Biotron_Patches"
     VERSION = 1
-
     DEFAULT = {
-        "name": "Biotron Default Patch",
+        "name": "Test Patch",
         "saved": true,
         "editable": false,
-        "data": [
-        {
-            "name": "plantBpm",
-            "value": 60
-        },
-        {
-            "name": "lightBpm",
-            "value": 4
-        },
-        {
-            "name": "noteOffPercent",
-            "value": 100
-        },
-        {
-            "name": "noteDistance",
-            "value": 50
-        },
-        {
-            "name": "firstValue",
-            "value": 10
-        },
-        {
-            "name": "smoothness",
-            "value": 0
-        },
-        {
-            "name": "scale",
-            "value": 0
-        },
-        {
-            "name": "minPlantVelocity",
-            "value": 74
-        },
-        {
-            "name": "maxPlantVelocity",
-            "value": 75
-        },
-        {
-            "name": "minLightVelocity",
-            "value": 74
-        },
-        {
-            "name": "maxLightVelocity",
-            "value": 75
-        },
-        {
-            "name": "randomness",
-            "value": 0
-        },
-        {
-            "name": "same_note",
-            "value": 0
-        },
-        {
-            "name": "min_range_light_note",
-            "value": 24
-        },
-        {
-            "name": "max_range_light_note",
-            "value": 48
-        },
-        {
-            "name": "plant_no_velocity",
-            "value": 0
-        },
-        {
-            "name": "light_no_velocity",
-            "value": 0
-        },
-        {
-            "name": "randomPlantVelocity",
-            "value": 0
-        },
-        {
-            "name": "randomLightVelocity",
-            "value": 0
-        }
-    ]}
+        "data": []
+    }
 
     constructor() {
         const indexedDB =
@@ -128,7 +51,7 @@ export class BiotronDb {
         }
     }
 
-    createPreset(data, name) {
+    createPatch(data, name) {
         const request = indexedDB.open(this.DB_NAME, this.VERSION);
         let vm = this;
         request.onerror = function (event) {
@@ -167,7 +90,7 @@ export class BiotronDb {
         }
     }
 
-    async getPreset(id) {
+    async getPatch(id) {
         let vm = this;
         return new Promise(resolve => {
             const request = indexedDB.open(this.DB_NAME, this.VERSION);
@@ -205,18 +128,51 @@ export class BiotronDb {
         });
     }
 
-    async getUnsaved() {
-        let patches = await this.getPreset()
-        if (!patches.last.saved) {
-            return patches.last.id
+    async getUnsavedPatch() {
+        let patches = await this.getPatch()
+        if (!patches.at(-1).saved) {
+            return patches.at(-1).id
         }
 
-        this.createPreset(this.DEFAULT)
-        patches = await this.getPreset()
-        return patches.last.id
+        this.createPatch(toRaw(this.DEFAULT))
+        patches = await this.getPatch()
+        return patches.at(-1).id
     }
 
-    updatePreset(id, data) {
+    deletePatch(id) {
+        if (!id) return;
+        let vm = this;
+        const request = indexedDB.open(this.DB_NAME, this.VERSION);
+
+        request.onerror = function (event) {
+            console.error("An error occurred with IndexedDB");
+            console.error(event);
+        };
+
+        request.onupgradeneeded = function () {
+            console.log("Update Page")
+        }
+
+        request.onsuccess = function () {
+            const db = request.result;
+            const transaction = db.transaction(vm.STORE_NAME, "readwrite");
+            const store = transaction.objectStore(vm.STORE_NAME);
+
+            let res = store.delete(id);
+
+
+            res.onsuccess = function () {
+                console.log("Patch deleted")
+            }
+
+            transaction.oncomplete = function () {
+                db.close();
+            };
+        }
+    }
+
+
+    updatePatch(id, data) {
         if (!id || !data) return;
         let vm = this;
         const request = indexedDB.open(this.DB_NAME, this.VERSION);
@@ -252,4 +208,129 @@ export class BiotronDb {
             };
         }
     }
+
+    savePatch(id, name) {
+        if (!id || !name) return;
+        let vm = this;
+        const request = indexedDB.open(this.DB_NAME, this.VERSION);
+
+        request.onerror = function (event) {
+            console.error("An error occurred with IndexedDB");
+            console.error(event);
+        };
+
+        request.onupgradeneeded = function () {
+            console.log("Update Page")
+        }
+
+        request.onsuccess = function () {
+            const db = request.result;
+            const transaction = db.transaction(vm.STORE_NAME, "readwrite");
+            const store = transaction.objectStore(vm.STORE_NAME);
+
+            let res;
+            if (id) {
+                res = store.get(parseInt(id));
+            } else {
+                res = store.getAll();
+            }
+
+            res.onsuccess = function () {
+                res.result.name = name
+                res.result.saved = true
+                store.put(res.result)
+            }
+
+            transaction.oncomplete = function () {
+                db.close();
+            };
+        }
+    }
+}
+
+export class BiotronDb extends Db {
+    STORE_NAME = "Biotron_Patches"
+    VERSION = 1
+    DEFAULT = {
+        "name": "Biotron Default Patch",
+        "saved": true,
+        "editable": false,
+        "data": [
+            {
+                "name": "plantBpm",
+                "value": 60
+            },
+            {
+                "name": "lightBpm",
+                "value": 4
+            },
+            {
+                "name": "noteOffPercent",
+                "value": 100
+            },
+            {
+                "name": "noteDistance",
+                "value": 50
+            },
+            {
+                "name": "firstValue",
+                "value": 10
+            },
+            {
+                "name": "smoothness",
+                "value": 0
+            },
+            {
+                "name": "scale",
+                "value": 0
+            },
+            {
+                "name": "minPlantVelocity",
+                "value": 74
+            },
+            {
+                "name": "maxPlantVelocity",
+                "value": 75
+            },
+            {
+                "name": "minLightVelocity",
+                "value": 74
+            },
+            {
+                "name": "maxLightVelocity",
+                "value": 75
+            },
+            {
+                "name": "randomness",
+                "value": 0
+            },
+            {
+                "name": "same_note",
+                "value": 0
+            },
+            {
+                "name": "min_range_light_note",
+                "value": 24
+            },
+            {
+                "name": "max_range_light_note",
+                "value": 48
+            },
+            {
+                "name": "plant_no_velocity",
+                "value": 0
+            },
+            {
+                "name": "light_no_velocity",
+                "value": 0
+            },
+            {
+                "name": "randomPlantVelocity",
+                "value": 0
+            },
+            {
+                "name": "randomLightVelocity",
+                "value": 0
+            }
+        ]}
 }

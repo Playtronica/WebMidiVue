@@ -2,7 +2,7 @@
   <div @keyup.enter="this.sendData">
     <h1 class="text-center">Biotron change settings</h1>
     <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} "/>
-    <PatchSelector :patches="this.patches" :key="this.forceRerender" :page_id="this.id"/>
+    <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
     <GroupOfCommands name-of-group="BPM">
       <template v-slot:objects>
         <SliderCommand command-label="Plant Bpm" :key="this.forceRerender" :command-object="this.commands_data.plantBpm"/>
@@ -135,7 +135,7 @@
       </template>
     </GroupOfCommands>
     <button @click="this.sendData" :disabled="this.device === null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
-    <button @click="this.returnDefault" class="btn btn-primary mb-1" style="width: 70%">Set Default</button>
+<!--    <button @click="this.returnDefault" class="btn btn-primary mb-1" style="width: 70%">Set Default</button>-->
     <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
     <FileDropArea name="Drop Preset Here" @get_drop="(e) => loadDataFromPreset(e)"/>
     <GroupOfCommands>
@@ -188,7 +188,7 @@ export default  {
           this.device.send([240, 11, 16, 0, 247])
           sleep(100);
         }
-        if (this.disablePlantVel) {
+        if (this.commands_data.plant_no_velocity) {
           this.device.send([240, 11, 5, 0, 247])
           sleep(100)
           this.device.send([240, 11, 15, 0, 247])
@@ -196,7 +196,7 @@ export default  {
           extraComp.push("minPlantVelocity")
           extraComp.push("maxPlantVelocity")
         }
-        if (this.disableLightVel) {
+        if (this.commands_data.light_no_velocity) {
           this.device.send([240, 11, 6, 0, 247])
           sleep(100)
           this.device.send([240, 11, 17, 0, 247])
@@ -227,16 +227,15 @@ export default  {
         state.push(this.commands_data[item].toShortDict())
       }
 
-      this.db.updatePreset(localStorage.getItem(this.id), state)
+      this.db.updatePatch(localStorage.getItem(this.id), state)
     },
 
     async loadData() {
-      let preset = await this.db.getPreset(localStorage.getItem(this.id))
+      let preset = await this.db.getPatch(localStorage.getItem(this.id))
       if (!preset) {
         localStorage.setItem(this.id, 1)
-        preset = await this.db.getPreset(localStorage.getItem(this.id))
+        preset = await this.db.getPatch(localStorage.getItem(this.id))
       }
-      console.log(preset)
 
       for (let item of preset.data) {
         this.commands_data[item.name].set_value(item.value);
@@ -257,7 +256,7 @@ export default  {
     createPreset() {
       let state = []
       for (let item in this.commands_data) {
-        state.push(this.commands_data[item].toString())
+        state.push(this.commands_data[item].toShortDict())
       }
 
       let value = {"commands": state}
@@ -265,19 +264,23 @@ export default  {
           {type: "text/plain;charset=utf-8"})
       saveAs(myFile, "biotron_preset.txt");
     },
-    loadDataFromPreset(e) {
+    async loadDataFromPreset(e) {
+      await this.patchChanged();
       for (let item of JSON.parse(e).commands) {
-        let value = JSON.parse(item)
-        this.commands_data[value.name].set_value_quiet(value.value);
+        this.commands_data[item.name].set_value(item.value);
       }
       this.saveData();
-      let extra = JSON.parse(localStorage.getItem(this.id)).extra
-      this.randomPlantVelocity = extra.plant_humanize
-      this.randomLightVelocity = extra.light_humanize
-      this.forceRerender += 1
+      this.forceRerender++;
     },
-    patchChanged() {
+    async patchChanged() {
+      let patch_id = parseInt(localStorage.getItem(this.id));
 
+      if (this.patches.find(item => item.id === patch_id).saved) {
+        patch_id = await this.db.getUnsavedPatch();
+        this.patches = await this.db.getPatch();
+        localStorage.setItem(this.id, patch_id);
+      }
+      this.saveData();
     },
   },
   data() {
@@ -287,7 +290,7 @@ export default  {
         "Majpen", "Diminished"],
       device: null,
       forceRerender: 0,
-
+      patchRerender: 0,
       db: {
         type: BiotronDb
       },
@@ -405,25 +408,43 @@ export default  {
   },
   async created() {
     if (localStorage.getItem(this.id) === undefined) {
-      localStorage.setItem(this.id, 1)
+      localStorage.setItem(this.id, "1")
     }
 
     this.db = new BiotronDb();
     await this.db.openDB();
 
-    await this.loadData()
-
-    this.patches = await this.db.getPreset();
+    this.patches = await this.db.getPatch();
     this.patch_id = parseInt(localStorage.getItem(this.id));
+
+    await this.loadData()
     this.forceRerender++;
-    document.addEventListener( 'keyup', event => {
-      if (event.code === 'Enter') this.sendData();
-    })
+
 
   },
   mounted() {
-    document.addEventListener( 'InputChanged', () => {
-        this.patchChanged();
+    document.addEventListener( 'keyup', event => {
+      if (event.code === 'Enter') this.sendData();
+    })
+    document.addEventListener( 'InputChanged', async () => {
+      await this.patchChanged();
+      this.patchRerender++;
+    })
+    document.addEventListener( 'PatchChanged', async () => {
+      await this.loadData();
+      this.forceRerender++;
+    })
+    document.addEventListener("PatchSave",  async (ev) => {
+      this.db.savePatch(localStorage.getItem(this.id), ev.detail)
+      this.patches = await this.db.getPatch()
+      this.patchRerender++;
+    })
+    document.addEventListener( 'PatchDelete', async () => {
+      this.db.deletePatch(parseInt(localStorage.getItem(this.id)))
+      localStorage.setItem(this.id, "1")
+      this.patches = await this.db.getPatch()
+      await this.loadData();
+      this.forceRerender++;
     })
   }
 }
