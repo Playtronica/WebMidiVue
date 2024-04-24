@@ -2,6 +2,7 @@
 
 <template>
     <h1 class="text-center">Scala Loader</h1>
+    <h1 class="text-center" style="color: red"> This page is being developed </h1>
     <h2>Create your own scala file or choose from list on <a href="https://isartum.net/leimma">Leimma</a></h2>
     <DeviceSelector regex-name="" @device_changed="(x) => {this.device = x} "/>
     <div class="row">

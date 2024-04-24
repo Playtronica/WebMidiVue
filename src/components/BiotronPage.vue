@@ -2,6 +2,7 @@
   <div @keyup.enter="this.sendData">
     <h1 class="text-center">Biotron change settings</h1>
     <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} "/>
+    <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
     <GroupOfCommands name-of-group="BPM">
       <template v-slot:objects>
         <SliderCommand command-label="Plant Bpm" :key="this.forceRerender" :command-object="this.commands_data.plantBpm"/>
@@ -47,20 +48,15 @@
             <div class="row">
               <div class="col">
                   <label for="randomPlantVelSwitch">Humanize</label>
-                  <SwitchComponent id="randomPlantVelSwitch" :model-value="randomPlantVelocity" @update:model-value="newVal => {
-                    randomPlantVelocity = newVal
-                    forceRerender++
-                  }"/>
+                  <SwitchComponent id="randomPlantVelSwitch" :model-value="this.commands_data.randomPlantVelocity"/>
               </div>
               <div class="col">
                   <label for="plantVelDis">Mute</label>
-                  <SwitchComponent id="plantVelDis" :model-value="disablePlantVel" @update:model-value="newVal => {
-                    disablePlantVel = newVal
-                  }"/>
+                  <SwitchComponent id="plantVelDis" :model-value="commands_data.plant_no_velocity"/>
               </div>
             </div>
-            <div v-if="!disablePlantVel">
-              <div v-if="!randomPlantVelocity">
+            <div v-if="!commands_data.plant_no_velocity.value">
+              <div v-if="!this.commands_data.randomPlantVelocity.value">
                 <SliderCommand :key="this.forceRerender"
                                :command-object="commands_data.maxPlantVelocity"/>
               </div>
@@ -80,20 +76,15 @@
             <div class="row">
               <div class="col">
                 <label for="randomLightVelSwitch">Humanize</label>
-                <SwitchComponent id="randomLightVelSwitch" :model-value="randomLightVelocity" @update:model-value="newVal => {
-                    randomLightVelocity = newVal
-                    forceRerender++
-                  }"/>
+                <SwitchComponent id="randomLightVelSwitch" :model-value="this.commands_data.randomLightVelocity"/>
               </div>
               <div class="col">
                 <label for="lightVelDis">Mute</label>
-                <SwitchComponent id="lightVelDis" :model-value="disableLightVel" @update:model-value="newVal => {
-                    disableLightVel = newVal
-                  }"/>
+                <SwitchComponent id="lightVelDis" :model-value="commands_data.light_no_velocity"/>
               </div>
             </div>
-            <div class="row" v-if="!disableLightVel">
-              <div v-if="!randomLightVelocity">
+            <div class="row" v-if="!commands_data.light_no_velocity.value">
+              <div v-if="!this.commands_data.randomLightVelocity.value">
                 <SliderCommand :key="this.forceRerender"
                                           :command-object="commands_data.maxLightVelocity"/>
               </div>
@@ -144,7 +135,7 @@
       </template>
     </GroupOfCommands>
     <button @click="this.sendData" :disabled="this.device === null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
-    <button @click="this.returnDefault" class="btn btn-primary mb-1" style="width: 70%">Set Default</button>
+<!--    <button @click="this.returnDefault" class="btn btn-primary mb-1" style="width: 70%">Set Default</button>-->
     <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
     <FileDropArea name="Drop Preset Here" @get_drop="(e) => loadDataFromPreset(e)"/>
     <GroupOfCommands>
@@ -169,9 +160,13 @@ import FileDropArea from "@/components/system/FileDropArea.vue";
 import { saveAs } from '@progress/kendo-file-saver';
 import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
 import SwitchComponent from "@/components/system/Switch.vue";
+import { BiotronDb } from "@/assets/js/PatchBiotrons"
+import PatchSelector from "@/components/system/PatchSelector.vue";
 
 export default  {
   components: {
+    // eslint-disable-next-line vue/no-unused-components
+    PatchSelector,
     SwitchComponent,
     SliderRangeCommand,
     FileDropArea,
@@ -180,85 +175,73 @@ export default  {
     id: {
       type: String,
       required: true,
-    }
+    },
   },
   methods: {
     sendData() {
-      if (!this.device) return;
-      let extraComp = []
-      if (this.randomPlantVelocity) {
-        this.device.send([240, 11, 16, 127, 247])
-        sleep(100);
-      }
-      else {
-        this.device.send([240, 11, 16, 0, 247])
-        sleep(100);
-      }
-      if (this.disablePlantVel) {
-        this.device.send([240, 11, 5, 0, 247])
-        sleep(100)
-        this.device.send([240, 11, 15, 0, 247])
-        sleep(100)
-        extraComp.push("minPlantVelocity")
-        extraComp.push("maxPlantVelocity")
-      }
-      if (this.disableLightVel) {
-        this.device.send([240, 11, 6, 0, 247])
-        sleep(100)
-        this.device.send([240, 11, 17, 0, 247])
-        sleep(100)
-        extraComp.push("minLightVelocity")
-        extraComp.push("maxLightVelocity")
-      }
-      if (this.randomLightVelocity) {
-        this.device.send([240, 11, 18, 127, 247])
-        sleep(100);
-      }
-      else {
-        this.device.send([240, 11, 18, 0, 247])
-        sleep(100);
-      }
-
-
-      for (let comm in this.commands_data) {
-        if (!extraComp.includes(comm)) {
-
-          this.commands_data[comm].sendToMidi(this.device)
+      if (this.device) {
+        let extraComp = []
+        if (this.randomPlantVelocity) {
+          this.device.send([240, 11, 16, 127, 247])
+          sleep(100);
+        } else {
+          this.device.send([240, 11, 16, 0, 247])
           sleep(100);
         }
-      }
+        if (this.commands_data.plant_no_velocity) {
+          this.device.send([240, 11, 5, 0, 247])
+          sleep(100)
+          this.device.send([240, 11, 15, 0, 247])
+          sleep(100)
+          extraComp.push("minPlantVelocity")
+          extraComp.push("maxPlantVelocity")
+        }
+        if (this.commands_data.light_no_velocity) {
+          this.device.send([240, 11, 6, 0, 247])
+          sleep(100)
+          this.device.send([240, 11, 17, 0, 247])
+          sleep(100)
+          extraComp.push("minLightVelocity")
+          extraComp.push("maxLightVelocity")
+        }
+        if (this.randomLightVelocity) {
+          this.device.send([240, 11, 18, 127, 247])
+          sleep(100);
+        } else {
+          this.device.send([240, 11, 18, 0, 247])
+          sleep(100);
+        }
+        for (let comm in this.commands_data) {
+          if (!extraComp.includes(comm)) {
 
-      this.saveData();
+            this.commands_data[comm].sendToMidi(this.device)
+            sleep(100);
+          }
+        }
+      }
     },
+
     saveData() {
       let state = []
       for (let item in this.commands_data) {
-        state.push(this.commands_data[item].toString())
+        state.push(this.commands_data[item].toShortDict())
       }
 
-      let extra = {
-        "plant_humanize": this.randomPlantVelocity,
-        "light_humanize": this.randomLightVelocity,
-        "plant_mute": this.disablePlantVel,
-        "light_mute": this.disableLightVel
-      }
-
-      let value = {"commands": state, "extra": extra}
-      localStorage.setItem(this.id, JSON.stringify(value))
+      this.db.updatePatch(localStorage.getItem(this.id), state)
     },
-    loadData() {
-      if (localStorage.getItem(this.id) === null) this.saveData();
 
-      for (let item of JSON.parse(localStorage.getItem(this.id)).commands) {
-        let value = JSON.parse(item)
-        this.commands_data[value.name].set_value(value.value);
+    async loadData() {
+      let preset = await this.db.getPatch(localStorage.getItem(this.id))
+      if (!preset) {
+        localStorage.setItem(this.id, 1)
+        preset = await this.db.getPatch(localStorage.getItem(this.id))
       }
-      let extra = JSON.parse(localStorage.getItem(this.id)).extra
-      this.randomPlantVelocity = extra.plant_humanize
-      this.randomLightVelocity = extra.light_humanize
-      this.disablePlantVel = extra.plant_mute
-      this.disableLightVel = extra.light_mute
 
+      for (let item of preset.data) {
+        this.commands_data[item.name].set_value(item.value);
+      }
+
+      this.forceRerender++;
     },
     returnDefault() {
       this.randomPlantVelocity = false
@@ -273,33 +256,32 @@ export default  {
     createPreset() {
       let state = []
       for (let item in this.commands_data) {
-        state.push(this.commands_data[item].toString())
+        state.push(this.commands_data[item].toShortDict())
       }
 
-      let extra = {
-        "plant_humanize": this.randomPlantVelocity,
-        "light_humanize": this.randomLightVelocity,
-        "plant_mute": this.disablePlantVel,
-        "light_mute": this.disableLightVel
-      }
-
-      let value = {"commands": state, "extra": extra}
+      let value = {"commands": state}
       let myFile = new File([JSON.stringify(value)], "biotron_preset.txt",
           {type: "text/plain;charset=utf-8"})
       saveAs(myFile, "biotron_preset.txt");
     },
-    loadDataFromPreset(e) {
+    async loadDataFromPreset(e) {
+      await this.patchChanged();
       for (let item of JSON.parse(e).commands) {
-        let value = JSON.parse(item)
-        this.commands_data[value.name].set_value(value.value);
+        this.commands_data[item.name].set_value(item.value);
       }
-      let extra = JSON.parse(localStorage.getItem(this.id)).extra
-      this.randomPlantVelocity = extra.plant_humanize
-      this.randomLightVelocity = extra.light_humanize
-      this.disablePlantVel = extra.plant_mute
-      this.disableLightVel = extra.light_mute
-      this.forceRerender += 1
-    }
+      this.saveData();
+      this.forceRerender++;
+    },
+    async patchChanged() {
+      let patch_id = parseInt(localStorage.getItem(this.id));
+
+      if (this.patches.find(item => item.id === patch_id).saved) {
+        patch_id = await this.db.getUnsavedPatch();
+        this.patches = await this.db.getPatch();
+        localStorage.setItem(this.id, patch_id);
+      }
+      this.saveData();
+    },
   },
   data() {
     return {
@@ -308,11 +290,12 @@ export default  {
         "Majpen", "Diminished"],
       device: null,
       forceRerender: 0,
-      disablePlantVel: false,
-      disableLightVel: false,
-      randomPlantVelocity: false,
-      randomLightVelocity: false,
-
+      patchRerender: 0,
+      db: {
+        type: BiotronDb
+      },
+      patches: [],
+      patch_id: 0,
       commands_data: {
         "plantBpm": new SysExCommand( {
           name: "plantBpm",
@@ -399,20 +382,71 @@ export default  {
           number_command: 14,
           default_value: 48,
         }),
-
+        "plant_no_velocity": new SysExCommand({
+          name: "plant_no_velocity",
+          default_value: 0,
+          sendable: false,
+        }),
+        "light_no_velocity": new SysExCommand({
+          name: "light_no_velocity",
+          default_value: 0,
+          sendable: false,
+        }),
+        "randomPlantVelocity": new SysExCommand({
+          name: "randomPlantVelocity",
+          default_value: 0,
+          sendable: false,
+        }),
+        "randomLightVelocity": new SysExCommand({
+          name: "randomLightVelocity",
+          default_value: 0,
+          sendable: false,
+        }),
       },
 
     }
   },
-  created() {
-    if (localStorage.getItem(this.id) === null) this.saveData();
-    else this.loadData();
+  async created() {
+    if (localStorage.getItem(this.id) === undefined) {
+      localStorage.setItem(this.id, "1")
+    }
 
+    this.db = new BiotronDb();
+    await this.db.openDB();
+
+    this.patches = await this.db.getPatch();
+    this.patch_id = parseInt(localStorage.getItem(this.id));
+
+    await this.loadData()
+    this.forceRerender++;
+
+
+  },
+  mounted() {
     document.addEventListener( 'keyup', event => {
       if (event.code === 'Enter') this.sendData();
     })
-
-  },
+    document.addEventListener( 'InputChanged', async () => {
+      await this.patchChanged();
+      this.patchRerender++;
+    })
+    document.addEventListener( 'PatchChanged', async () => {
+      await this.loadData();
+      this.forceRerender++;
+    })
+    document.addEventListener("PatchSave",  async (ev) => {
+      this.db.savePatch(localStorage.getItem(this.id), ev.detail)
+      this.patches = await this.db.getPatch()
+      this.patchRerender++;
+    })
+    document.addEventListener( 'PatchDelete', async () => {
+      this.db.deletePatch(parseInt(localStorage.getItem(this.id)))
+      localStorage.setItem(this.id, "1")
+      this.patches = await this.db.getPatch()
+      await this.loadData();
+      this.forceRerender++;
+    })
+  }
 }
 </script>
 

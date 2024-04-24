@@ -25,25 +25,28 @@ export default {
     }
   },
   watch: {
-    minValue() {
-      if (this.minValue < this.minCommandObject.min_value) this.minValue = this.minCommandObject;
-      if (this.minValue > this.maxValue) this.minValue = this.maxValue;
-      this.minCommandObject.set_value(this.minValue);
-    },
-    maxValue() {
-      if (this.maxValue < this.minValue) this.maxValue = this.minValue;
-      if (this.maxValue > this.maxCommandObject.max_value) this.minValue = this.maxCommandObject.max_value;
-      this.maxCommandObject.set_value(this.maxValue);
-    }
   },
   methods: {
     update_oBarValues(e) {
       this.minValue = e.minValue;
       this.maxValue = e.maxValue;
+      this.updateValue()
+      document.dispatchEvent(new CustomEvent('InputChanged'))
+    },
+    changed() {
 
     },
+    updateValue() {
+      if (this.minValue < this.minCommandObject.min_value) this.minValue = this.minCommandObject;
+      if (this.minValue > this.maxValue) this.minValue = this.maxValue;
+      this.minCommandObject.set_value(this.minValue);
+
+      if (this.maxValue < this.minValue) this.maxValue = this.minValue;
+      if (this.maxValue > this.maxCommandObject.max_value) this.minValue = this.maxCommandObject.max_value;
+      this.maxCommandObject.set_value(this.maxValue);
+    }
   },
-  mounted() {
+  created() {
     this.minValue = this.minCommandObject.value;
     this.maxValue = this.maxCommandObject.value;
     if (this.minValue > this.maxValue) {
@@ -58,12 +61,12 @@ export default {
     <label for="value_input">{{ this.commandLabel }}</label>
       <div class="row">
         <div class="col">
-          <input type="number" id="value_input_min" class="form-control"
+          <input type="number" id="value_input_min" class="form-control" @input="this.changed"
                  v-model="this.minValue" :min="this.minCommandObject.min_value" :max="this.minCommandObject.max_value" />
         </div>
         -
         <div class="col">
-          <input type="number" id="value_input_max" class="form-control"
+          <input type="number" id="value_input_max" class="form-control" @input="this.changed"
                  v-model="this.maxValue" :min="this.minCommandObject.min_value" :max="this.maxCommandObject.max_value" />
         </div>
       </div>
@@ -83,9 +86,5 @@ export default {
 </template>
 
 <style scoped>
-.settings_input {
-  width: 100%;
-}
-
 
 </style>

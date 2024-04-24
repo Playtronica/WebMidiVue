@@ -1,4 +1,4 @@
-# untitled
+# WebMidiVue
 
 ## Project setup
 ```
