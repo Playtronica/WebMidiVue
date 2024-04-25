@@ -181,14 +181,14 @@ export default  {
     sendData() {
       if (this.device) {
         let extraComp = []
-        if (this.randomPlantVelocity) {
+        if (this.commands_data.randomPlantVelocity.value) {
           this.device.send([240, 11, 16, 127, 247])
           sleep(100);
         } else {
           this.device.send([240, 11, 16, 0, 247])
           sleep(100);
         }
-        if (this.commands_data.plant_no_velocity) {
+        if (this.commands_data.plant_no_velocity.value) {
           this.device.send([240, 11, 5, 0, 247])
           sleep(100)
           this.device.send([240, 11, 15, 0, 247])
@@ -196,7 +196,7 @@ export default  {
           extraComp.push("minPlantVelocity")
           extraComp.push("maxPlantVelocity")
         }
-        if (this.commands_data.light_no_velocity) {
+        if (this.commands_data.light_no_velocity.value) {
           this.device.send([240, 11, 6, 0, 247])
           sleep(100)
           this.device.send([240, 11, 17, 0, 247])
@@ -204,7 +204,7 @@ export default  {
           extraComp.push("minLightVelocity")
           extraComp.push("maxLightVelocity")
         }
-        if (this.randomLightVelocity) {
+        if (this.commands_data.randomLightVelocity.value) {
           this.device.send([240, 11, 18, 127, 247])
           sleep(100);
         } else {
@@ -244,8 +244,6 @@ export default  {
       this.forceRerender++;
     },
     returnDefault() {
-      this.randomPlantVelocity = false
-      this.randomLightVelocity = false
       for (let comm in this.commands_data) {
         this.commands_data[comm].set_default();
       }
