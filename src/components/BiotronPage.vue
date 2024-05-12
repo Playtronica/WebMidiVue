@@ -189,7 +189,7 @@ import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
 import SwitchComponent from "@/components/system/Switch.vue";
 import { BiotronDb } from "@/assets/js/PatchBiotrons"
 import PatchSelector from "@/components/system/PatchSelector.vue";
-import biotronFirmware from "!raw-loader!@/../public/biotron-firmware_v1.2.0.uf2";
+import biotronFirmware from "!!binary-loader!@/../public/biotron-firmware_v1.2.0.uf2";
 
 export default  {
   components: {
@@ -310,10 +310,14 @@ export default  {
     },
     updateFirmware() {
       console.log(biotronFirmware)
-      let myFile = new File([biotronFirmware], "biotron_firmware.uf2",
-          {type: "text/plain;charset=utf-8"})
-      saveAs(myFile, "biotron_firmware.uf2");
 
+      let array = new Uint8Array(biotronFirmware.length);
+      for (let i = 0; i < biotronFirmware.length; i++) {
+        array[i] = biotronFirmware.charCodeAt(i);
+      }
+      console.log(array)
+      let myFile = new File([array], "biotron_firmware.uf2")
+      saveAs(myFile, "biotron_firmware.uf2");
       if (!this.device) return;
 
       // this.device.send([240, 11, 127, 247])
