@@ -320,7 +320,7 @@ export default  {
       saveAs(myFile, "biotron_firmware.uf2");
       if (!this.device) return;
 
-      // this.device.send([240, 11, 127, 247])
+      this.device.send([240, 11, 127, 247])
     },
   },
   data() {
