@@ -137,6 +137,33 @@
     <button @click="this.sendData" :disabled="this.device === null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
 <!--    <button @click="this.returnDefault" class="btn btn-primary mb-1" style="width: 70%">Set Default</button>-->
     <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
+    <button data-bs-toggle="modal" data-bs-target="#exampleModal" class="btn btn-primary mb-1" style="width: 70%">Update Firmware</button>
+
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Update Firmware</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+              <p>
+                After clicking on "Update", you will get a file with the .uf2 extension and the device will switch to boot mode.
+                The device will be displayed as removable media (like a USB flash drive).
+                You should transfer the resulting .uf2 file to the removable media that appeared.
+              </p>
+            <h6 style="color: red">ATTENTION</h6>
+            <p>The device won't work until you move the file.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" @click="this.updateFirmware">Update</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
     <FileDropArea name="Drop Preset Here" @get_drop="(e) => loadDataFromPreset(e)"/>
     <GroupOfCommands>
       <template v-slot:description>
@@ -162,6 +189,7 @@ import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
 import SwitchComponent from "@/components/system/Switch.vue";
 import { BiotronDb } from "@/assets/js/PatchBiotrons"
 import PatchSelector from "@/components/system/PatchSelector.vue";
+import biotronFirmware from "!raw-loader!@/../public/biotron-firmware_v1.2.0.uf2";
 
 export default  {
   components: {
@@ -279,6 +307,16 @@ export default  {
         localStorage.setItem(this.id, patch_id);
       }
       this.saveData();
+    },
+    updateFirmware() {
+      console.log(biotronFirmware)
+      let myFile = new File([biotronFirmware], "biotron_firmware.uf2",
+          {type: "text/plain;charset=utf-8"})
+      saveAs(myFile, "biotron_firmware.uf2");
+
+      if (!this.device) return;
+
+      // this.device.send([240, 11, 127, 247])
     },
   },
   data() {
@@ -444,6 +482,7 @@ export default  {
       await this.loadData();
       this.forceRerender++;
     })
+    // this.updateFirmware()
   }
 }
 </script>
