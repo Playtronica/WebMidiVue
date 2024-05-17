@@ -125,7 +125,9 @@
     </GroupOfCommands>
     <GroupOfCommands name-of-group="Light Notes Range">
       <template v-slot:objects>
-        <SliderRangeCommand
+        <label for="light_pitch_mode">Atonality</label>
+        <SwitchComponent id="light_pitch_mode" :model-value="this.commands_data.light_pitch_mode"/>
+        <SliderRangeCommand v-if="!this.commands_data.light_pitch_mode.value"
             :key="this.forceRerender"
             :max-command-object="commands_data.max_range_light_note"
             :min-command-object="commands_data.min_range_light_note"/>
@@ -421,6 +423,11 @@ export default  {
           name: "max_range_light_note",
           number_command: 14,
           default_value: 48,
+        }),
+        "light_pitch_mode": new SysExCommand({
+          name: "light_pitch_mode",
+          number_command: 19,
+          default_value: 0,
         }),
         "plant_no_velocity": new SysExCommand({
           name: "plant_no_velocity",
