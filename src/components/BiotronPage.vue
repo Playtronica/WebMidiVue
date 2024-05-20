@@ -245,7 +245,7 @@ export default  {
           if (!extraComp.includes(comm)) {
 
             this.commands_data[comm].sendToMidi(this.device)
-            sleep(100);
+            sleep(50);
           }
         }
       }
