@@ -191,7 +191,7 @@ import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
 import SwitchComponent from "@/components/system/Switch.vue";
 import { BiotronDb } from "@/assets/js/PatchBiotrons"
 import PatchSelector from "@/components/system/PatchSelector.vue";
-import biotronFirmware from "!!binary-loader!@/../public/biotron-firmware_v1.2.0.uf2";
+import biotronFirmware from "!!binary-loader!@/../public/biotron.uf2";
 
 export default  {
   components: {
