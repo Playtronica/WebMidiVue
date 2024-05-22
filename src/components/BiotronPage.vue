@@ -210,6 +210,7 @@ export default  {
   methods: {
     sendData() {
       if (this.device) {
+        this.device.send([240, 11, 126, 247]);
         let extraComp = []
         if (this.commands_data.randomPlantVelocity.value) {
           this.device.send([240, 11, 16, 127, 247])
@@ -234,6 +235,7 @@ export default  {
           extraComp.push("minLightVelocity")
           extraComp.push("maxLightVelocity")
         }
+
         if (this.commands_data.randomLightVelocity.value) {
           this.device.send([240, 11, 18, 127, 247])
           sleep(100);
@@ -241,13 +243,16 @@ export default  {
           this.device.send([240, 11, 18, 0, 247])
           sleep(100);
         }
+
+        extraComp.push("plantBpm");
         for (let comm in this.commands_data) {
           if (!extraComp.includes(comm)) {
-
             this.commands_data[comm].sendToMidi(this.device)
-            sleep(50);
+            sleep(100);
           }
         }
+        this.device.send([240, 11, 126, 247]);
+        this.commands_data.plantBpm.sendToMidi(this.device)
       }
     },
 
@@ -343,7 +348,8 @@ export default  {
           name: "plantBpm",
           number_command: 0,
           default_value: 60,
-          max_value: 1000
+          max_value: 1000,
+          sendable: true,
         }),
         "lightBpm": new SysExCommand( {
           name: "lightBpm",
@@ -428,6 +434,7 @@ export default  {
           name: "light_pitch_mode",
           number_command: 19,
           default_value: 0,
+          sendable: true,
         }),
         "plant_no_velocity": new SysExCommand({
           name: "plant_no_velocity",
