@@ -125,7 +125,7 @@
     </GroupOfCommands>
     <GroupOfCommands name-of-group="Light Notes Range">
       <template v-slot:objects>
-        <label for="light_pitch_mode">Atonality</label>
+        <label for="light_pitch_mode">Pitch Bend</label>
         <SwitchComponent id="light_pitch_mode" :model-value="this.commands_data.light_pitch_mode"/>
         <SliderRangeCommand v-if="!this.commands_data.light_pitch_mode.value"
             :key="this.forceRerender"
