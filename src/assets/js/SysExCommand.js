@@ -70,14 +70,20 @@ export class SysExCommand {
         return true
     }
 
-    sendToMidi(device) {
+    sendToMidi(device, flag) {
         if (!this.sendable) return;
         if (!this.check_params()) return;
 
         let sys_ex_message = [0xF0]
-
-        for (let val of this.flag_device) {
-            sys_ex_message.push(val)
+        if (flag) {
+            for (let val of flag) {
+                sys_ex_message.push(val)
+            }
+        }
+        else {
+            for (let val of this.flag_device) {
+                sys_ex_message.push(val)
+            }
         }
 
         sys_ex_message.push(this.number_command)

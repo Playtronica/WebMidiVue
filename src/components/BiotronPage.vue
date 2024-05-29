@@ -136,7 +136,8 @@
         <p>Light Notes Range - setting the range of notes played from the photoresistor (lower and upper limits are set)</p>
       </template>
     </GroupOfCommands>
-    <button @click="this.sendData" :disabled="this.device === null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
+    <button v-if="!this.test" @click="this.sendData" :disabled="this.device === null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
+    <button v-else @click="this.sendDataTest" :disabled="this.device === null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
 <!--    <button @click="this.returnDefault" class="btn btn-primary mb-1" style="width: 70%">Set Default</button>-->
     <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
     <button data-bs-toggle="modal" data-bs-target="#exampleModal" class="btn btn-primary mb-1" style="width: 70%">Update Firmware</button>
@@ -206,6 +207,10 @@ export default  {
       type: String,
       required: true,
     },
+    test: {
+      type: Boolean,
+      default: false
+    }
   },
   methods: {
     sendData() {
@@ -256,6 +261,54 @@ export default  {
       }
     },
 
+    sendDataTest() {
+      if (this.device) {
+        // this.device.send([240, 20, 13, 126, 247]);
+        let extraComp = []
+        if (this.commands_data.randomPlantVelocity.value) {
+          this.device.send([240, 20, 13, 16, 127, 247])
+          sleep(100);
+        } else {
+          this.device.send([240, 20, 13, 16, 0, 247])
+          sleep(100);
+        }
+        if (this.commands_data.plant_no_velocity.value) {
+          this.device.send([240, 20, 13, 5, 0, 247])
+          sleep(100)
+          this.device.send([240, 20, 13, 15, 0, 247])
+          sleep(100)
+          extraComp.push("minPlantVelocity")
+          extraComp.push("maxPlantVelocity")
+        }
+        if (this.commands_data.light_no_velocity.value) {
+          this.device.send([240, 20, 13, 6, 0, 247])
+          sleep(100)
+          this.device.send([240, 20, 13, 17, 0, 247])
+          sleep(100)
+          extraComp.push("minLightVelocity")
+          extraComp.push("maxLightVelocity")
+        }
+
+        if (this.commands_data.randomLightVelocity.value) {
+          this.device.send([240, 20, 13, 18, 127, 247])
+          sleep(100);
+        } else {
+          this.device.send([240, 20, 13, 18, 0, 247])
+          sleep(100);
+        }
+
+        extraComp.push("plantBpm");
+        for (let comm in this.commands_data) {
+          if (!extraComp.includes(comm)) {
+            this.commands_data[comm].sendToMidi(this.device, [20, 13])
+            sleep(100);
+          }
+        }
+        // this.device.send([240, 20, 13, 126, 247]);
+        this.commands_data.plantBpm.sendToMidi(this.device, [20, 13])
+      }
+    },
+
     saveData() {
       let state = []
       for (let item in this.commands_data) {
@@ -284,7 +337,12 @@ export default  {
       }
       this.saveData();
       this.forceRerender += 1
-      this.device.send([240, 11, 7, 247])
+      if (!this.test) {
+        this.device.send([240, 11, 7, 247])
+      }
+      else {
+        this.device.send([240, 20, 13, 7, 247])
+      }
     },
     createPreset() {
       let state = []
@@ -327,7 +385,12 @@ export default  {
       saveAs(myFile, "biotron_firmware.uf2");
       if (!this.device) return;
 
-      this.device.send([240, 11, 127, 247])
+      if (!this.test) {
+        this.device.send([240, 11, 127, 247])
+      }
+      else {
+        this.device.send([240, 11, 20, 13, 127, 247])
+      }
     },
   },
   data() {
