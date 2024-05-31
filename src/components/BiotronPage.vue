@@ -216,6 +216,7 @@ export default  {
     sendData() {
       if (this.device) {
         this.device.send([240, 11, 126, 247]);
+
         let extraComp = []
         if (this.commands_data.randomPlantVelocity.value) {
           this.device.send([240, 11, 16, 127, 247])
@@ -263,7 +264,8 @@ export default  {
 
     sendDataTest() {
       if (this.device) {
-        // this.device.send([240, 20, 13, 126, 247]);
+        this.device.send([240, 11, 20, 13, 126, 247]);
+        sleep(1000);
         let extraComp = []
         if (this.commands_data.randomPlantVelocity.value) {
           this.device.send([240, 20, 13, 16, 127, 247])
@@ -296,7 +298,7 @@ export default  {
           this.device.send([240, 20, 13, 18, 0, 247])
           sleep(100);
         }
-
+        //
         extraComp.push("plantBpm");
         for (let comm in this.commands_data) {
           if (!extraComp.includes(comm)) {
@@ -304,7 +306,8 @@ export default  {
             sleep(100);
           }
         }
-        // this.device.send([240, 20, 13, 126, 247]);
+        sleep(1000);
+        this.device.send([240, 11, 20, 13, 126, 247]);
         this.commands_data.plantBpm.sendToMidi(this.device, [20, 13])
       }
     },
