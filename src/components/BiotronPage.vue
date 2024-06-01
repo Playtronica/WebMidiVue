@@ -265,7 +265,7 @@ export default  {
     sendDataTest() {
       if (this.device) {
         this.device.send([240, 11, 20, 13, 126, 247]);
-        sleep(1000);
+        sleep(100);
         let extraComp = []
         if (this.commands_data.randomPlantVelocity.value) {
           this.device.send([240, 20, 13, 16, 127, 247])
@@ -306,7 +306,7 @@ export default  {
             sleep(100);
           }
         }
-        sleep(1000);
+        sleep(100);
         this.device.send([240, 11, 20, 13, 126, 247]);
         this.commands_data.plantBpm.sendToMidi(this.device, [20, 13])
       }
