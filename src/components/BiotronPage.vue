@@ -308,6 +308,7 @@ export default  {
         }
         sleep(100);
         this.device.send([240, 11, 20, 13, 126, 247]);
+        sleep(100);
         this.commands_data.plantBpm.sendToMidi(this.device, [20, 13])
       }
     },
