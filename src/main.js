@@ -8,6 +8,7 @@ import TouchMePage from "@/components/TouchMePage.vue";
 import ScalaPage from "@/components/ScalaPage.vue";
 
 
+
 const routes = [
     { path: '/'},
     { path: '/biotron', component: BiotronPage, props: {id: "BiotronWebMidiId_1"} },

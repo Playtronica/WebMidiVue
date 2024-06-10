@@ -1,5 +1,15 @@
 <template>
-  <div @keyup.enter="this.sendData">
+  <div v-if="this.is_loading" id="loader_div" style="position: fixed;
+   z-index: 10; width: 100%; height: 100%; background-color: rgba(59,54,54,0.4);
+    top: 0;
+    left: 0;">
+
+    <h1 style="transform: translate(0, 50vh); color: #24df6f; font-weight: bold; text-shadow: 5px 5px 5px #000;">
+      Loading...
+    </h1>
+
+  </div>
+  <div>
     <h1 class="text-center">Biotron change settings</h1>
     <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} "/>
     <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
@@ -136,13 +146,12 @@
         <p>Light Notes Range - setting the range of notes played from the photoresistor (lower and upper limits are set)</p>
       </template>
     </GroupOfCommands>
-    <button v-if="!this.test" @click="this.sendData" :disabled="this.device === null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
-    <button v-else @click="this.sendDataTest" :disabled="this.device === null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
+    <button @mouseup="change_data_loader" :disabled="this.device === null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
 <!--    <button @click="this.returnDefault" class="btn btn-primary mb-1" style="width: 70%">Set Default</button>-->
     <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
-    <button data-bs-toggle="modal" data-bs-target="#exampleModal" class="btn btn-primary mb-1" style="width: 70%">Update Firmware</button>
+    <button data-bs-toggle="modal" data-bs-target="#UpdateConf" class="btn btn-primary mb-1" style="width: 70%">Update Firmware</button>
 
-    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal fade" id="UpdateConf" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
@@ -192,7 +201,9 @@ import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
 import SwitchComponent from "@/components/system/Switch.vue";
 import { BiotronDb } from "@/assets/js/PatchBiotrons"
 import PatchSelector from "@/components/system/PatchSelector.vue";
-import biotronFirmware from "!!binary-loader!@/../public/biotron.uf2";
+import biotronFirmware from "!!binary-loader!@/../public/biotron-firmware_v1.3.0.uf2";
+
+
 
 export default  {
   components: {
@@ -213,6 +224,22 @@ export default  {
     }
   },
   methods: {
+    change_data_loader() {
+      sleep(100)
+       this.is_loading = true;
+       this.forceRerender++;
+
+      setTimeout(function () {
+        this.is_loading = false;
+        this.forceRerender++;
+      }.bind(this),5000)
+
+      setTimeout(function () {
+        this.sendData()
+      }.bind(this),10)
+
+
+    },
     sendData() {
       if (this.device) {
         this.device.send([240, 11, 126, 247]);
@@ -260,6 +287,7 @@ export default  {
         this.device.send([240, 11, 126, 247]);
         sleep(100);
         this.commands_data.plantBpm.sendToMidi(this.device)
+        this.sendDataTest();
       }
     },
 
@@ -356,9 +384,9 @@ export default  {
       }
 
       let value = {"commands": state}
-      let myFile = new File([JSON.stringify(value)], "biotron_preset.txt",
+      let myFile = new File([JSON.stringify(value)], "biotron-preset.txt",
           {type: "text/plain;charset=utf-8"})
-      saveAs(myFile, "biotron_preset.txt");
+      saveAs(myFile, "biotron-preset.txt");
     },
     async loadDataFromPreset(e) {
       await this.patchChanged();
@@ -386,16 +414,12 @@ export default  {
         array[i] = biotronFirmware.charCodeAt(i);
       }
       console.log(array)
-      let myFile = new File([array], "biotron_firmware.uf2")
-      saveAs(myFile, "biotron_firmware.uf2");
+      let myFile = new File([array], "biotron-firmware_v1.3.0.uf2")
+      saveAs(myFile, "biotron-firmware_v1.3.0.uf2");
       if (!this.device) return;
-
-      if (!this.test) {
-        this.device.send([240, 11, 127, 247])
-      }
-      else {
-        this.device.send([240, 11, 20, 13, 127, 247])
-      }
+      this.device.send([240, 11, 127, 247])
+      sleep(100)
+      this.device.send([240, 11, 20, 13, 127, 247])
     },
   },
   data() {
@@ -411,6 +435,7 @@ export default  {
       },
       patches: [],
       patch_id: 0,
+      is_loading: false,
       commands_data: {
         "plantBpm": new SysExCommand( {
           name: "plantBpm",
@@ -546,7 +571,7 @@ export default  {
   },
   mounted() {
     document.addEventListener( 'keyup', event => {
-      if (event.code === 'Enter') this.sendData();
+      if (event.code === 'Enter' && !this.is_loading) this.change_data_loader();
     })
     document.addEventListener( 'InputChanged', async () => {
       await this.patchChanged();
@@ -570,6 +595,7 @@ export default  {
     })
     // this.updateFirmware()
   }
+
 }
 </script>
 

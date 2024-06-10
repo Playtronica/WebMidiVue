@@ -18,7 +18,8 @@
     "npm-assets": "^0.1.2",
     "raw-loader": "^4.0.2",
     "vue": "^3.2.26",
-    "vue-router": "^4.2.5"
+    "vue-router": "^4.2.5",
+    "vue3-spinners": "^1.2.2"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",
