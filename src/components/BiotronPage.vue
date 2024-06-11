@@ -137,10 +137,9 @@
       <template v-slot:objects>
         <label for="light_pitch_mode">Pitch Bend</label>
         <SwitchComponent id="light_pitch_mode" :model-value="this.commands_data.light_pitch_mode"/>
-        <SliderRangeCommand v-if="!this.commands_data.light_pitch_mode.value"
+        <SliderCommand v-if="!this.commands_data.light_pitch_mode.value"
             :key="this.forceRerender"
-            :max-command-object="commands_data.max_range_light_note"
-            :min-command-object="commands_data.min_range_light_note"/>
+            :command-object="this.commands_data.range_light_note"/>
       </template>
       <template v-slot:description>
         <p>Light Notes Range - setting the range of notes played from the photoresistor (lower and upper limits are set)</p>
@@ -201,7 +200,7 @@ import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
 import SwitchComponent from "@/components/system/Switch.vue";
 import { BiotronDb } from "@/assets/js/PatchBiotrons"
 import PatchSelector from "@/components/system/PatchSelector.vue";
-import biotronFirmware from "!!binary-loader!@/../public/biotron-firmware_v1.3.0.uf2";
+import biotronFirmware from "!!binary-loader!@/../public/biotron-firmware_v1.4.0.uf2";
 
 
 
@@ -232,10 +231,10 @@ export default  {
       setTimeout(function () {
         this.is_loading = false;
         this.forceRerender++;
-      }.bind(this),5000)
+      }.bind(this),3000)
 
       setTimeout(function () {
-        this.sendData()
+        this.sendDataTest()
       }.bind(this),10)
 
 
@@ -414,8 +413,8 @@ export default  {
         array[i] = biotronFirmware.charCodeAt(i);
       }
       console.log(array)
-      let myFile = new File([array], "biotron-firmware_v1.3.0.uf2")
-      saveAs(myFile, "biotron-firmware_v1.3.0.uf2");
+      let myFile = new File([array], "biotron-firmware_v1.4.0.uf2")
+      saveAs(myFile, "biotron-firmware_v1.4.0.uf2");
       if (!this.device) return;
       this.device.send([240, 11, 127, 247])
       sleep(100)
@@ -513,15 +512,11 @@ export default  {
           default_value: 0,
           max_value: 10
         }),
-        "min_range_light_note": new SysExCommand({
-          name: "min_range_light_note",
+        "range_light_note": new SysExCommand({
+          name: "range_light_note",
           number_command: 13,
-          default_value: 24,
-        }),
-        "max_range_light_note": new SysExCommand({
-          name: "max_range_light_note",
-          number_command: 14,
-          default_value: 48,
+          default_value: 12,
+          max_value: 36
         }),
         "light_pitch_mode": new SysExCommand({
           name: "light_pitch_mode",

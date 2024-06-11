@@ -250,7 +250,7 @@ class Db {
 
 export class BiotronDb extends Db {
     STORE_NAME = "Biotron_Patches"
-    VERSION = 2
+    VERSION = 3
     DEFAULT = {
         "name": "Biotron Default Patch",
         "saved": true,
@@ -309,12 +309,8 @@ export class BiotronDb extends Db {
                 "value": 0
             },
             {
-                "name": "min_range_light_note",
-                "value": 24
-            },
-            {
-                "name": "max_range_light_note",
-                "value": 48
+                "name": "range_light_note",
+                "value": 12
             },
             {
                 "name": "plant_no_velocity",
