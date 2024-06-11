@@ -4,7 +4,7 @@
     top: 0;
     left: 0;">
 
-    <h1 style="transform: translate(0, 50vh); color: #24df6f; font-weight: bold; text-shadow: 5px 5px 5px #000;">
+    <h1 style="transform: translate(0, 50vh); color: #0d6efd; font-weight: bold; text-shadow: 0px 0px 6px #fff;">
       Loading...
     </h1>
 
