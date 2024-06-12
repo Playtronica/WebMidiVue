@@ -200,7 +200,7 @@ import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
 import SwitchComponent from "@/components/system/Switch.vue";
 import { BiotronDb } from "@/assets/js/PatchBiotrons"
 import PatchSelector from "@/components/system/PatchSelector.vue";
-import biotronFirmware from "!!binary-loader!@/../public/biotron-firmware_v1.4.0.uf2";
+import biotronFirmware from "!!binary-loader!@/../public/biotron-firmware_v1.5.0.uf2";
 
 
 
@@ -234,15 +234,15 @@ export default  {
       }.bind(this),3000)
 
       setTimeout(function () {
+        this.sendData()
+        sleep(100)
         this.sendDataTest()
       }.bind(this),10)
-
 
     },
     sendData() {
       if (this.device) {
-        this.device.send([240, 11, 126, 247]);
-
+        this.device.send([240, 11, 16, 127, 247])
         let extraComp = []
         if (this.commands_data.randomPlantVelocity.value) {
           this.device.send([240, 11, 16, 127, 247])
@@ -286,7 +286,6 @@ export default  {
         this.device.send([240, 11, 126, 247]);
         sleep(100);
         this.commands_data.plantBpm.sendToMidi(this.device)
-        this.sendDataTest();
       }
     },
 
@@ -326,7 +325,7 @@ export default  {
           this.device.send([240, 20, 13, 18, 0, 247])
           sleep(100);
         }
-        //
+
         extraComp.push("plantBpm");
         for (let comm in this.commands_data) {
           if (!extraComp.includes(comm)) {
@@ -406,15 +405,13 @@ export default  {
       this.saveData();
     },
     updateFirmware() {
-      console.log(biotronFirmware)
-
       let array = new Uint8Array(biotronFirmware.length);
       for (let i = 0; i < biotronFirmware.length; i++) {
         array[i] = biotronFirmware.charCodeAt(i);
       }
       console.log(array)
-      let myFile = new File([array], "biotron-firmware_v1.4.0.uf2")
-      saveAs(myFile, "biotron-firmware_v1.4.0.uf2");
+      let myFile = new File([array], "biotron-firmware_v1.5.0.uf2")
+      saveAs(myFile, "biotron-firmware_v1.5.0.uf2");
       if (!this.device) return;
       this.device.send([240, 11, 127, 247])
       sleep(100)
