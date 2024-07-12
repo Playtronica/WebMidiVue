@@ -24,4 +24,6 @@ const router = createRouter({
     routes
 })
 
-createApp(App).use(router).mount('#app')
+var cors = require('cors');
+
+createApp(App).use(router).use(cors).mount('#app')
