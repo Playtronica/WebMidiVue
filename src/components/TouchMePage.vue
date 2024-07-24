@@ -1,7 +1,17 @@
 <template>
+  <div v-if="this.is_loading" id="loader_div" style="position: fixed;
+   z-index: 10; width: 100%; height: 100%; background-color: rgba(59,54,54,0.4);
+    top: 0;
+    left: 0;">
+
+    <h1 style="transform: translate(0, 50vh); color: #0d6efd; font-weight: bold; text-shadow: 0px 0px 6px #fff;">
+      Loading...
+    </h1>
+
+  </div>
     <h1 class="text-center">TouchMe change settings</h1>
     <DeviceSelector regex-name="TouchMe" @device_changed="(x) => {this.device = x} "/>
-
+  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
     <GroupOfCommands name-of-group="Scale">
       <template v-slot:objects>
         <SelectCommand :key="this.forceRerender" :list-of-variants="this.scales" :command-object="this.touch_me_commands_data.Scale"/>
@@ -19,20 +29,20 @@
         <div class="row">
           <div class="col">
             <label for="humanizeSwitch">Humanize</label>
-            <SwitchComponent id="humanizeSwitch" :model-value="this.isHumanize" @update:model-value="newVal => {
+            <SwitchComponent id="humanizeSwitch" :model-value="this.touch_me_commands_data.humanize" @update:model-value="newVal => {
                   this.isHumanize = newVal
                   forceRerender++
                 }"/>
           </div>
           <div class="col">
             <label for="velocityDisableSwitch">Mute</label>
-            <SwitchComponent id="velocityDisableSwitch" :model-value="this.isMute" @update:model-value="newVal => {
+            <SwitchComponent id="velocityDisableSwitch" :model-value="this.touch_me_commands_data.mute" @update:model-value="newVal => {
                   this.isMute = newVal
                 }"/>
           </div>
         </div>
-        <div v-if="!this.isMute">
-          <div v-if="!this.isHumanize">
+        <div v-if="!this.touch_me_commands_data.mute.value">
+          <div v-if="!this.touch_me_commands_data.humanize.value">
             <SliderCommand :key="this.forceRerender"
                            :command-object="this.touch_me_commands_data.maxVelocity"/>
           </div>
@@ -50,13 +60,13 @@
         <div class="row">
           <div class="col">
             <label for="notesRangeSwitch">Custom Range</label>
-            <SwitchComponent id="notesRangeSwitch" :model-value="this.customRange" @update:model-value="newVal => {
+            <SwitchComponent id="notesRangeSwitch" :model-value="this.touch_me_commands_data.customRange" @update:model-value="newVal => {
                     this.customRange = newVal
                     forceRerender++
                   }"/>
           </div>
         </div>
-        <div v-if="this.customRange">
+        <div v-if="this.touch_me_commands_data.customRange.value">
           <SliderRangeCommand :key="this.forceRerender"
                               :max-command-object="this.touch_me_commands_data.highestNote"
                               :min-command-object="this.touch_me_commands_data.lowestNote"/>
@@ -65,7 +75,6 @@
     </GroupOfCommands>
 
     <button @click="this.sendData" :disabled="this.device == null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
-    <button @click="this.returnDefault" class="btn btn-primary mb-1" style="width: 70%">Set Default</button>
     <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
     <FileDropArea name="Drop Preset Here" @get_drop="(e) => loadDataFromPreset(e)"/>
 </template>
@@ -82,9 +91,12 @@ import FileDropArea from "@/components/system/FileDropArea.vue";
 import {saveAs} from "@progress/kendo-file-saver";
 import SwitchComponent from "@/components/system/Switch.vue";
 import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
+import {TouchMeDb} from "@/assets/js/PatchBiotrons";
+import PatchSelector from "@/components/system/PatchSelector.vue";
 
 export default  {
   components: {
+    PatchSelector,
     SliderRangeCommand,
     SwitchComponent,
     FileDropArea,
@@ -100,10 +112,23 @@ export default  {
     }
   },
   methods: {
+    change_data_loader() {
+      sleep(100)
+      this.is_loading = true;
+      this.forceRerender++;
+
+      setTimeout(function () {
+        this.is_loading = false;
+        this.forceRerender++;
+      }.bind(this),3000)
+
+      setTimeout(function () {
+        this.sendData()
+        sleep(100)
+      }.bind(this),10)
+
+    },
     sendData() {
-      this.device.send([240, 11, 5, this.isMute ? 1 : 0, 247])
-      this.device.send([240, 11, 4, this.isHumanize ? 1 : 0, 247])
-      this.device.send([240, 11, 6, this.customRange ? 0 : 1, 247])
       for (let comm in this.touch_me_commands_data) {
           this.touch_me_commands_data[comm].sendToMidi(this.device)
           sleep(100);
@@ -113,65 +138,54 @@ export default  {
     saveData() {
       let state = []
       for (let item in this.touch_me_commands_data) {
-        state.push(this.touch_me_commands_data[item].toString())
+        state.push(this.touch_me_commands_data[item].toShortDict())
       }
 
-      let extra = {
-        "mute": this.isMute,
-        "humanize": this.isHumanize
-      }
-
-      let value = {"commands": state, "extra": extra}
-      localStorage.setItem(this.id, JSON.stringify(value))
+      this.db.updatePatch(localStorage.getItem(this.id), state)
     },
-    loadData() {
-      if (localStorage.getItem(this.id) === null) this.saveData();
-
-      for (let item of JSON.parse(localStorage.getItem(this.id)).commands) {
-        let value = JSON.parse(item)
-        this.touch_me_commands_data[value.name].set_value(value.value);
+    async loadData() {
+      let preset = await this.db.getPatch(localStorage.getItem(this.id))
+      if (!preset) {
+        localStorage.setItem(this.id, 1)
+        preset = await this.db.getPatch(localStorage.getItem(this.id))
       }
 
-      let extra = JSON.parse(localStorage.getItem(this.id)).extra
-      this.isMute = extra.mute
-      this.isHumanize = extra.humanize
+      for (let item of preset.data) {
+        this.touch_me_commands_data[item.name].set_value(item.value);
+      }
+
+      this.forceRerender++;
     },
-    returnDefault() {
-      this.randomPlantVelocity = false
-      this.randomLightVelocity = false
-      for (let comm in this.touch_me_commands_data) {
-        this.touch_me_commands_data[comm].set_default();
+    async loadDataFromPreset(e) {
+      await this.patchChanged();
+      for (let item of JSON.parse(e).commands) {
+        this.touch_me_commands_data[item.name].set_value(item.value);
       }
       this.saveData();
-      this.forceRerender += 1
-      this.device.send([240, 11, 7, 247])
-    },
-    loadDataFromPreset(e) {
-      for (let item of JSON.parse(e).commands) {
-        let value = JSON.parse(item)
-        this.touch_me_commands_data[value.name].set_value(value.value);
-      }
-      let extra = JSON.parse(localStorage.getItem(this.id)).extra
-      this.isMute = extra.mute
-      this.isHumanize = extra.humanize
-      this.forceRerender += 1
+      this.forceRerender++;
     },
     createPreset() {
       let state = []
       for (let item in this.touch_me_commands_data) {
-        state.push(this.touch_me_commands_data[item].toString())
+        state.push(this.touch_me_commands_data[item].toShortDict())
       }
 
-      let extra = {
-        "mute": this.isMute,
-        "humanize": this.isHumanize
-      }
-
-      let value = {"commands": state, "extra": extra}
-      let myFile = new File([JSON.stringify(value)], "touchme_preset.txt",
+      let value = {"commands": state}
+      let myFile = new File([JSON.stringify(value)], "touchme-preset.txt",
           {type: "text/plain;charset=utf-8"})
-      saveAs(myFile, "touchme_preset.txt");
+      saveAs(myFile, "touchme-preset.txt");
     },
+    async patchChanged() {
+      let patch_id = parseInt(localStorage.getItem(this.id));
+
+      if (this.patches.find(item => item.id === patch_id).saved) {
+        patch_id = await this.db.getUnsavedPatch();
+        this.patches = await this.db.getPatch();
+        localStorage.setItem(this.id, patch_id);
+      }
+      this.saveData();
+    },
+
   },
   data() {
     return {
@@ -180,10 +194,16 @@ export default  {
         "Majpen", "Diminished"],
       device: null,
       forceRerender: 0,
+      patchRerender: 0,
       isHumanize: false,
       isMute: false,
       customRange: false,
-
+      db: {
+        type: TouchMeDb
+      },
+      patches: [],
+      patch_id: 0,
+      is_loading: false,
       touch_me_commands_data: {
         "Scale": new SysExCommand( {
           name: "Scale",
@@ -222,13 +242,67 @@ export default  {
           default_value: 48,
           max_value: 127
         }),
+        "customRange": new SysExCommand({
+            name: "customRange",
+            number_command: 6,
+            default_value: 0,
+            value: 0
+        }),
+        "humanize": new SysExCommand({
+          name: "humanize",
+          number_command: 4,
+          default_value: 0,
+          value: 0
+        }),
+        "mute": new SysExCommand({
+          name: "mute",
+          number_command: 5,
+          default_value: 0,
+          value: 0
+        }),
+
       }
     }
   },
-  created() {
-    if (localStorage.getItem(this.id) === null) this.saveData();
-    else this.loadData();
+  async created() {
+    if (!localStorage.getItem(this.id)) {
+      localStorage.setItem(this.id, "1")
+    }
+
+    this.db = new TouchMeDb();
+    await this.db.openDB();
+
+    this.patches = await this.db.getPatch();
+    this.patch_id = parseInt(localStorage.getItem(this.id));
+
+    await this.loadData()
+    this.forceRerender++;
   },
+  mounted() {
+    document.addEventListener( 'keyup', event => {
+      if (event.code === 'Enter' && !this.is_loading) this.change_data_loader();
+    })
+    document.addEventListener( 'InputChanged', async () => {
+      await this.patchChanged();
+      this.patchRerender++;
+    })
+    document.addEventListener( 'PatchChanged', async () => {
+      await this.loadData();
+      this.forceRerender++;
+    })
+    document.addEventListener("PatchSave",  async (ev) => {
+      this.db.savePatch(localStorage.getItem(this.id), ev.detail)
+      this.patches = await this.db.getPatch()
+      this.patchRerender++;
+    })
+    document.addEventListener( 'PatchDelete', async () => {
+      this.db.deletePatch(parseInt(localStorage.getItem(this.id)))
+      localStorage.setItem(this.id, "1")
+      this.patches = await this.db.getPatch()
+      await this.loadData();
+      this.forceRerender++;
+    })
+  }
 }
 </script>
 
