@@ -200,7 +200,7 @@ import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
 import SwitchComponent from "@/components/system/Switch.vue";
 import { BiotronDb } from "@/assets/js/PatchBiotrons"
 import PatchSelector from "@/components/system/PatchSelector.vue";
-import biotronFirmware from "!!binary-loader!@/../public/biotron-firmware_v1.5.0.uf2";
+// import biotronFirmware from "!!binary-loader!@/../public/biotron-firmware_v1.5.0.uf2";
 
 
 
@@ -405,13 +405,15 @@ export default  {
       this.saveData();
     },
     updateFirmware() {
-      let array = new Uint8Array(biotronFirmware.length);
-      for (let i = 0; i < biotronFirmware.length; i++) {
-        array[i] = biotronFirmware.charCodeAt(i);
-      }
-      console.log(array)
-      let myFile = new File([array], "biotron-firmware_v1.5.0.uf2")
-      saveAs(myFile, "biotron-firmware_v1.5.0.uf2");
+      fetch("https://api.github.com/repos/Playtronica/biotron-releases/releases/latest", {headers: {
+          "Accept": "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        }})
+          .then(response => response.json())
+          .then(data => {
+            console.log(data)
+            window.location.replace(data.assets[0]["browser_download_url"])
+          })
       if (!this.device) return;
       this.device.send([240, 11, 127, 247])
       sleep(100)
