@@ -4,7 +4,7 @@ import {toRaw} from "vue";
 class Db {
     DB_NAME = "Playtronica_WebMIDI_db"
     STORE_NAME = "Biotron_Patches"
-    VERSION = 2
+    VERSION = 4
     DEFAULT = {
         "name": "Test Patch",
         "saved": true,
@@ -250,7 +250,6 @@ class Db {
 
 export class BiotronDb extends Db {
     STORE_NAME = "Biotron_Patches"
-    VERSION = 3
     DEFAULT = {
         "name": "Biotron Default Patch",
         "saved": true,
@@ -330,6 +329,52 @@ export class BiotronDb extends Db {
             },
             {
                 "name": "randomLightVelocity",
+                "value": 0
+            }
+        ]}
+}
+
+export class TouchMeDb extends Db {
+    STORE_NAME = "TouchMe_Patches"
+    DEFAULT = {
+        "name": "Touchme Default Patch",
+        "saved": true,
+        "editable": false,
+        "data": [
+            {
+                "name": "Scale",
+                "value": 0
+            },
+            {
+                "name": "Key",
+                "value": 1
+            },
+            {
+                "name": "maxVelocity",
+                "value": 70
+            },
+            {
+                "name": "minVelocity",
+                "value": 50
+            },
+            {
+                "name": "highestNote",
+                "value": 84
+            },
+            {
+                "name": "lowestNote",
+                "value": 48
+            },
+            {
+                "name": "customRange",
+                "value": 0
+            },
+            {
+                "name": "humanize",
+                "value": 0
+            },
+            {
+                "name": "mute",
                 "value": 0
             }
         ]}
