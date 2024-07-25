@@ -74,7 +74,7 @@
       </template>
     </GroupOfCommands>
 
-    <button @click="this.sendData" :disabled="this.device == null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
+    <button @mouseup="change_data_loader" :disabled="this.device == null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
     <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
     <FileDropArea name="Drop Preset Here" @get_drop="(e) => loadDataFromPreset(e)"/>
 </template>
@@ -123,8 +123,10 @@ export default  {
       }.bind(this),3000)
 
       setTimeout(function () {
-        this.sendData()
+        this.sendDataTest()
         sleep(100)
+        this.sendData()
+
       }.bind(this),10)
 
     },
@@ -132,6 +134,13 @@ export default  {
       for (let comm in this.touch_me_commands_data) {
           this.touch_me_commands_data[comm].sendToMidi(this.device)
           sleep(100);
+      }
+      this.saveData()
+    },
+    sendDataTest() {
+      for (let comm in this.touch_me_commands_data) {
+        this.touch_me_commands_data[comm].sendToMidi(this.device, [20, 13])
+        sleep(100);
       }
       this.saveData()
     },
