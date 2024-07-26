@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <div class="col w-100">
+    <div class="col w-100 mb-4">
       <label class="switch">
         <input id="checkbox_input" type="checkbox" :checked="modelValue.value"
                @click="modelValue.set_value($event.target.checked)" @input="this.changed">

@@ -16,11 +16,17 @@
       <template v-slot:objects>
         <SelectCommand :key="this.forceRerender" :list-of-variants="this.scales" :command-object="this.touch_me_commands_data.Scale"/>
       </template>
+      <template v-slot:description>
+        <p>Scale - scale played from the device</p>
+      </template>
     </GroupOfCommands>
 
     <GroupOfCommands name-of-group="Key">
-      <template v-slot:objects>
+      <template v-slot:objects v-if="!this.touch_me_commands_data.customRange.value">
         <SliderCommand command-label="" :key="this.forceRerender" :command-object="this.touch_me_commands_data.Key"/>
+      </template>
+      <template v-slot:description>
+        <p>Key - Start Note in default range (Disabled when custom range is active)</p>
       </template>
     </GroupOfCommands>
 
@@ -53,6 +59,11 @@
           </div>
         </div>
       </template>
+      <template v-slot:description>
+        <p>Velocity - pressing force</p>
+        <p>Humanize - Velocity randomization at a controlled interval</p>
+        <p>Mute - disable note generation from the channel</p>
+      </template>
     </GroupOfCommands>
 
     <GroupOfCommands name-of-group="Notes Range">
@@ -72,11 +83,46 @@
                               :min-command-object="this.touch_me_commands_data.lowestNote"/>
         </div>
       </template>
+      <template v-slot:description>
+        <p>Notes Range - Range of playable notes</p>
+      </template>
     </GroupOfCommands>
 
     <button @mouseup="change_data_loader" :disabled="this.device == null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
     <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
+  <button data-bs-toggle="modal" data-bs-target="#UpdateConf" class="btn btn-primary mb-1" style="width: 70%">Update Firmware</button>
+
+  <div class="modal fade" id="UpdateConf" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">Update Firmware</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>
+            After clicking on "Update", you will get a file with the .uf2 extension and the device will switch to boot mode.
+            The device will be displayed as removable media (like a USB flash drive).
+            You should transfer the resulting .uf2 file to the removable media that appeared.
+          </p>
+          <h6 style="color: red">ATTENTION</h6>
+          <p>The device won't work until you move the file.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal" @click="this.updateFirmware">Update</button>
+        </div>
+      </div>
+    </div>
+  </div>
     <FileDropArea name="Drop Preset Here" @get_drop="(e) => loadDataFromPreset(e)"/>
+  <GroupOfCommands>
+    <template v-slot:description>
+      <p>Send - sending settings to the device</p>
+      <p>Create Preset - saves settings to a file</p>
+      <p>Drop Preset Here - you need to transfer the file there by drag drop, or by clicking on the button, select the settings file.</p>
+    </template>
+  </GroupOfCommands>
 </template>
 
 <script>
@@ -193,6 +239,21 @@ export default  {
         localStorage.setItem(this.id, patch_id);
       }
       this.saveData();
+    },
+    updateFirmware() {
+      fetch("https://api.github.com/repos/Playtronica/touchme-releases/releases/latest", {headers: {
+          "Accept": "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        }})
+          .then(response => response.json())
+          .then(data => {
+            console.log(data)
+            window.location.replace(data.assets[0]["browser_download_url"])
+          })
+      if (!this.device) return;
+      this.device.send([240, 11, 127, 247])
+      sleep(100)
+      this.device.send([240, 11, 20, 13, 127, 247])
     },
 
   },

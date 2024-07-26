@@ -179,7 +179,6 @@
     <GroupOfCommands>
       <template v-slot:description>
         <p>Send - sending settings to the device</p>
-        <p>Set Default - basic settings are set on the site (to apply them, you need to click Send)</p>
         <p>Create Preset - saves settings to a file</p>
         <p>Drop Preset Here - you need to transfer the file there by drag drop, or by clicking on the button, select the settings file.</p>
       </template>
