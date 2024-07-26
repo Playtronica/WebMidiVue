@@ -4,7 +4,7 @@ import {toRaw} from "vue";
 class Db {
     DB_NAME = "Playtronica_WebMIDI_db"
     STORE_NAME = "Biotron_Patches"
-    VERSION = 4
+    VERSION = 5
     DEFAULT = {
         "name": "Test Patch",
         "saved": true,
@@ -330,7 +330,11 @@ export class BiotronDb extends Db {
             {
                 "name": "randomLightVelocity",
                 "value": 0
-            }
+            },
+            {
+                "name": "performance",
+                "value": 0
+            },
         ]}
 }
 

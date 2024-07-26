@@ -116,14 +116,6 @@
         <p>Mute - disable note generation from the channel</p>
       </template>
     </GroupOfCommands>
-    <GroupOfCommands name-of-group="Ultra sensitivity">
-      <template v-slot:objects>
-        <DisableCommand :key="this.forceRerender" :command-object="commands_data.randomness"/>
-      </template>
-      <template v-slot:description>
-        <p>Ultra sensitivity - Increases the sensitivity of generation from a plant</p>
-      </template>
-    </GroupOfCommands>
     <GroupOfCommands name-of-group="Same Note">
       <template v-slot:objects>
         <SliderCommand :key="this.forceRerender" :command-object="commands_data.same_note" />
@@ -143,6 +135,24 @@
       </template>
       <template v-slot:description>
         <p>Light Notes Range - setting the range of notes played from the photoresistor (lower and upper limits are set)</p>
+      </template>
+    </GroupOfCommands>
+    <GroupOfCommands name-of-group="Extra">
+      <template v-slot:objects>
+        <div class="row">
+          <div class="col">
+            <label>Ultra sensitivity</label>
+            <SwitchComponent  :key="this.forceRerender" :model-value="commands_data.randomness"/>
+          </div>
+          <div class="col">
+            <label>Performance mode</label>
+          <SwitchComponent :key="this.forceRerender" :model-value="commands_data.performance"/>
+          </div>
+        </div>
+      </template>
+      <template v-slot:description>
+        <p>Ultra sensitivity - Increases the sensitivity of generation from a plant</p>
+        <p>Performance mode - Mode for better manual control of the device</p>
       </template>
     </GroupOfCommands>
     <button @mouseup="change_data_loader" :disabled="this.device === null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
@@ -192,12 +202,12 @@ import GroupOfCommands from "@/components/system/GroupOfCommands.vue";
 import SelectCommand from "@/components/system/SelectCommand.vue";
 import DeviceSelector from "@/components/system/DeviceSelector.vue";
 import { SysExCommand, sleep } from "@/assets/js/SysExCommand"
-import DisableCommand from "@/components/system/DisableCommand.vue";
+
 import FileDropArea from "@/components/system/FileDropArea.vue";
 import { saveAs } from '@progress/kendo-file-saver';
 import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
 import SwitchComponent from "@/components/system/Switch.vue";
-import { BiotronDb } from "@/assets/js/PatchBiotrons"
+import { BiotronDb } from "@/assets/js/PresetsIDB"
 import PatchSelector from "@/components/system/PatchSelector.vue";
 // import biotronFirmware from "!!binary-loader!@/../public/biotron-firmware_v1.5.0.uf2";
 
@@ -210,7 +220,7 @@ export default  {
     SwitchComponent,
     SliderRangeCommand,
     FileDropArea,
-    DisableCommand, DeviceSelector, SelectCommand, GroupOfCommands, SliderCommand},
+    DeviceSelector, SelectCommand, GroupOfCommands, SliderCommand},
   props: {
     id: {
       type: String,
@@ -422,7 +432,7 @@ export default  {
   data() {
     return {
       scales: ["Major", "Minor", "Chrom", "Dorian", "Mixolydian",
-        "Lydian", "Wholetone", "Minblues", "Minpen",
+        "Lydian", "Wholetone", "Minblues", "Majblues", "Minpen",
         "Majpen", "Diminished"],
       device: null,
       forceRerender: 0,
@@ -541,6 +551,11 @@ export default  {
           name: "randomLightVelocity",
           default_value: 0,
           sendable: false,
+        }),
+        "performance": new SysExCommand({
+          name: "performance",
+          number_command: 21,
+          default_value: 0
         }),
       },
 

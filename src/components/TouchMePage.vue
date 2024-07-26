@@ -137,7 +137,7 @@ import FileDropArea from "@/components/system/FileDropArea.vue";
 import {saveAs} from "@progress/kendo-file-saver";
 import SwitchComponent from "@/components/system/Switch.vue";
 import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
-import {TouchMeDb} from "@/assets/js/PatchBiotrons";
+import {TouchMeDb} from "@/assets/js/PresetsIDB";
 import PatchSelector from "@/components/system/PatchSelector.vue";
 
 export default  {
@@ -166,12 +166,14 @@ export default  {
       setTimeout(function () {
         this.is_loading = false;
         this.forceRerender++;
-      }.bind(this),3000)
+      }.bind(this),2000)
 
       setTimeout(function () {
+        this.device.send([240, 11, 20, 13, 0, 247])
         this.sendDataTest()
         sleep(100)
         this.sendData()
+        this.device.send([240, 11, 20, 13, 1, 247])
 
       }.bind(this),10)
 
@@ -260,7 +262,7 @@ export default  {
   data() {
     return {
       scales: ["Major", "Minor", "Chrom", "Dorian", "Mixolydian",
-        "Lydian", "Wholetone", "Minblues", "Minpen",
+        "Lydian", "Wholetone", "Minblues", "Majblues", "Minpen",
         "Majpen", "Diminished"],
       device: null,
       forceRerender: 0,
