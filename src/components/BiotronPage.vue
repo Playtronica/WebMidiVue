@@ -253,37 +253,6 @@ export default  {
       if (this.device) {
         this.device.send([240, 11, 16, 127, 247])
         let extraComp = []
-        if (this.commands_data.randomPlantVelocity.value) {
-          this.device.send([240, 11, 16, 127, 247])
-          sleep(100);
-        } else {
-          this.device.send([240, 11, 16, 0, 247])
-          sleep(100);
-        }
-        if (this.commands_data.plant_no_velocity.value) {
-          this.device.send([240, 11, 5, 0, 247])
-          sleep(100)
-          this.device.send([240, 11, 15, 0, 247])
-          sleep(100)
-          extraComp.push("minPlantVelocity")
-          extraComp.push("maxPlantVelocity")
-        }
-        if (this.commands_data.light_no_velocity.value) {
-          this.device.send([240, 11, 6, 0, 247])
-          sleep(100)
-          this.device.send([240, 11, 17, 0, 247])
-          sleep(100)
-          extraComp.push("minLightVelocity")
-          extraComp.push("maxLightVelocity")
-        }
-
-        if (this.commands_data.randomLightVelocity.value) {
-          this.device.send([240, 11, 18, 127, 247])
-          sleep(100);
-        } else {
-          this.device.send([240, 11, 18, 0, 247])
-          sleep(100);
-        }
 
         extraComp.push("plantBpm");
         for (let comm in this.commands_data) {
@@ -303,37 +272,6 @@ export default  {
         this.device.send([240, 11, 20, 13, 126, 247]);
         sleep(100);
         let extraComp = []
-        if (this.commands_data.randomPlantVelocity.value) {
-          this.device.send([240, 20, 13, 16, 127, 247])
-          sleep(100);
-        } else {
-          this.device.send([240, 20, 13, 16, 0, 247])
-          sleep(100);
-        }
-        if (this.commands_data.plant_no_velocity.value) {
-          this.device.send([240, 20, 13, 5, 0, 247])
-          sleep(100)
-          this.device.send([240, 20, 13, 15, 0, 247])
-          sleep(100)
-          extraComp.push("minPlantVelocity")
-          extraComp.push("maxPlantVelocity")
-        }
-        if (this.commands_data.light_no_velocity.value) {
-          this.device.send([240, 20, 13, 6, 0, 247])
-          sleep(100)
-          this.device.send([240, 20, 13, 17, 0, 247])
-          sleep(100)
-          extraComp.push("minLightVelocity")
-          extraComp.push("maxLightVelocity")
-        }
-
-        if (this.commands_data.randomLightVelocity.value) {
-          this.device.send([240, 20, 13, 18, 127, 247])
-          sleep(100);
-        } else {
-          this.device.send([240, 20, 13, 18, 0, 247])
-          sleep(100);
-        }
 
         extraComp.push("plantBpm");
         for (let comm in this.commands_data) {
@@ -535,22 +473,22 @@ export default  {
         "plant_no_velocity": new SysExCommand({
           name: "plant_no_velocity",
           default_value: 0,
-          sendable: false,
+          number_command: 22,
         }),
         "light_no_velocity": new SysExCommand({
           name: "light_no_velocity",
           default_value: 0,
-          sendable: false,
+          number_command: 23,
         }),
         "randomPlantVelocity": new SysExCommand({
           name: "randomPlantVelocity",
           default_value: 0,
-          sendable: false,
+          number_command: 16,
         }),
         "randomLightVelocity": new SysExCommand({
           name: "randomLightVelocity",
           default_value: 0,
-          sendable: false,
+          number_command: 18,
         }),
         "performance": new SysExCommand({
           name: "performance",
