@@ -4,7 +4,7 @@ import {toRaw} from "vue";
 export class Db {
     DB_NAME = "Playtronica_WebMIDI_db"
     STORE_NAME = "Biotron_Patches"
-    VERSION = 6
+    VERSION = 7
     DEFAULT = {
         "name": "Default",
         "saved": true,

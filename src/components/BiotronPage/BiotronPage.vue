@@ -1,14 +1,5 @@
 <template>
-  <div v-if="this.is_loading" id="loader_div" style="position: fixed;
-   z-index: 10; width: 100%; height: 100%; background-color: rgba(59,54,54,0.4);
-    top: 0;
-    left: 0;">
-
-    <h1 style="transform: translate(0, 50vh); color: #0d6efd; font-weight: bold; text-shadow: 0px 0px 6px #fff;">
-      Loading...
-    </h1>
-
-  </div>
+  <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
   <div>
     <h1 class="text-center">Biotron change settings</h1>
     <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} "/>
@@ -155,35 +146,9 @@
         <p>Performance mode - Mode for better manual control of the device</p>
       </template>
     </GroupOfCommands>
-    <button @mouseup="change_data_loader" :disabled="this.device === null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
-<!--    <button @click="this.returnDefault" class="btn btn-primary mb-1" style="width: 70%">Set Default</button>-->
+    <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary mb-1" style="width: 70%">Send</button>
     <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
-    <button data-bs-toggle="modal" data-bs-target="#UpdateConf" class="btn btn-primary mb-1" style="width: 70%">Update Firmware</button>
-
-    <div class="modal fade" id="UpdateConf" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabel">Update Firmware</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-              <p>
-                After clicking on "Update", you will get a file with the .uf2 extension and the device will switch to boot mode.
-                The device will be displayed as removable media (like a USB flash drive).
-                You should transfer the resulting .uf2 file to the removable media that appeared.
-              </p>
-            <h6 style="color: red">ATTENTION</h6>
-            <p>The device won't work until you move the file.</p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary" data-bs-dismiss="modal"
-                    @click="LoadFirmware('Playtronica/biotron-releases', this.device)">
-              Update</button>
-          </div>
-        </div>
-      </div>
+    <UpdateFirmwareComponent repo="Playtronica/biotron-releases" :device="this.device"/>
     </div>
 
 
@@ -195,7 +160,7 @@
         <p>Drop Preset Here - you need to transfer the file there by drag drop, or by clicking on the button, select the settings file.</p>
       </template>
     </GroupOfCommands>
-  </div>
+
 </template>
 
 <script>
@@ -212,13 +177,18 @@ import SliderRangeCommand from "@/components/MidiComponents/SliderRangeCommand.v
 import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
 import PatchSelector from "@/components/MidiComponents/PatchSelector.vue";
 import DeviceSelector from "@/components/MidiComponents/DeviceSelector.vue";
-import {LoadFirmware} from "@/assets/js/LoadFirmware";
+import UpdateFirmwareComponent from "@/components/MidiComponents/UpdateFirmwareComponent.vue";
+import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
 
 
 
 
 export default  {
   components: {
+    LoaderComponent,
+
+
+    UpdateFirmwareComponent,
     DeviceSelector,
     PatchSelector,
     SelectCommand,
@@ -238,8 +208,8 @@ export default  {
     },
   },
   methods: {
-    LoadFirmware,
-    change_data_loader() {
+    async change_data_loader() {
+      if (!this.device) return
       sleep(100)
        this.is_loading = true;
        this.forceRerender++;
@@ -256,7 +226,7 @@ export default  {
       }.bind(this),10)
 
     },
-    sendData() {
+    async sendData() {
       if (this.device) {
         this.device.send([240, 11, 16, 127, 247])
         let extraComp = []
@@ -274,7 +244,7 @@ export default  {
       }
     },
 
-    sendDataTest() {
+    async sendDataTest() {
       if (this.device) {
         this.device.send([240, 11, 20, 13, 126, 247]);
         sleep(100);
@@ -344,9 +314,6 @@ export default  {
         localStorage.setItem(this.id, patch_id);
       }
       this.saveData();
-    },
-    updateFirmware() {
-
     },
   },
   data() {
