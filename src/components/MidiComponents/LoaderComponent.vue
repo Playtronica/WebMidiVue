@@ -1,31 +1,50 @@
 <script>
 
+
+import validateDuration from "@/assets/js/validateDuration";
+import calcPropertyValue from "@/assets/js/calcPropertyValue";
+
 export default {
+  name: 'RingLoader',
   props: {
-    size: {
-      default: '40px'
+    loading: {
+      type: Boolean,
+      default: true,
     },
-    background: {
-      default: '#0d6efd'
+    size: {
+      type: Number,
+      default: 55,
+    },
+    color: {
+      type: String,
+      default: '#3083fa',
     },
     duration: {
-      default: '2.0s'
+      type: String,
+      default: '1.2s',
+      validator: validateDuration,
+    },
+  },
+  data() {
+    return {
+      spinnerStyle: {
+        borderWidth: `${this.size * 0.1}px`,
+        borderColor: `${this.color} transparent transparent transparent`,
+        animationDuration: this.duration,
+      },
     }
   },
   computed: {
-    bounceStyle () {
-      return {
-        backgroundColor: this.background,
-        animationDuration: this.duration
-      }
+    animDiv1() {
+      return calcPropertyValue('animationDelay', this.duration, -0.375)
     },
-    styles () {
-      return {
-        width: this.size,
-        height: this.size
-      }
-    }
-  }
+    animDiv2() {
+      return calcPropertyValue('animationDelay', this.duration, -0.25)
+    },
+    animDiv3() {
+      return calcPropertyValue('animationDelay', this.duration, -0.125)
+    },
+  },
 }
 </script>
 
@@ -40,47 +59,49 @@ export default {
         <h1 style="color: #0d6efd; font-weight: bold; text-shadow: 0px 0px 6px #fff;">
           Loading
         </h1>
-        <div v-bind:style="styles" class="spinner spinner--double-bounce">
-          <div class="double-bounce1" v-bind:style="bounceStyle"></div>
-          <div class="double-bounce2" v-bind:style="bounceStyle"></div>
+        <div v-show="loading" class="lds-ring" :style="{ width: `${size}px`, height: `${size}px`, padding: `0px` }">
+          <div v-bind:style="[spinnerStyle, animDiv1]"></div>
+          <div v-bind:style="[spinnerStyle, animDiv2]"></div>
+          <div v-bind:style="[spinnerStyle, animDiv3]"></div>
+          <div v-bind:style="[spinnerStyle]"></div>
         </div>
+
       </div>
+
     </div>
 
   </div>
 </template>
 
 <style scoped>
-.spinner {
-  position: relative;
+.lds-ring {
   display: inline-block;
-  * {
-    line-height: 0;
-    box-sizing: border-box;
-  }
+  position: relative;
 }
-
-.double-bounce1, .double-bounce2 {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  opacity: 0.6;
+.lds-ring div {
+  box-sizing: border-box;
+  display: block;
   position: absolute;
-  top: 0;
-  left: 0;
-  animation: double-bounce 2.0s ease-in-out infinite;
-}
 
-.double-bounce2 {
-  animation-delay: -1.0s;
-}
+  /* ratio: calc(64px / 80px) */
+  width: 80%;
+  height: 80%;
 
-@keyframes double-bounce {
-  0%, 100% {
-    transform: scale(0.0);
+  /* ratio: calc(8px / 80px) */
+  margin: 10%;
+  border: 8px solid #fff;
+  border-radius: 50%;
+  border-color: #fff transparent transparent transparent;
+  animation-name: lds-ring;
+  animation-timing-function: cubic-bezier(0.5, 0, 0.5, 1);
+  animation-iteration-count: infinite;
+}
+@keyframes lds-ring {
+  0% {
+    transform: rotate(0deg);
   }
-  50% {
-    transform: scale(1.0);
+  100% {
+    transform: rotate(360deg);
   }
 }
 </style>
