@@ -178,7 +178,9 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" @click="this.updateFirmware">Update</button>
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal"
+                    @click="LoadFirmware('Playtronica/biotron-releases', this.device)">
+              Update</button>
           </div>
         </div>
       </div>
@@ -197,30 +199,34 @@
 </template>
 
 <script>
-import SliderCommand from "@/components/system/SliderCommand.vue";
-import GroupOfCommands from "@/components/system/GroupOfCommands.vue";
-import SelectCommand from "@/components/system/SelectCommand.vue";
-import DeviceSelector from "@/components/system/DeviceSelector.vue";
-import { SysExCommand, sleep } from "@/assets/js/SysExCommand"
 
-import FileDropArea from "@/components/system/FileDropArea.vue";
+import { sleep } from "@/assets/js/SysExCommand"
+
 import { saveAs } from '@progress/kendo-file-saver';
-import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
-import SwitchComponent from "@/components/system/Switch.vue";
-import { BiotronDb } from "@/assets/js/PresetsIDB"
-import PatchSelector from "@/components/system/PatchSelector.vue";
-// import biotronFirmware from "!!binary-loader!@/../public/biotron-firmware_v1.5.0.uf2";
+import {BiotronCommandsData, BiotronDb} from "@/components/BiotronPage/BiotronIDB"
+import FileDropArea from "@/components/MidiComponents/FileDropArea.vue";
+import GroupOfCommands from "@/components/MidiComponents/GroupOfCommands.vue";
+import SwitchComponent from "@/components/MidiComponents/Switch.vue";
+import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
+import SliderRangeCommand from "@/components/MidiComponents/SliderRangeCommand.vue";
+import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
+import PatchSelector from "@/components/MidiComponents/PatchSelector.vue";
+import DeviceSelector from "@/components/MidiComponents/DeviceSelector.vue";
+import {LoadFirmware} from "@/assets/js/LoadFirmware";
+
 
 
 
 export default  {
   components: {
-    // eslint-disable-next-line vue/no-unused-components
+    DeviceSelector,
     PatchSelector,
-    SwitchComponent,
+    SelectCommand,
     SliderRangeCommand,
-    FileDropArea,
-    DeviceSelector, SelectCommand, GroupOfCommands, SliderCommand},
+    SliderCommand,
+    SwitchComponent,
+    GroupOfCommands,
+    FileDropArea},
   props: {
     id: {
       type: String,
@@ -229,9 +235,10 @@ export default  {
     test: {
       type: Boolean,
       default: false
-    }
+    },
   },
   methods: {
+    LoadFirmware,
     change_data_loader() {
       sleep(100)
        this.is_loading = true;
@@ -288,9 +295,9 @@ export default  {
     },
 
     saveData() {
-      let state = []
-      for (let item in this.commands_data) {
-        state.push(this.commands_data[item].toShortDict())
+      let state = {}
+      for (let val of Object.values(this.commands_data)) {
+        state[val.name] = val.value
       }
 
       this.db.updatePatch(localStorage.getItem(this.id), state)
@@ -303,24 +310,11 @@ export default  {
         preset = await this.db.getPatch(localStorage.getItem(this.id))
       }
 
-      for (let item of preset.data) {
-        this.commands_data[item.name].set_value(item.value);
+      for (const [key, value] of Object.entries(preset.data)) {
+        this.commands_data[key].set_value(value);
       }
 
       this.forceRerender++;
-    },
-    returnDefault() {
-      for (let comm in this.commands_data) {
-        this.commands_data[comm].set_default();
-      }
-      this.saveData();
-      this.forceRerender += 1
-      if (!this.test) {
-        this.device.send([240, 11, 7, 247])
-      }
-      else {
-        this.device.send([240, 20, 13, 7, 247])
-      }
     },
     createPreset() {
       let state = []
@@ -352,19 +346,7 @@ export default  {
       this.saveData();
     },
     updateFirmware() {
-      fetch("https://api.github.com/repos/Playtronica/biotron-releases/releases/latest", {headers: {
-          "Accept": "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        }})
-          .then(response => response.json())
-          .then(data => {
-            console.log(data)
-            window.location.replace(data.assets[0]["browser_download_url"])
-          })
-      if (!this.device) return;
-      this.device.send([240, 11, 127, 247])
-      sleep(100)
-      this.device.send([240, 11, 20, 13, 127, 247])
+
     },
   },
   data() {
@@ -381,126 +363,11 @@ export default  {
       patches: [],
       patch_id: 0,
       is_loading: false,
-      commands_data: {
-        "plantBpm": new SysExCommand( {
-          name: "plantBpm",
-          number_command: 0,
-          default_value: 60,
-          max_value: 1000,
-          sendable: true,
-        }),
-        "lightBpm": new SysExCommand( {
-          name: "lightBpm",
-          number_command: 9,
-          default_value: 4,
-          max_value: 30
-        }),
-        "noteOffPercent": new SysExCommand({
-          name: "noteOffPercent",
-          number_command: 12,
-          default_value: 100,
-          max_value: 100
-        }),
-        "noteDistance": new SysExCommand({
-          name: "noteDistance",
-          number_command: 1,
-          default_value: 50,
-          max_value: 100
-        }),
-        "firstValue": new SysExCommand({
-          name: "firstValue",
-          number_command: 2,
-          default_value: 10,
-          max_value: 100
-        }),
-        "smoothness": new SysExCommand({
-          name: "smoothness",
-          number_command: 3,
-          max_value: 99
-        }),
-        "scale": new SysExCommand( {
-          name: "scale",
-          number_command: 4,
-          default_value: 0
-        }),
-        "minPlantVelocity": new SysExCommand({
-          name: "minPlantVelocity",
-          number_command: 15,
-          default_value: 74,
-          max_value: 127
-        }),
-        "maxPlantVelocity": new SysExCommand({
-          name: "maxPlantVelocity",
-          number_command: 5,
-          default_value: 75,
-          max_value: 127
-        }),
-        "minLightVelocity": new SysExCommand({
-          name: "minLightVelocity",
-          number_command: 17,
-          default_value: 74,
-          max_value: 127
-        }),
-        "maxLightVelocity": new SysExCommand({
-          name: "maxLightVelocity",
-          number_command: 6,
-          default_value: 75,
-          max_value: 127
-        }),
-        "randomness": new SysExCommand({
-          name: "randomness",
-          number_command: 10,
-          default_value: 0
-        }),
-        "same_note": new SysExCommand({
-          name: "same_note",
-          number_command: 11,
-          default_value: 0,
-          max_value: 10
-        }),
-        "range_light_note": new SysExCommand({
-          name: "range_light_note",
-          number_command: 13,
-          default_value: 12,
-          max_value: 36
-        }),
-        "light_pitch_mode": new SysExCommand({
-          name: "light_pitch_mode",
-          number_command: 19,
-          default_value: 0,
-          sendable: true,
-        }),
-        "plant_no_velocity": new SysExCommand({
-          name: "plant_no_velocity",
-          default_value: 0,
-          number_command: 22,
-        }),
-        "light_no_velocity": new SysExCommand({
-          name: "light_no_velocity",
-          default_value: 0,
-          number_command: 23,
-        }),
-        "randomPlantVelocity": new SysExCommand({
-          name: "randomPlantVelocity",
-          default_value: 0,
-          number_command: 16,
-        }),
-        "randomLightVelocity": new SysExCommand({
-          name: "randomLightVelocity",
-          default_value: 0,
-          number_command: 18,
-        }),
-        "performance": new SysExCommand({
-          name: "performance",
-          number_command: 21,
-          default_value: 0
-        }),
-      },
-
+      commands_data: Object.fromEntries(BiotronCommandsData),
     }
   },
   async created() {
-    if (localStorage.getItem(this.id) === undefined) {
+    if (!localStorage.getItem(this.id)) {
       localStorage.setItem(this.id, "1")
     }
 
