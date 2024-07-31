@@ -1,16 +1,7 @@
 <template>
-  <div v-if="this.is_loading" id="loader_div" style="position: fixed;
-   z-index: 10; width: 100%; height: 100%; background-color: rgba(59,54,54,0.4);
-    top: 0;
-    left: 0;">
-
-    <h1 style="transform: translate(0, 50vh); color: #0d6efd; font-weight: bold; text-shadow: 0px 0px 6px #fff;">
-      Loading...
-    </h1>
-
-  </div>
-    <h1 class="text-center">TouchMe change settings</h1>
-    <DeviceSelector regex-name="TouchMe" @device_changed="(x) => {this.device = x} "/>
+  <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
+  <h1 class="text-center">TouchMe change settings</h1>
+  <DeviceSelector regex-name="TouchMe" @device_changed="(x) => {this.device = x} "/>
   <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
     <GroupOfCommands name-of-group="Scale">
       <template v-slot:objects>
@@ -88,35 +79,10 @@
       </template>
     </GroupOfCommands>
 
-    <button @mouseup="change_data_loader" :disabled="this.device == null" class="btn btn-primary mb-1" style="width: 70%">Send</button>
+    <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary mb-1" style="width: 70%">Send</button>
     <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
-  <button data-bs-toggle="modal" data-bs-target="#UpdateConf" class="btn btn-primary mb-1" style="width: 70%">Update Firmware</button>
+    <UpdateFirmwareComponent repo="Playtronica/touchme-releases" :device="this.device"/>
 
-  <div class="modal fade" id="UpdateConf" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLabel">Update Firmware</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <p>
-            After clicking on "Update", you will get a file with the .uf2 extension and the device will switch to boot mode.
-            The device will be displayed as removable media (like a USB flash drive).
-            You should transfer the resulting .uf2 file to the removable media that appeared.
-          </p>
-          <h6 style="color: red">ATTENTION</h6>
-          <p>The device won't work until you move the file.</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal"
-                  @click="LoadFirmware('Playtronica/touchme-releases', this.device)">
-            Update</button>
-        </div>
-      </div>
-    </div>
-  </div>
     <FileDropArea name="Drop Preset Here" @get_drop="(e) => loadDataFromPreset(e)"/>
   <GroupOfCommands>
     <template v-slot:description>
@@ -141,9 +107,14 @@ import SliderRangeCommand from "@/components/MidiComponents/SliderRangeCommand.v
 import {TouchMeCommandsData, TouchMeDb} from "@/components/TouchMePage/TouchMeIDB";
 import PatchSelector from "@/components/MidiComponents/PatchSelector.vue";
 import {LoadFirmware} from "@/assets/js/LoadFirmware";
+import UpdateFirmwareComponent from "@/components/MidiComponents/UpdateFirmwareComponent.vue";
+import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
+
 
 export default  {
   components: {
+    LoaderComponent,
+    UpdateFirmwareComponent,
     PatchSelector,
     SliderRangeCommand,
     SwitchComponent,
@@ -162,6 +133,7 @@ export default  {
   methods: {
     LoadFirmware,
     change_data_loader() {
+      if (!this.device) return
       sleep(100)
       this.is_loading = true;
       this.forceRerender++;
@@ -181,21 +153,21 @@ export default  {
       }.bind(this),10)
 
     },
-    sendData() {
+    async sendData() {
       for (let comm in this.commands_data) {
           this.commands_data[comm].sendToMidi(this.device)
           sleep(100);
       }
       this.saveData()
     },
-    sendDataTest() {
+    async sendDataTest() {
       for (let comm in this.commands_data) {
         this.commands_data[comm].sendToMidi(this.device, [20, 13])
         sleep(100);
       }
       this.saveData()
     },
-    saveData() {
+    async saveData() {
       let state = {}
       for (let val of Object.values(this.commands_data)) {
         state[val.name] = val.value
@@ -224,7 +196,7 @@ export default  {
       this.saveData();
       this.forceRerender++;
     },
-    createPreset() {
+    async createPreset() {
       let state = []
       for (let item in this.commands_data) {
         state.push(this.commands_data[item].toShortDict())
@@ -245,22 +217,6 @@ export default  {
       }
       this.saveData();
     },
-    updateFirmware() {
-      fetch("https://api.github.com/repos/Playtronica/touchme-releases/releases/latest", {headers: {
-          "Accept": "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        }})
-          .then(response => response.json())
-          .then(data => {
-            console.log(data)
-            window.location.replace(data.assets[0]["browser_download_url"])
-          })
-      if (!this.device) return;
-      this.device.send([240, 11, 127, 247])
-      sleep(100)
-      this.device.send([240, 11, 20, 13, 127, 247])
-    },
-
   },
   data() {
     return {
@@ -296,7 +252,7 @@ export default  {
     await this.loadData()
     this.forceRerender++;
   },
-  mounted() {
+  async mounted() {
     document.addEventListener( 'keyup', event => {
       if (event.code === 'Enter' && !this.is_loading) this.change_data_loader();
     })
