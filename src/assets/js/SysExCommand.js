@@ -103,6 +103,13 @@ export class SysExCommand {
 
 }
 
+export function bootDevice(device) {
+    if (!device) return;
+    device.send([240, 11, 127, 247])
+    sleep(100)
+    device.send([240, 11, 20, 13, 127, 247])
+}
+
 
 export function sleep(milliseconds) {
     const date = Date.now();

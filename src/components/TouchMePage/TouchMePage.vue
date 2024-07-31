@@ -14,7 +14,7 @@
   <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
     <GroupOfCommands name-of-group="Scale">
       <template v-slot:objects>
-        <SelectCommand :key="this.forceRerender" :list-of-variants="this.scales" :command-object="this.touch_me_commands_data.Scale"/>
+        <SelectCommand :key="this.forceRerender" :list-of-variants="this.scales" :command-object="this.commands_data.Scale"/>
       </template>
       <template v-slot:description>
         <p>Scale - scale played from the device</p>
@@ -22,8 +22,8 @@
     </GroupOfCommands>
 
     <GroupOfCommands name-of-group="Key">
-      <template v-slot:objects v-if="!this.touch_me_commands_data.customRange.value">
-        <SliderCommand command-label="" :key="this.forceRerender" :command-object="this.touch_me_commands_data.Key"/>
+      <template v-slot:objects v-if="!this.commands_data.customRange.value">
+        <SliderCommand command-label="" :key="this.forceRerender" :command-object="this.commands_data.Key"/>
       </template>
       <template v-slot:description>
         <p>Key - Start Note in default range (Disabled when custom range is active)</p>
@@ -35,27 +35,27 @@
         <div class="row">
           <div class="col">
             <label for="humanizeSwitch">Humanize</label>
-            <SwitchComponent id="humanizeSwitch" :model-value="this.touch_me_commands_data.humanize" @update:model-value="newVal => {
+            <SwitchComponent id="humanizeSwitch" :model-value="this.commands_data.humanize" @update:model-value="newVal => {
                   this.isHumanize = newVal
                   forceRerender++
                 }"/>
           </div>
           <div class="col">
             <label for="velocityDisableSwitch">Mute</label>
-            <SwitchComponent id="velocityDisableSwitch" :model-value="this.touch_me_commands_data.mute" @update:model-value="newVal => {
+            <SwitchComponent id="velocityDisableSwitch" :model-value="this.commands_data.mute" @update:model-value="newVal => {
                   this.isMute = newVal
                 }"/>
           </div>
         </div>
-        <div v-if="!this.touch_me_commands_data.mute.value">
-          <div v-if="!this.touch_me_commands_data.humanize.value">
+        <div v-if="!this.commands_data.mute.value">
+          <div v-if="!this.commands_data.humanize.value">
             <SliderCommand :key="this.forceRerender"
-                           :command-object="this.touch_me_commands_data.maxVelocity"/>
+                           :command-object="this.commands_data.maxVelocity"/>
           </div>
           <div v-else>
             <SliderRangeCommand :key="this.forceRerender"
-                                :max-command-object="this.touch_me_commands_data.maxVelocity"
-                                :min-command-object="this.touch_me_commands_data.minVelocity"/>
+                                :max-command-object="this.commands_data.maxVelocity"
+                                :min-command-object="this.commands_data.minVelocity"/>
           </div>
         </div>
       </template>
@@ -71,16 +71,16 @@
         <div class="row">
           <div class="col">
             <label for="notesRangeSwitch">Custom Range</label>
-            <SwitchComponent id="notesRangeSwitch" :model-value="this.touch_me_commands_data.customRange" @update:model-value="newVal => {
+            <SwitchComponent id="notesRangeSwitch" :model-value="this.commands_data.customRange" @update:model-value="newVal => {
                     this.customRange = newVal
                     forceRerender++
                   }"/>
           </div>
         </div>
-        <div v-if="this.touch_me_commands_data.customRange.value">
+        <div v-if="this.commands_data.customRange.value">
           <SliderRangeCommand :key="this.forceRerender"
-                              :max-command-object="this.touch_me_commands_data.highestNote"
-                              :min-command-object="this.touch_me_commands_data.lowestNote"/>
+                              :max-command-object="this.commands_data.highestNote"
+                              :min-command-object="this.commands_data.lowestNote"/>
         </div>
       </template>
       <template v-slot:description>
@@ -110,7 +110,9 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal" @click="this.updateFirmware">Update</button>
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal"
+                  @click="LoadFirmware('Playtronica/touchme-releases', this.device)">
+            Update</button>
         </div>
       </div>
     </div>
@@ -127,18 +129,18 @@
 
 <script>
 
-import SelectCommand from "@/components/system/SelectCommand.vue";
-import {sleep, SysExCommand} from "@/assets/js/SysExCommand"
-// import { saveAs } from '@progress/kendo-file-saver';
-import GroupOfCommands from "@/components/system/GroupOfCommands.vue";
-import DeviceSelector from "@/components/system/DeviceSelector.vue";
-import SliderCommand from "@/components/system/SliderCommand.vue";
-import FileDropArea from "@/components/system/FileDropArea.vue";
+import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
+import {sleep} from "@/assets/js/SysExCommand"
+import GroupOfCommands from "@/components/MidiComponents/GroupOfCommands.vue";
+import DeviceSelector from "@/components/MidiComponents/DeviceSelector.vue";
+import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
+import FileDropArea from "@/components/MidiComponents/FileDropArea.vue";
 import {saveAs} from "@progress/kendo-file-saver";
-import SwitchComponent from "@/components/system/Switch.vue";
-import SliderRangeCommand from "@/components/system/SliderRangeCommand.vue";
-import {TouchMeDb} from "@/assets/js/PresetsIDB";
-import PatchSelector from "@/components/system/PatchSelector.vue";
+import SwitchComponent from "@/components/MidiComponents/Switch.vue";
+import SliderRangeCommand from "@/components/MidiComponents/SliderRangeCommand.vue";
+import {TouchMeCommandsData, TouchMeDb} from "@/components/TouchMePage/TouchMeIDB";
+import PatchSelector from "@/components/MidiComponents/PatchSelector.vue";
+import {LoadFirmware} from "@/assets/js/LoadFirmware";
 
 export default  {
   components: {
@@ -158,6 +160,7 @@ export default  {
     }
   },
   methods: {
+    LoadFirmware,
     change_data_loader() {
       sleep(100)
       this.is_loading = true;
@@ -179,23 +182,23 @@ export default  {
 
     },
     sendData() {
-      for (let comm in this.touch_me_commands_data) {
-          this.touch_me_commands_data[comm].sendToMidi(this.device)
+      for (let comm in this.commands_data) {
+          this.commands_data[comm].sendToMidi(this.device)
           sleep(100);
       }
       this.saveData()
     },
     sendDataTest() {
-      for (let comm in this.touch_me_commands_data) {
-        this.touch_me_commands_data[comm].sendToMidi(this.device, [20, 13])
+      for (let comm in this.commands_data) {
+        this.commands_data[comm].sendToMidi(this.device, [20, 13])
         sleep(100);
       }
       this.saveData()
     },
     saveData() {
-      let state = []
-      for (let item in this.touch_me_commands_data) {
-        state.push(this.touch_me_commands_data[item].toShortDict())
+      let state = {}
+      for (let val of Object.values(this.commands_data)) {
+        state[val.name] = val.value
       }
 
       this.db.updatePatch(localStorage.getItem(this.id), state)
@@ -207,8 +210,8 @@ export default  {
         preset = await this.db.getPatch(localStorage.getItem(this.id))
       }
 
-      for (let item of preset.data) {
-        this.touch_me_commands_data[item.name].set_value(item.value);
+      for (const [key, value] of Object.entries(preset.data)) {
+        this.commands_data[key].set_value(value);
       }
 
       this.forceRerender++;
@@ -216,15 +219,15 @@ export default  {
     async loadDataFromPreset(e) {
       await this.patchChanged();
       for (let item of JSON.parse(e).commands) {
-        this.touch_me_commands_data[item.name].set_value(item.value);
+        this.commands_data[item.name].set_value(item.value);
       }
       this.saveData();
       this.forceRerender++;
     },
     createPreset() {
       let state = []
-      for (let item in this.touch_me_commands_data) {
-        state.push(this.touch_me_commands_data[item].toShortDict())
+      for (let item in this.commands_data) {
+        state.push(this.commands_data[item].toShortDict())
       }
 
       let value = {"commands": state}
@@ -276,64 +279,7 @@ export default  {
       patches: [],
       patch_id: 0,
       is_loading: false,
-      touch_me_commands_data: {
-        "Scale": new SysExCommand( {
-          name: "Scale",
-          number_command: 0,
-          default_value: 0,
-          max_value: 11
-        }),
-        "Key": new SysExCommand( {
-          name: "Key",
-          number_command: 1,
-          default_value: 1,
-          min_value: 1,
-          max_value: 12
-        }),
-        "maxVelocity": new SysExCommand( {
-          name: "maxVelocity",
-          number_command: 2,
-          default_value: 70,
-          max_value: 127
-        }),
-        "minVelocity": new SysExCommand( {
-          name: "minVelocity",
-          number_command: 3,
-          default_value: 50,
-          max_value: 127
-        }),
-        "highestNote": new SysExCommand( {
-          name: "highestNote",
-          number_command: 8,
-          default_value: 84,
-          max_value: 127
-        }),
-        "lowestNote": new SysExCommand( {
-          name: "lowestNote",
-          number_command: 7,
-          default_value: 48,
-          max_value: 127
-        }),
-        "customRange": new SysExCommand({
-            name: "customRange",
-            number_command: 6,
-            default_value: 0,
-            value: 0
-        }),
-        "humanize": new SysExCommand({
-          name: "humanize",
-          number_command: 4,
-          default_value: 0,
-          value: 0
-        }),
-        "mute": new SysExCommand({
-          name: "mute",
-          number_command: 5,
-          default_value: 0,
-          value: 0
-        }),
-
-      }
+      commands_data: Object.fromEntries(TouchMeCommandsData)
     }
   },
   async created() {

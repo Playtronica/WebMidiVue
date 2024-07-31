@@ -1,18 +1,18 @@
 import {toRaw} from "vue";
 
 
-class Db {
+export class Db {
     DB_NAME = "Playtronica_WebMIDI_db"
     STORE_NAME = "Biotron_Patches"
-    VERSION = 5
+    VERSION = 6
     DEFAULT = {
-        "name": "Test Patch",
+        "name": "Default",
         "saved": true,
         "editable": false,
-        "data": []
+        "data": {}
     }
 
-    constructor() {
+    constructor(commands) {
         const indexedDB =
             window.indexedDB ||
             window.mozIndexedDB ||
@@ -23,6 +23,7 @@ class Db {
         if (!indexedDB) {
             console.log("IndexedDB could not be found in this browser.");
         }
+        this.commands = commands;
     }
 
     async openDB() {
@@ -42,6 +43,11 @@ class Db {
             }
 
             let store = db.createObjectStore(vm.STORE_NAME, {keyPath: "id", autoIncrement: true});
+
+            for (let command of toRaw(vm.commands)) {
+                vm.DEFAULT.data[command[1].name] = command[1].value;
+            }
+
             store.put(toRaw(vm.DEFAULT))
         }
 
@@ -49,6 +55,8 @@ class Db {
             console.log("Database opened successfully");
             request.result.close();
         }
+
+
     }
 
     createPatch(data, name) {
@@ -246,140 +254,4 @@ class Db {
             };
         }
     }
-}
-
-export class BiotronDb extends Db {
-    STORE_NAME = "Biotron_Patches"
-    DEFAULT = {
-        "name": "Biotron Default Patch",
-        "saved": true,
-        "editable": false,
-        "data": [
-            {
-                "name": "plantBpm",
-                "value": 60
-            },
-            {
-                "name": "lightBpm",
-                "value": 4
-            },
-            {
-                "name": "noteOffPercent",
-                "value": 100
-            },
-            {
-                "name": "noteDistance",
-                "value": 50
-            },
-            {
-                "name": "firstValue",
-                "value": 10
-            },
-            {
-                "name": "smoothness",
-                "value": 0
-            },
-            {
-                "name": "scale",
-                "value": 0
-            },
-            {
-                "name": "minPlantVelocity",
-                "value": 74
-            },
-            {
-                "name": "maxPlantVelocity",
-                "value": 75
-            },
-            {
-                "name": "minLightVelocity",
-                "value": 74
-            },
-            {
-                "name": "maxLightVelocity",
-                "value": 75
-            },
-            {
-                "name": "randomness",
-                "value": 0
-            },
-            {
-                "name": "same_note",
-                "value": 0
-            },
-            {
-                "name": "range_light_note",
-                "value": 12
-            },
-            {
-                "name": "plant_no_velocity",
-                "value": 0
-            },
-            {
-                "name": "light_pitch_mode",
-                "value": 0,
-            },
-            {
-                "name": "light_no_velocity",
-                "value": 0
-            },
-            {
-                "name": "randomPlantVelocity",
-                "value": 0
-            },
-            {
-                "name": "randomLightVelocity",
-                "value": 0
-            },
-            {
-                "name": "performance",
-                "value": 0
-            },
-        ]}
-}
-
-export class TouchMeDb extends Db {
-    STORE_NAME = "TouchMe_Patches"
-    DEFAULT = {
-        "name": "Touchme Default Patch",
-        "saved": true,
-        "editable": false,
-        "data": [
-            {
-                "name": "Scale",
-                "value": 0
-            },
-            {
-                "name": "Key",
-                "value": 1
-            },
-            {
-                "name": "maxVelocity",
-                "value": 70
-            },
-            {
-                "name": "minVelocity",
-                "value": 50
-            },
-            {
-                "name": "highestNote",
-                "value": 84
-            },
-            {
-                "name": "lowestNote",
-                "value": 48
-            },
-            {
-                "name": "customRange",
-                "value": 0
-            },
-            {
-                "name": "humanize",
-                "value": 0
-            },
-            {
-                "name": "mute",
-                "value": 0
-            }
-        ]}
 }

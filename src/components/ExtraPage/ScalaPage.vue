@@ -18,8 +18,8 @@
 
 <script>
 
-import DeviceSelector from "@/components/system/DeviceSelector.vue";
-import FileDropArea from "@/components/system/FileDropArea.vue";
+import DeviceSelector from "@/components/MidiComponents/DeviceSelector.vue";
+import FileDropArea from "@/components/MidiComponents/FileDropArea.vue";
 import { sleep } from "@/assets/js/SysExCommand"
 
 export default  {

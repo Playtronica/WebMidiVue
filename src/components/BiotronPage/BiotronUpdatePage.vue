@@ -22,7 +22,9 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" @click="this.updateFirmware">Update</button>
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal"
+                    @click="LoadFirmware('Playtronica/biotron-releases', this.device)">
+              Update</button>
           </div>
         </div>
       </div>
@@ -31,31 +33,21 @@
 
 <script>
 
-import biotronFirmware from "!!binary-loader!@/../public/biotron-firmware_v1.5.0.uf2";
-import {saveAs} from "@progress/kendo-file-saver";
-import {sleep} from "@/assets/js/SysExCommand";
-import DeviceSelector from "@/components/system/DeviceSelector.vue";
-
+import DeviceSelector from "@/components/MidiComponents/DeviceSelector.vue";
+import {LoadFirmware} from "@/assets/js/LoadFirmware";
 
 
 export default  {
   components: {
     DeviceSelector,
   },
+  data() {
+    return {
+      device: null
+    }
+  },
   methods: {
-    updateFirmware() {
-      let array = new Uint8Array(biotronFirmware.length);
-      for (let i = 0; i < biotronFirmware.length; i++) {
-        array[i] = biotronFirmware.charCodeAt(i);
-      }
-      console.log(array)
-      let myFile = new File([array], "biotron-firmware_v1.5.0.uf2")
-      saveAs(myFile, "biotron-firmware_v1.5.0.uf2");
-      if (!this.device) return;
-      this.device.send([240, 11, 127, 247])
-      sleep(100)
-      this.device.send([240, 11, 20, 13, 127, 247])
-    },
+    LoadFirmware,
   }
 }
 </script>
