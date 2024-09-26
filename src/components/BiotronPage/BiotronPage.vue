@@ -148,7 +148,7 @@
     </GroupOfCommands>
     <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary mb-1" style="width: 70%">Send</button>
     <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
-    <UpdateFirmwareComponent repo="Playtronica/biotron-releases" :device="this.device"/>
+    <UpdateFirmwareComponent repo="Playtronica/biotron-firmware" :device="this.device"/>
     </div>
 
 

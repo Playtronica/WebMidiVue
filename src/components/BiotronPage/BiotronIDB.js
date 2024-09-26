@@ -119,7 +119,9 @@ export let BiotronCommandsData = new Map(Object.entries({
 
 
 export class BiotronDb extends Db {
+    DB_NAME = "BiotronDB"
     STORE_NAME = "Biotron_Patches"
+    VERSION = 1
 
     constructor() {
         super(BiotronCommandsData);

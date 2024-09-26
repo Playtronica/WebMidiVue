@@ -61,7 +61,9 @@ export let TouchMeCommandsData = new Map(Object.entries({
 
 
 export class TouchMeDb extends Db {
+    DB_NAME = "TouchMeDB"
     STORE_NAME = "TouchMe_Patches"
+    VERSION = 1
 
     constructor() {
         super(TouchMeCommandsData);

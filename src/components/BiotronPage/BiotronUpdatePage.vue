@@ -2,7 +2,7 @@
     <h1 class="text-center">Biotron Update Page</h1>
     <DeviceSelector style="display: none" regex-name="Biotron" @device_changed="(x) => {this.device = x} "/>
 
-    <UpdateFirmwareComponent repo="Playtronica/biotron-releases" :device="this.device"/>
+    <UpdateFirmwareComponent repo="Playtronica/biotron-firmware" :device="this.device"/>
 </template>
 
 <script>

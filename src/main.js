@@ -12,9 +12,9 @@ import BiotronUpdatePage from "@/components/BiotronPage/BiotronUpdatePage.vue";
 
 const routes = [
     { path: '/'},
-    { path: '/biotron', component: BiotronPage, props: {id: "BiotronWebMidiId_1" } },
+    { path: '/biotron', component: BiotronPage, props: {id: "BiotronWebMidiId_2" } },
     { path: "/biotron/update", component: BiotronUpdatePage},
-    { path: '/touchme', component: TouchMePage, props: {id: "TouchmeWebMidiId_1"} },
+    { path: '/touchme', component: TouchMePage, props: {id: "TouchmeWebMidiId_2"} },
     { path: '/scala', component: ScalaPage}
 ]
 
