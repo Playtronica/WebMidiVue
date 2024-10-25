@@ -45,7 +45,7 @@ export class Db {
             let store = db.createObjectStore(vm.STORE_NAME, {keyPath: "id", autoIncrement: true});
 
             for (let command of toRaw(vm.commands)) {
-                vm.DEFAULT.data[command[1].name] = command[1].value;
+                vm.DEFAULT.data[command[1].name] = command[1].default_value;
             }
 
             store.put(toRaw(vm.DEFAULT))

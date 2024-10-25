@@ -109,7 +109,8 @@
     </GroupOfCommands>
     <GroupOfCommands name-of-group="Same Note">
       <template v-slot:objects>
-        <SliderCommand :key="this.forceRerender" :command-object="commands_data.same_note" />
+        <SliderCommand :key="this.forceRerender" :command-object="commands_data.same_note_plant" :command-label="'Plant'" />
+        <SliderCommand :key="this.forceRerender" :command-object="commands_data.same_note_light" :command-label="'Light'" />
       </template>
       <template v-slot:description>
         <p>Same Note - notes that are played only when changing notes with a customizable step,

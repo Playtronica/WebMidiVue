@@ -20,7 +20,7 @@ export default {
   watch: {
     Value() {
       this.checkLimit()
-      this.commandObject.set_value(parseInt(this.Value))
+      this.commandObject.set_value(this.Value)
     }
   },
   methods: {

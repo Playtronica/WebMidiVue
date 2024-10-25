@@ -8,6 +8,13 @@ export let BiotronCommandsData = new Map(Object.entries({
         default_value: 60,
         max_value: 1000,
         sendable: true,
+        custom_fold: (arr, val) => {
+            for (let i = 0; i < Math.floor(val / 127); i++) {
+                arr.push(127)
+            }
+
+            arr.push(val % 127)
+        }
     }),
     "lightBpm": new SysExCommand( {
         name: "lightBpm",
@@ -72,9 +79,15 @@ export let BiotronCommandsData = new Map(Object.entries({
         number_command: 10,
         default_value: 0
     }),
-    "same_note": new SysExCommand({
-        name: "same_note",
+    "same_note_plant": new SysExCommand({
+        name: "same_note_plant",
         number_command: 11,
+        default_value: 0,
+        max_value: 10
+    }),
+    "same_note_light": new SysExCommand({
+        name: "same_note_light",
+        number_command: 24,
         default_value: 0,
         max_value: 10
     }),
@@ -121,7 +134,7 @@ export let BiotronCommandsData = new Map(Object.entries({
 export class BiotronDb extends Db {
     DB_NAME = "BiotronDB"
     STORE_NAME = "Biotron_Patches"
-    VERSION = 1
+    VERSION = 2
 
     constructor() {
         super(BiotronCommandsData);

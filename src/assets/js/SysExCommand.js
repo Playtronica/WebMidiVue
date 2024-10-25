@@ -9,6 +9,7 @@ export class SysExCommand {
     max_value;
     step;
     sendable;
+    custom_fold;
 
     set_value(value) {
         this.value = value
@@ -25,7 +26,8 @@ export class SysExCommand {
                     max_value = 127,
                     step = 1,
                     default_value = 0,
-                    sendable = true
+                    sendable = true,
+                    custom_fold = null,
                 }
     ) {
         if (number_command === null) throw "Number Command is null";
@@ -38,6 +40,7 @@ export class SysExCommand {
         this.step = step;
         this.default_value = default_value
         this.sendable = sendable
+        this.custom_fold = custom_fold
     }
 
     toString() {
@@ -64,10 +67,8 @@ export class SysExCommand {
         if (this.value < this.min_value) {
             return false;
         }
-        if (this.value > this.max_value) {
-            return false;
-        }
-        return true
+        return this.value <= this.max_value;
+
     }
 
     sendToMidi(device, flag) {
@@ -88,11 +89,12 @@ export class SysExCommand {
 
         sys_ex_message.push(this.number_command)
 
-        for (let i = 0; i < Math.floor(this.value / 127); i++) {
-            sys_ex_message.push(127)
+        if (this.custom_fold) {
+            this.custom_fold(sys_ex_message, this.value)
         }
-
-        sys_ex_message.push(this.value % 127)
+        else {
+            sys_ex_message.push(this.value % 127)
+        }
 
 
         sys_ex_message.push(0xF7);
