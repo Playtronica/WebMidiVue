@@ -128,13 +128,20 @@ export let BiotronCommandsData = new Map(Object.entries({
         number_command: 21,
         default_value: 0
     }),
+    "middle_plant_note": new SysExCommand({
+        name: "middle_plant_note",
+        number_command: 25,
+        default_value: 60,
+        min_value: 60,
+        max_value: 72,
+    })
 }))
 
 
 export class BiotronDb extends Db {
     DB_NAME = "BiotronDB"
     STORE_NAME = "Biotron_Patches"
-    VERSION = 2
+    VERSION = 3
 
     constructor() {
         super(BiotronCommandsData);

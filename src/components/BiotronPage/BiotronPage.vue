@@ -9,11 +9,13 @@
         <SliderCommand command-label="Plant Bpm" :key="this.forceRerender" :command-object="this.commands_data.plantBpm"/>
         <SliderCommand command-label="Note Off Percent" :key="this.forceRerender" :command-object="this.commands_data.noteOffPercent"/>
         <SliderCommand command-label="Light Bpm" :key="this.forceRerender" :command-object="this.commands_data.lightBpm"/>
+        <SliderCommand command-label="Plant Middle Note" :key="this.forceRerender" :command-object="this.commands_data.middle_plant_note"/>
       </template>
       <template v-slot:description>
         <p>BPM - how many notes from the plant will be generated per minute</p>
         <p>Note Off Percent - how many percent of the time the note will sound, where 100 is the full sound before the note changes, 50 is half the time the note is played</p>
         <p>Light Bpm - once every number of notes from the plant the note from the photoresistor will sound</p>
+        <p>Plant Middle Note - center of notes</p>
       </template>
     </GroupOfCommands>
     <GroupOfCommands name-of-group="Sensitivity (fib)">
