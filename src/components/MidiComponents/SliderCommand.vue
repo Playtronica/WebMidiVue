@@ -9,6 +9,10 @@ export default {
     commandObject: {
       required: true,
       type: SysExCommand
+    },
+    tableValues: {
+      required: false,
+      type: Map
     }
   },
   emits: ["changedValue"],
@@ -47,9 +51,19 @@ export default {
   <div class="row m-2">
     <label for="value_input">{{ this.commandLabel }}</label>
 
-    <input type="number" id="value_input" class="form-control"
-           v-model="this.Value" :min="this.commandObject.min_value" :max="this.commandObject.max_value"
-           @input="this.changed"/>
+    <div v-if="this.tableValues">
+      <select v-model="this.Value" id="scale" class="form-control" @input="changed">
+        <option v-for="(value, key) in this.tableValues" v-bind:key="key" :value="key">
+          {{value}}
+        </option>
+      </select>
+    </div>
+    <div v-else>
+      <input type="number" id="value_input" class="form-control"
+             v-model="this.Value" :min="this.commandObject.min_value" :max="this.commandObject.max_value"
+             @input="this.changed"/>
+    </div>
+
 
     <input type="range" id="range_input" class="settings_input"
            v-model="this.Value" :min="this.commandObject.min_value" :max="this.commandObject.max_value"

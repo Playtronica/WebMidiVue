@@ -9,7 +9,7 @@
         <SliderCommand command-label="Plant Bpm" :key="this.forceRerender" :command-object="this.commands_data.plantBpm"/>
         <SliderCommand command-label="Note Off Percent" :key="this.forceRerender" :command-object="this.commands_data.noteOffPercent"/>
         <SliderCommand command-label="Light Bpm" :key="this.forceRerender" :command-object="this.commands_data.lightBpm"/>
-        <SliderCommand command-label="Plant Middle Note" :key="this.forceRerender" :command-object="this.commands_data.middle_plant_note"/>
+        <SliderCommand command-label="Root Note" :key="this.forceRerender" :command-object="this.commands_data.middle_plant_note" :table-values="this.dig_to_nums"/>
       </template>
       <template v-slot:description>
         <p>BPM - how many notes from the plant will be generated per minute</p>
@@ -189,8 +189,6 @@ import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
 export default  {
   components: {
     LoaderComponent,
-
-
     UpdateFirmwareComponent,
     DeviceSelector,
     PatchSelector,
@@ -324,6 +322,10 @@ export default  {
       scales: ["Major", "Minor", "Chrom", "Dorian", "Mixolydian",
         "Lydian", "Wholetone", "Minblues", "Majblues", "Minpen",
         "Majpen", "Diminished"],
+      dig_to_nums: {
+        60: 'C4', 61: 'C#4', 62: 'D4', 63: 'D#4', 64: 'E4', 65: 'F4',
+        66: 'F#4', 67: 'G4', 68: 'G#4', 69: 'A4', 70: 'A#4', 71: 'B4', 72: 'C5',
+      },
       device: null,
       forceRerender: 0,
       patchRerender: 0,

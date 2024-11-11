@@ -14,7 +14,7 @@
 
     <GroupOfCommands name-of-group="Key">
       <template v-slot:objects v-if="!this.commands_data.customRange.value">
-        <SliderCommand command-label="" :key="this.forceRerender" :command-object="this.commands_data.Key"/>
+        <SliderCommand command-label="" :key="this.forceRerender" :command-object="this.commands_data.Key" :table-values="this.dig_to_nums"/>
       </template>
       <template v-slot:description>
         <p>Key - Start Note in default range (Disabled when custom range is active)</p>
@@ -223,6 +223,10 @@ export default  {
       scales: ["Major", "Minor", "Chrom", "Dorian", "Mixolydian",
         "Lydian", "Wholetone", "Minblues", "Majblues", "Minpen",
         "Majpen", "Diminished"],
+      dig_to_nums: {
+        1: 'C3', 2: 'C#3', 3: 'D3', 4: 'D#3', 5: 'E3', 6: 'F3',
+        7: 'F#3', 8: 'G3', 9: 'G#3', 10: 'A3', 11: 'A#3', 12: 'B3'
+      },
       device: null,
       forceRerender: 0,
       patchRerender: 0,
