@@ -8,7 +8,7 @@ export default {
       repo: {
         type: String
       },
-      device: MIDIOutput
+      device: Object
   }
 }
 </script>

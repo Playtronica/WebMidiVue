@@ -26,8 +26,24 @@ export default {
       forceRerender: 0
     }
   },
-  mounted() {
+  async mounted() {
     console.log("Hello! You`re curious, aren`t you?")
+
+    if (navigator.requestMIDIAccess) {
+      console.log("MIDI is supported!");
+      try {
+        // eslint-disable-next-line no-unused-vars
+        const midiAccess = await navigator.requestMIDIAccess();
+        console.log("MIDI is supported!");
+      } catch (error) {
+        console.error("Could not access MIDI devices:", error);
+        window.alert("You have denied access to MIDI devices.");
+      }
+    } else {
+      console.error("MIDI is not supported. Sending notification...");
+      window.alert("This browser does not support MIDI.");
+    }
+
   },
   methods: {
     update() { this.forceRerender++ }
