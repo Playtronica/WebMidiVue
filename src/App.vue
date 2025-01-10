@@ -41,7 +41,7 @@ export default {
       }
     } else {
       console.error("MIDI is not supported. Sending notification...");
-      window.alert("This browser does not support MIDI.");
+      window.alert("Only works on Chrome on desktop computer.");
     }
 
   },
