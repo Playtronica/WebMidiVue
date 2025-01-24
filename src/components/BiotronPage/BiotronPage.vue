@@ -7,9 +7,10 @@
     <GroupOfCommands name-of-group="BPM">
       <template v-slot:objects>
         <SliderCommand command-label="Plant Bpm" :key="this.forceRerender" :command-object="this.commands_data.plantBpm"/>
-        <SliderCommand command-label="Note Off Percent" :key="this.forceRerender" :command-object="this.commands_data.noteOffPercent"/>
+        <SliderCommand command-label="Note Off Percent" :key="this.forceRerender" :command-object="this.commands_data.noteOffPercent"
+                       :table-values="this.fractions_note_off" table-values-reversed/>
         <SliderCommand command-label="Light Bpm" :key="this.forceRerender" :command-object="this.commands_data.lightBpm"/>
-        <SliderCommand command-label="Root Note" :key="this.forceRerender" :command-object="this.commands_data.middle_plant_note" :table-values="this.dig_to_nums"/>
+        <SliderCommand command-label="Root Note" :key="this.forceRerender" :command-object="this.commands_data.middle_plant_note" :table-values="this.root_note_id"/>
       </template>
       <template v-slot:description>
         <p>BPM - how many notes from the plant will be generated per minute</p>
@@ -322,9 +323,13 @@ export default  {
       scales: ["Major", "Minor", "Chrom", "Dorian", "Mixolydian",
         "Lydian", "Wholetone", "Minblues", "Majblues", "Minpen",
         "Majpen", "Diminished"],
-      dig_to_nums: {
+      root_note_id: {
         60: 'C4', 61: 'C#4', 62: 'D4', 63: 'D#4', 64: 'E4', 65: 'F4',
         66: 'F#4', 67: 'G4', 68: 'G#4', 69: 'A4', 70: 'A#4', 71: 'B4', 72: 'C5',
+      },
+      fractions_note_off: {
+        64: "1/64", 48: "1/48", 32: "1/32", 24: "1/24", 16: "1/16", 12: "1/12",
+        8: "1/8", 6: "1/6", 4: "1/4", 2: "1/2", 1: "1"
       },
       device: null,
       forceRerender: 0,
@@ -378,7 +383,6 @@ export default  {
       await this.loadData();
       this.forceRerender++;
     })
-    // this.updateFirmware()
   }
 
 }

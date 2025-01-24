@@ -25,7 +25,7 @@ export let BiotronCommandsData = new Map(Object.entries({
     "noteOffPercent": new SysExCommand({
         name: "noteOffPercent",
         number_command: 12,
-        default_value: 100,
+        default_value: 1,
         max_value: 100
     }),
     "noteDistance": new SysExCommand({
@@ -141,7 +141,7 @@ export let BiotronCommandsData = new Map(Object.entries({
 export class BiotronDb extends Db {
     DB_NAME = "BiotronDB"
     STORE_NAME = "Biotron_Patches"
-    VERSION = 3
+    VERSION = 4
 
     constructor() {
         super(BiotronCommandsData);
