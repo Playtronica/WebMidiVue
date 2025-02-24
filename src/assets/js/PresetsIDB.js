@@ -1,6 +1,7 @@
 import {toRaw} from "vue";
 
 
+
 export class Db {
     DB_NAME = "Playtronica_WebMIDI_db"
     STORE_NAME = "Biotron_Patches"
@@ -27,41 +28,45 @@ export class Db {
     }
 
     async openDB() {
-        const request = indexedDB.open(this.DB_NAME, this.VERSION);
-        let vm = this
+        return new Promise(resolve => {
+            const request = indexedDB.open(this.DB_NAME, this.VERSION);
+            let vm = this
 
-        request.onerror = function (event) {
-            console.error("An error occurred with IndexedDB");
-            console.error(event);
-        };
+            request.onerror = function (event) {
+                console.error("An error occurred with IndexedDB");
+                console.error(event);
+                resolve(false);
+            };
 
-        request.onupgradeneeded = function () {
-            const db = request.result;
+            request.onupgradeneeded = function () {
+                const db = request.result;
 
-            if( db.objectStoreNames.contains(vm.STORE_NAME) ) {
-                db.deleteObjectStore(vm.STORE_NAME)
+                if (db.objectStoreNames.contains(vm.STORE_NAME)) {
+                    db.deleteObjectStore(vm.STORE_NAME)
+                }
+
+                let store = db.createObjectStore(vm.STORE_NAME, {keyPath: "id", autoIncrement: true});
+
+                for (let command of toRaw(vm.commands)) {
+                    vm.DEFAULT.data[command[1].name] = command[1].default_value;
+                }
+
+                store.put(toRaw(vm.DEFAULT))
+                resolve(true)
             }
 
-            let store = db.createObjectStore(vm.STORE_NAME, {keyPath: "id", autoIncrement: true});
-
-            for (let command of toRaw(vm.commands)) {
-                vm.DEFAULT.data[command[1].name] = command[1].default_value;
+            request.onsuccess = function () {
+                console.log("Database opened successfully");
+                request.result.close();
+                resolve(false)
             }
-
-            store.put(toRaw(vm.DEFAULT))
-        }
-
-        request.onsuccess = function () {
-            console.log("Database opened successfully");
-            request.result.close();
-        }
-
-
+        })
     }
 
     createPatch(data, name) {
         const request = indexedDB.open(this.DB_NAME, this.VERSION);
         let vm = this;
+
         request.onerror = function (event) {
             console.error("An error occurred with IndexedDB");
             console.error(event);
@@ -97,6 +102,37 @@ export class Db {
             };
         }
     }
+
+    createNoEditablePatch(data, name) {
+        const request = indexedDB.open(this.DB_NAME, this.VERSION);
+        let vm = this;
+        request.onerror = function (event) {
+            console.error("An error occurred with IndexedDB");
+            console.error(event);
+        };
+
+        request.onupgradeneeded = function () {
+            console.log("Update Page")
+        }
+
+        request.onsuccess = function () {
+            const db = request.result;
+            const transaction = db.transaction(vm.STORE_NAME, "readwrite");
+            const store = transaction.objectStore(vm.STORE_NAME);
+
+            store.put({
+                "name": name,
+                "editable": false,
+                "saved": true,
+                "data": data
+            });
+
+            transaction.oncomplete = function () {
+                db.close();
+            };
+        }
+    }
+
 
     async getPatch(id) {
         let vm = this;
