@@ -1,60 +1,50 @@
 import {Db} from "@/assets/js/PresetsIDB";
 import {SysExCommand} from "@/assets/js/SysExCommand";
 
-let double_sys_ex = (arr, val) => {
-    for (let i = 0; i < 8; i++) {
-        val *= 10
-        arr.push(Math.trunc(val))
-        val -= Math.trunc(val)
-    }
-}
+const pads_name = [
+    { "id": 0, "name": "C3", "note": 36 },
+    { "id": 1, "name": "C#3", "note": 37 },
+    { "id": 2, "name": "D3", "note": 38 },
+    { "id": 3, "name": "D#3", "note": 39 },
+    { "id": 4, "name": "E3", "note": 40 },
+    { "id": 5, "name": "F3", "note": 41 },
+    { "id": 6, "name": "F#3", "note": 42 },
+    { "id": 7, "name": "G3", "note": 43 },
+    { "id": 8, "name": "G#3", "note": 44 },
+    { "id": 9, "name": "A3", "note": 45 },
+    { "id": 10, "name": "A#3", "note": 46 },
+    { "id": 11, "name": "B3", "note": 47 },
+    { "id": 12, "name": "C4", "note": 48 },
+    { "id": 13, "name": "C#4", "note": 49 },
+    { "id": 14, "name": "D4", "note": 50 },
+    { "id": 15, "name": "D#4", "note": 51 }
+]
 
 
-export let PlaytronCommandsData = new Map(Object.entries({
-    filter_filtered_last_dep: new SysExCommand({
-        name: "filter_filtered_last_dep",
-        number_command: 0,
-        default_value: 0.9126977,
-        max_value: 1,
-        step: 0.00000001,
-        custom_fold: double_sys_ex
-    }),
-    filter_no_filtered_current_dep: new SysExCommand({
-        name: "filter_no_filtered_current_dep",
-        number_command: 1,
-        default_value: 0.05365115,
-        max_value: 1,
-        step: 0.00000001,
-        custom_fold: double_sys_ex
-    }),
-    filter_no_filtered_last_dep: new SysExCommand({
-        name: "filter_no_filtered_last_dep",
-        number_command: 2,
-        default_value: 0.03365115,
-        max_value: 1,
-        step: 0.00000001,
-        custom_fold: double_sys_ex
-    }),
-    start_adc_val: new SysExCommand({
-        name: "start_adc_val",
-        number_command: 3,
-        default_value: 400,
-        max_value: 4096,
-        custom_fold: (arr, val) => {
-            for (let dig of val.toString().split("").map(Number)) {
-                arr.push(dig);
-            }
-        }
-    })
-}))
+
+const notes_command = Object.fromEntries(
+    pads_name.map(x =>
+        [
+            `Note_${x.name}`,
+            new SysExCommand({
+                name: `Note_${x.name}`,
+                default_value: x.note,
+                number_command: [0, x.id]
+            })
+        ]
+    )
+);
+
+
+export let PlaytronCommandsData = notes_command
 
 
 export class PlaytronDb extends Db {
     DB_NAME = "PlaytronDB"
     STORE_NAME = "Playtron_Patches"
-    VERSION = 2
+    VERSION = 3
 
     constructor() {
-        super(PlaytronCommandsData);
+        super(new Map(Object.entries(PlaytronCommandsData)));
     }
 }

@@ -17,6 +17,10 @@ export default {
     },
     tableValuesReversed: {
       type: Boolean
+    },
+    slider_active: {
+      type: Boolean,
+      default: true,
     }
   },
   emits: ["changedValue"],
@@ -28,17 +32,7 @@ export default {
       tableTranslate: null
     }
   },
-  watch: {
-    rawValue() {
-      this.checkLimit()
-      if (this.tableValues !== undefined) {
-        this.commandObject.set_value(parseInt(this.tableTranslate[parseInt(this.rawValue)]))
-      }
-      else {
-        this.commandObject.set_value(parseInt(this.rawValue))
-      }
-    }
-  },
+
   methods: {
     checkLimit() {
       if (this.rawValue > this.maxValue) {
@@ -48,7 +42,14 @@ export default {
         this.rawValue = this.minValue
       }
     },
-    changed() {
+    changed(event) {
+      this.checkLimit()
+      if (this.tableValues !== undefined) {
+        this.commandObject.set_value(parseInt(this.tableTranslate[parseInt(event.target.value)]))
+      }
+      else {
+        this.commandObject.set_value(parseInt(event.target.value))
+      }
       document.dispatchEvent(new CustomEvent('InputChanged'))
     }
   },
@@ -95,14 +96,14 @@ export default {
     <div v-else>
       <input type="number" id="value_input" class="form-control"
              v-model="this.rawValue" :min="this.minValue" :max="this.maxValue"
-             @input="this.changed"/>
+             @change="this.changed($event)"/>
     </div>
 
 
-    <input type="range" id="range_input" class="settings_input"
+    <input v-if="this.slider_active" type="range" id="range_input" class="settings_input"
            v-model="this.rawValue" :min="this.minValue" :max="this.maxValue"
            :step="this.commandObject.step"
-           @input="this.changed"/>
+           @change="this.changed($event)"/>
   </div>
 </template>
 

@@ -9,15 +9,13 @@ export class SysExCommand {
     max_value;
     step;
     sendable;
-    custom_fold;
+    fold_function;
 
     set_value(value) {
         this.value = value
     }
 
-    set_default() {
-        this.value = this.default_value;
-    }
+
     constructor({
                     name = null,
                     number_command = 0,
@@ -33,14 +31,23 @@ export class SysExCommand {
         if (number_command === null) throw "Number Command is null";
 
         this.name = name === null ? `Command number ${number_command}` : name
-        this.number_command = number_command;
+
+        this.number_command = number_command
         this.value = value === null ? default_value : value
         this.min_value = min_value;
         this.max_value = max_value;
         this.step = step;
         this.default_value = default_value
         this.sendable = sendable
-        this.custom_fold = custom_fold
+
+        if (custom_fold === null) {
+            this.fold_function = (arr, val) => {arr.push(val % 127)}
+        }
+        else {
+            this.fold_function = custom_fold
+        }
+
+
     }
 
     toString() {
@@ -71,33 +78,19 @@ export class SysExCommand {
 
     }
 
-    sendToMidi(device, flag) {
+    sendToMidi(device, flag=this.flag_device) {
         if (!this.sendable) return;
-        if (!this.check_params()) return;
 
         let sys_ex_message = [0xF0]
-        if (flag) {
-            for (let val of flag) {
-                sys_ex_message.push(val)
-            }
-        }
-        else {
-            for (let val of this.flag_device) {
-                sys_ex_message.push(val)
-            }
-        }
 
-        sys_ex_message.push(this.number_command)
+        if (!this.check_params()) return;
 
-        if (this.custom_fold) {
-            this.custom_fold(sys_ex_message, this.value)
-        }
-        else {
-            sys_ex_message.push(this.value % 127)
-        }
+        sys_ex_message = sys_ex_message.concat(flag).concat(this.number_command)
 
+        this.fold_function(sys_ex_message, this.value)
 
         sys_ex_message.push(0xF7);
+
         console.log(sys_ex_message);
 
         device.send(sys_ex_message)

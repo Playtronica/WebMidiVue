@@ -1,30 +1,33 @@
-<template>
+<template class="row">
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
   <div>
     <h1 class="text-center">Playtron change settings</h1>
-    <DeviceSelector regex-name="" @device_changed="(x) => {this.device = x} "/>
+    <DeviceSelector regex-name="Playtron" @device_changed="(x) => {this.device = x} "/>
     <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
-    <GroupOfCommands name-of-group="Filter">
-      <template v-slot:objects>
-        <SliderCommand command-label="Filter Last" :key="this.forceRerender"
-                       :command-object="this.commands_data.filter_filtered_last_dep"/>
-        <SliderCommand command-label="No Filter Last" :key="this.forceRerender"
-                       :command-object="this.commands_data.filter_no_filtered_last_dep"/>
-        <SliderCommand command-label="No Filter Current" :key="this.forceRerender"
-                       :command-object="this.commands_data.filter_no_filtered_current_dep"/>
-      </template>
-      <template v-slot:description>
-        Filter Vals - It is filter's coefficients, which are used to control filter's power.
-      </template>
-    </GroupOfCommands>
-    <GroupOfCommands name-of-group="AdcVal">
-      <template v-slot:objects>
-        <SliderCommand command-label="Start Val" :key="this.forceRerender"
-                       :command-object="this.commands_data.start_adc_val"/>
-      </template>
-    </GroupOfCommands>
   </div>
+
+  <GroupOfCommands name-of-group="Notes For Pad" class="row justify-content-center m-1">
+    <template v-slot:objects>
+      <div class="grid-container center" :key="this.forceRerender">
+        <SliderCommand :command-label="value"
+                       v-for="(value, key) in this.num_to_pad" v-bind:key="key"
+                       :command-object="this.find_sys_ex('Note', this.num_to_pad[key])"
+                       :table-values="this.num_to_pad" :slider_active="false"/>
+      </div>
+    </template>
+  </GroupOfCommands>
   <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary mb-1" style="width: 70%">Send</button>
+  <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
+
+  <UpdateFirmwareComponent repo="Playtronica/playtron-releases" :device="this.device"/>
+  <FileDropArea name="Drop Preset Here" @get_drop="(e) => loadDataFromPreset(e)"/>
+  <GroupOfCommands>
+    <template v-slot:description>
+      <p>Send - sending settings to the device</p>
+      <p>Create Preset - saves settings to a file</p>
+      <p>Drop Preset Here - you need to transfer the file there by drag drop, or by clicking on the button, select the settings file.</p>
+    </template>
+  </GroupOfCommands>
 </template>
 
 <script>
@@ -34,16 +37,24 @@ import DeviceSelector from "@/components/MidiComponents/DeviceSelector.vue";
 import {PlaytronCommandsData, PlaytronDb} from "@/components/PlaytronPage/PlaytronIDB";
 import {sleep} from "@/assets/js/SysExCommand";
 import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
-import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
-import GroupOfCommands from "@/components/MidiComponents/GroupOfCommands.vue";
 import {saveAs} from "@progress/kendo-file-saver";
+import GroupOfCommands from "@/components/MidiComponents/GroupOfCommands.vue";
+import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
+import FileDropArea from "@/components/MidiComponents/FileDropArea.vue";
+import UpdateFirmwareComponent from "@/components/MidiComponents/UpdateFirmwareComponent.vue";
 
 export default  {
   components: {
-    GroupOfCommands, SliderCommand,
+    UpdateFirmwareComponent,
+    FileDropArea,
+    SliderCommand,
+    GroupOfCommands,
     LoaderComponent,
     PatchSelector,
     DeviceSelector,
+  },
+  computed: {
+
   },
   props: {
     id: {
@@ -51,9 +62,28 @@ export default  {
       required: true,
     },
   },
-  watch: {
+  data() {
+    return {
+      device: null,
+      patches: [],
+      patch_id: 0,
+      is_loading: false,
+      commands_data: PlaytronCommandsData,
+      forceRerender: 0,
+      patchRerender: 0,
+      num_to_pad: {
+        36: "C3", 37: "C#3", 38: "D3", 39: "D#3",
+        40: "E3", 41: "F3", 42: "F#3", 43: "G3",
+        44: "G#3", 45: "A3", 46: "A#3", 47: "B3",
+        48: "C4", 49: "C#4", 50: "D4", 51: "D#4"
+      },
+      chosen_pad: 36,
+    }
   },
   methods: {
+    find_sys_ex(task, note) {
+      return this.commands_data[`${task}_${note}`]
+    },
     async change_data_loader() {
       if (!this.device) return
       sleep(100)
@@ -105,9 +135,9 @@ export default  {
       }
 
       let value = {"commands": state}
-      let myFile = new File([JSON.stringify(value)], "biotron-preset.txt",
+      let myFile = new File([JSON.stringify(value)], "playtron-preset.txt",
           {type: "text/plain;charset=utf-8"})
-      saveAs(myFile, "biotron-preset.txt");
+      saveAs(myFile, "playtron-preset.txt");
     },
     async loadDataFromPreset(e) {
       await this.patchChanged();
@@ -135,16 +165,6 @@ export default  {
 
       this.db.updatePatch(localStorage.getItem(this.id), state)
     },
-  },
-  data() {
-    return {
-      patches: [],
-      patch_id: 0,
-      is_loading: false,
-      commands_data: Object.fromEntries(PlaytronCommandsData),
-      forceRerender: 0,
-      patchRerender: 0
-    }
   },
   async created() {
     if (!localStorage.getItem(this.id)) {
@@ -185,11 +205,17 @@ export default  {
       await this.loadData();
       this.forceRerender++;
     })
-    // this.updateFirmware()
   }
 }
 </script>
 
 <style scoped>
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 10px;
+  width: 50%;
+}
 
 </style>
