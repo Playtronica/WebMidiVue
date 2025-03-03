@@ -11,15 +11,23 @@
       </li>
     </ul>
   </header>
-  <div class="m-2">
-    <router-view></router-view>
+  <div class="wrapper">
+    <div class="m-2 content">
+      <router-view></router-view>
+    </div>
+    <footer class="bottom-panel">
+      <SocialLinks/>
+    </footer>
   </div>
 </template>
 
 
 <script>
+import SocialLinks from "@/components/SocialLinks.vue";
+
 export default {
   name: 'App',
+  components: {SocialLinks},
   data() {
     return {
       url: String,
@@ -122,5 +130,26 @@ input:checked + .slider:before {
 
 .slider.round:before {
   border-radius: 50%;
+}
+
+.content {
+  flex: 1;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+
+.bottom-panel {
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-top: 1px black dashed;
 }
 </style>
