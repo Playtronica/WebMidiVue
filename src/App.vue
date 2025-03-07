@@ -40,8 +40,7 @@ export default {
     if (navigator.requestMIDIAccess) {
       console.log("MIDI is supported!");
       try {
-        // eslint-disable-next-line no-unused-vars
-        const midiAccess = await navigator.requestMIDIAccess();
+        await navigator.requestMIDIAccess();
         console.log("MIDI is supported!");
       } catch (error) {
         console.error("Could not access MIDI devices:", error);

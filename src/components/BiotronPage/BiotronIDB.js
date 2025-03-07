@@ -213,11 +213,36 @@ const in_discussion = {
     "middle_plant_note": 60
 }
 
+const mixolyd = {
+    "plantBpm": 462,
+    "lightBpm": 4,
+    "noteOffPercent": 4,
+    "noteDistance": 50,
+    "firstValue": 10,
+    "smoothness": 0,
+    "scale": 4,
+    "minPlantVelocity": 8,
+    "maxPlantVelocity": 98,
+    "minLightVelocity": 74,
+    "maxLightVelocity": 75,
+    "randomness": 0,
+    "same_note_plant": 1,
+    "same_note_light": 0,
+    "range_light_note": 12,
+    "light_pitch_mode": 0,
+    "plant_no_velocity": 0,
+    "light_no_velocity": true,
+    "randomPlantVelocity": true,
+    "randomLightVelocity": 0,
+    "performance": true,
+    "middle_plant_note": 60
+}
+
 
 export class BiotronDb extends Db {
     DB_NAME = "BiotronDB"
     STORE_NAME = "Biotron_Patches"
-    VERSION = 5
+    VERSION = 6
 
     constructor() {
         super(BiotronCommandsData)
@@ -226,6 +251,7 @@ export class BiotronDb extends Db {
                 this.createNoEditablePatch(fast_role_preset, "Fast role")
                 this.createNoEditablePatch(the_performer_mode, "The Performer mode")
                 this.createNoEditablePatch(in_discussion, "In Discussion")
+                this.createNoEditablePatch(mixolyd, "Mixolyd")
             }
         })
     }
