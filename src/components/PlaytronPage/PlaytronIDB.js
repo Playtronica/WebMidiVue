@@ -21,14 +21,12 @@ const pads_name = [
 ]
 
 
-
-const notes_command = Object.fromEntries(
+export let PlaytronCommandsData = Object.fromEntries(
     pads_name.map(x =>
         [
             `Note_${x.name}`,
             new SysExCommand({
                 name: `Note_${x.name}`,
-                default_value: x.note,
                 number_command: [0, x.id]
             })
         ]
@@ -36,15 +34,28 @@ const notes_command = Object.fromEntries(
 );
 
 
-export let PlaytronCommandsData = notes_command
+const default_preset = Object.fromEntries(
+    pads_name.map(x =>
+        [
+            `Note_${x.name}`,
+            x.note
+        ]
+    )
+);
+
 
 
 export class PlaytronDb extends Db {
     DB_NAME = "PlaytronDB"
     STORE_NAME = "Playtron_Patches"
-    VERSION = 3
+    VERSION = 4
 
     constructor() {
         super(new Map(Object.entries(PlaytronCommandsData)));
+        this.openDB().then((is_initial) => {
+            if (is_initial) {
+                this.createNoEditablePatch(default_preset, "Default")
+            }
+        })
     }
 }

@@ -1,17 +1,10 @@
 import {toRaw} from "vue";
 
 
-
 export class Db {
     DB_NAME = "Playtronica_WebMIDI_db"
     STORE_NAME = "Biotron_Patches"
     VERSION = 7
-    DEFAULT = {
-        "name": "Default",
-        "saved": true,
-        "editable": false,
-        "data": {}
-    }
 
     constructor(commands) {
         const indexedDB =
@@ -45,13 +38,8 @@ export class Db {
                     db.deleteObjectStore(vm.STORE_NAME)
                 }
 
-                let store = db.createObjectStore(vm.STORE_NAME, {keyPath: "id", autoIncrement: true});
+                db.createObjectStore(vm.STORE_NAME, {keyPath: "id", autoIncrement: true});
 
-                for (let command of toRaw(vm.commands)) {
-                    vm.DEFAULT.data[command[1].name] = command[1].default_value;
-                }
-
-                store.put(toRaw(vm.DEFAULT))
                 resolve(true)
             }
 

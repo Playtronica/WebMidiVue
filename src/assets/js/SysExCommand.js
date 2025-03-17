@@ -4,7 +4,6 @@ export class SysExCommand {
     name
     number_command;
     value;
-    default_value;
     min_value;
     max_value;
     step;
@@ -19,11 +18,9 @@ export class SysExCommand {
     constructor({
                     name = null,
                     number_command = 0,
-                    value = null,
                     min_value = 0,
                     max_value = 127,
                     step = 1,
-                    default_value = 0,
                     sendable = true,
                     custom_fold = null,
                 }
@@ -33,11 +30,10 @@ export class SysExCommand {
         this.name = name === null ? `Command number ${number_command}` : name
 
         this.number_command = number_command
-        this.value = value === null ? default_value : value
+        this.value = min_value;
         this.min_value = min_value;
         this.max_value = max_value;
         this.step = step;
-        this.default_value = default_value
         this.sendable = sendable
 
         if (custom_fold === null) {
