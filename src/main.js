@@ -8,6 +8,7 @@ import TouchMePage from "@/components/TouchMePage/TouchMePage.vue";
 import ScalaPage from "@/components/ExtraPage/ScalaPage.vue";
 import BiotronUpdatePage from "@/components/BiotronPage/BiotronUpdatePage.vue";
 import PlaytronPage from "@/components/PlaytronPage/PlaytronPage.vue";
+import TouchMePageTEST from "@/components/TouchMePage/TouchMePageTEST.vue";
 
 
 
@@ -16,6 +17,7 @@ const routes = [
     { path: '/biotron', component: BiotronPage, props: {id: "BiotronWebMidiId_2" } },
     { path: "/biotron/update", component: BiotronUpdatePage},
     { path: '/touchme', component: TouchMePage, props: {id: "TouchmeWebMidiId_2"} },
+    { path: '/touchme-test', component: TouchMePageTEST, props: {id: "TouchmeWebMidiIdTEST_2"} },
     { path: '/playtron', component: PlaytronPage, props: {id: "PlaytronWebMidiId"} },
     { path: '/scala', component: ScalaPage}
 ]

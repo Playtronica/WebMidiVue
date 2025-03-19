@@ -6,11 +6,36 @@
     <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
     <GroupOfCommands name-of-group="BPM">
       <template v-slot:objects>
-        <SliderCommand command-label="Plant Bpm" :key="this.forceRerender" :command-object="this.commands_data.plantBpm"/>
-        <SliderCommand command-label="Note Off Percent" :key="this.forceRerender" :command-object="this.commands_data.noteOffPercent"
-                       :table-values="this.fractions_note_off" table-values-reversed/>
-        <SliderCommand command-label="Light Bpm" :key="this.forceRerender" :command-object="this.commands_data.lightBpm"/>
-        <SliderCommand command-label="Root Note" :key="this.forceRerender" :command-object="this.commands_data.middle_plant_note" :table-values="this.root_note_id"/>
+        <SliderCommand
+            command-label="Plant Bpm"
+            :key="this.forceRerender"
+            :command-object="this.commands_data.plantBpm"
+            @input-changed="this.sys_ex_changed"
+        />
+
+        <SliderCommand
+            command-label="Note Off Percent"
+            :key="this.forceRerender"
+            :command-object="this.commands_data.noteOffPercent"
+            :table-values="this.fractions_note_off"
+            @input-changed="this.sys_ex_changed"
+            table-values-reversed
+        />
+
+        <SliderCommand
+            command-label="Light Bpm"
+            :key="this.forceRerender"
+            :command-object="this.commands_data.lightBpm"
+            @input-changed="this.sys_ex_changed"
+        />
+
+        <SliderCommand
+            command-label="Root Note"
+            :key="this.forceRerender"
+            :command-object="this.commands_data.middle_plant_note"
+            :table-values="this.root_note_id"
+            @input-changed="this.sys_ex_changed"
+        />
       </template>
       <template v-slot:description>
         <p>BPM - how many notes from the plant will be generated per minute</p>
@@ -21,8 +46,18 @@
     </GroupOfCommands>
     <GroupOfCommands name-of-group="Sensitivity (fib)">
       <template v-slot:objects>
-        <SliderCommand command-label="Note Distance" :key="this.forceRerender" :command-object="this.commands_data.noteDistance"/>
-        <SliderCommand command-label="First Value" :key="this.forceRerender" :command-object="this.commands_data.firstValue"/>
+        <SliderCommand
+            command-label="Note Distance"
+            :key="this.forceRerender"
+            :command-object="this.commands_data.noteDistance"
+            @input-changed="this.sys_ex_changed"
+        />
+        <SliderCommand
+            command-label="First Value"
+            :key="this.forceRerender"
+            :command-object="this.commands_data.firstValue"
+            @input-changed="this.sys_ex_changed"
+        />
       </template>
       <template v-slot:description>
         <p>Sensitivity (fib) - Fibonacci parameter responsible for the note distribution curve</p>
@@ -30,7 +65,11 @@
     </GroupOfCommands>
     <GroupOfCommands name-of-group="Smoothness">
       <template v-slot:objects>
-        <SliderCommand :key="this.forceRerender" :command-object="this.commands_data.smoothness" />
+        <SliderCommand
+            :key="this.forceRerender"
+            :command-object="this.commands_data.smoothness"
+            @input-changed="this.sys_ex_changed"
+        />
       </template>
       <template v-slot:description>
         <p>Smoothness - the smoothness of the notes played, where 0 is an instant change in notes,
@@ -39,7 +78,12 @@
     </GroupOfCommands>
     <GroupOfCommands name-of-group="Scale">
       <template v-slot:objects>
-        <SelectCommand :key="this.forceRerender" :list-of-variants="this.scales" :command-object="commands_data.scale"/>
+        <SelectCommand
+            :key="this.forceRerender"
+            :list-of-variants="this.scales"
+            :command-object="commands_data.scale"
+            @input-changed="this.sys_ex_changed"
+        />
       </template>
       <template v-slot:description>
         <p>Scale - scale played from the device</p>
@@ -52,22 +96,34 @@
             <div class="row">
               <div class="col">
                   <label for="randomPlantVelSwitch">Humanize</label>
-                  <SwitchComponent id="randomPlantVelSwitch" :model-value="this.commands_data.randomPlantVelocity"/>
+                  <SwitchComponent
+                      id="randomPlantVelSwitch"
+                      :command-object="this.commands_data.randomPlantVelocity"
+                      @input-changed="this.sys_ex_changed"
+                  />
               </div>
               <div class="col">
                   <label for="plantVelDis">Mute</label>
-                  <SwitchComponent id="plantVelDis" :model-value="commands_data.plant_no_velocity"/>
+                  <SwitchComponent
+                      id="plantVelDis"
+                      :command-object="commands_data.plant_no_velocity"
+                      @input-changed="this.sys_ex_changed"
+                  />
               </div>
             </div>
             <div v-if="!commands_data.plant_no_velocity.value">
               <div v-if="!this.commands_data.randomPlantVelocity.value">
                 <SliderCommand :key="this.forceRerender"
-                               :command-object="commands_data.maxPlantVelocity"/>
+                               :command-object="commands_data.maxPlantVelocity"
+                               @input-changed="this.sys_ex_changed"
+                />
               </div>
               <div v-else>
                 <SliderRangeCommand :key="this.forceRerender"
                                     :max-command-object="commands_data.maxPlantVelocity"
-                                    :min-command-object="commands_data.minPlantVelocity"/>
+                                    :min-command-object="commands_data.minPlantVelocity"
+                                    @input-changed="this.sys_ex_changed"
+                />
               </div>
             </div>
           </template>
@@ -80,22 +136,36 @@
             <div class="row">
               <div class="col">
                 <label for="randomLightVelSwitch">Humanize</label>
-                <SwitchComponent id="randomLightVelSwitch" :model-value="this.commands_data.randomLightVelocity"/>
+                <SwitchComponent
+                    id="randomLightVelSwitch"
+                    :command-object="this.commands_data.randomLightVelocity"
+                    @input-changed="this.sys_ex_changed"
+                />
               </div>
               <div class="col">
                 <label for="lightVelDis">Mute</label>
-                <SwitchComponent id="lightVelDis" :model-value="commands_data.light_no_velocity"/>
+                <SwitchComponent
+                    id="lightVelDis"
+                    :command-object="commands_data.light_no_velocity"
+                    @input-changed="this.sys_ex_changed"
+                />
               </div>
             </div>
             <div class="row" v-if="!commands_data.light_no_velocity.value">
               <div v-if="!this.commands_data.randomLightVelocity.value">
-                <SliderCommand :key="this.forceRerender"
-                                          :command-object="commands_data.maxLightVelocity"/>
+                <SliderCommand
+                    :key="this.forceRerender"
+                    :command-object="commands_data.maxLightVelocity"
+                    @input-changed="this.sys_ex_changed"
+                />
               </div>
               <div v-else>
-                <SliderRangeCommand :key="this.forceRerender"
-                                               :max-command-object="commands_data.maxLightVelocity"
-                                               :min-command-object="commands_data.minLightVelocity"/>
+                <SliderRangeCommand
+                    :key="this.forceRerender"
+                    :max-command-object="commands_data.maxLightVelocity"
+                    :min-command-object="commands_data.minLightVelocity"
+                    @input-changed="this.sys_ex_changed"
+                />
               </div>
             </div>
           </template>
@@ -112,8 +182,18 @@
     </GroupOfCommands>
     <GroupOfCommands name-of-group="Same Note">
       <template v-slot:objects>
-        <SliderCommand :key="this.forceRerender" :command-object="commands_data.same_note_plant" :command-label="'Plant'" />
-        <SliderCommand :key="this.forceRerender" :command-object="commands_data.same_note_light" :command-label="'Light'" />
+        <SliderCommand
+            :key="this.forceRerender"
+            :command-object="commands_data.same_note_plant"
+            :command-label="'Plant'"
+            @input-changed="this.sys_ex_changed"
+        />
+        <SliderCommand
+            :key="this.forceRerender"
+            :command-object="commands_data.same_note_light"
+            :command-label="'Light'"
+            @input-changed="this.sys_ex_changed"
+        />
       </template>
       <template v-slot:description>
         <p>Same Note - notes that are played only when changing notes with a customizable step,
@@ -123,10 +203,17 @@
     <GroupOfCommands name-of-group="Light Notes Range">
       <template v-slot:objects>
         <label for="light_pitch_mode">Pitch Bend</label>
-        <SwitchComponent id="light_pitch_mode" :model-value="this.commands_data.light_pitch_mode"/>
-        <SliderCommand v-if="!this.commands_data.light_pitch_mode.value"
+        <SwitchComponent
+            id="light_pitch_mode"
+            :command-object="this.commands_data.light_pitch_mode"
+            @input-changed="this.sys_ex_changed"
+        />
+        <SliderCommand
+            v-if="!this.commands_data.light_pitch_mode.value"
             :key="this.forceRerender"
-            :command-object="this.commands_data.range_light_note"/>
+            :command-object="this.commands_data.range_light_note"
+            @input-changed="this.sys_ex_changed"
+        />
       </template>
       <template v-slot:description>
         <p>Light Notes Range - setting the range of notes played from the photoresistor (lower and upper limits are set)</p>
@@ -137,11 +224,19 @@
         <div class="row">
           <div class="col">
             <label>Ultra sensitivity</label>
-            <SwitchComponent  :key="this.forceRerender" :model-value="commands_data.randomness"/>
+            <SwitchComponent
+                :key="this.forceRerender"
+                :command-object="commands_data.randomness"
+                @input-changed="this.sys_ex_changed"
+            />
           </div>
           <div class="col">
             <label>Performance mode</label>
-          <SwitchComponent :key="this.forceRerender" :model-value="commands_data.performance"/>
+          <SwitchComponent
+              :key="this.forceRerender"
+              :command-object="commands_data.performance"
+              @input-changed="this.sys_ex_changed"
+          />
           </div>
         </div>
       </template>
@@ -224,13 +319,32 @@ export default  {
       setTimeout(function () {
         this.sendData()
         sleep(100)
-        this.sendDataTest()
+        this.sendDataDeprecated()
       }.bind(this),10)
 
     },
-    async sendData() {
+    async sendDataDeprecated() {
       if (this.device) {
         this.device.send([240, 11, 16, 127, 247])
+        let extraComp = []
+
+        extraComp.push("plantBpm");
+        for (let comm in this.commands_data) {
+          if (!extraComp.includes(comm)) {
+            this.commands_data[comm].sendToMidi(this.device, [11])
+            sleep(100);
+          }
+        }
+        this.device.send([240, 11, 126, 247]);
+        sleep(100);
+        this.commands_data.plantBpm.sendToMidi(this.device, [11])
+      }
+    },
+
+    async sendData() {
+      if (this.device) {
+        this.device.send([240, 11, 20, 13, 126, 247]);
+        sleep(100);
         let extraComp = []
 
         extraComp.push("plantBpm");
@@ -240,29 +354,10 @@ export default  {
             sleep(100);
           }
         }
-        this.device.send([240, 11, 126, 247]);
+        sleep(100);
+        this.device.send([240, 11, 20, 13, 126, 247]);
         sleep(100);
         this.commands_data.plantBpm.sendToMidi(this.device)
-      }
-    },
-
-    async sendDataTest() {
-      if (this.device) {
-        this.device.send([240, 11, 20, 13, 126, 247]);
-        sleep(100);
-        let extraComp = []
-
-        extraComp.push("plantBpm");
-        for (let comm in this.commands_data) {
-          if (!extraComp.includes(comm)) {
-            this.commands_data[comm].sendToMidi(this.device, [20, 13])
-            sleep(100);
-          }
-        }
-        sleep(100);
-        this.device.send([240, 11, 20, 13, 126, 247]);
-        sleep(100);
-        this.commands_data.plantBpm.sendToMidi(this.device, [20, 13])
       }
     },
 
@@ -317,6 +412,11 @@ export default  {
       }
       this.saveData();
     },
+    async sys_ex_changed() {
+      await this.patchChanged();
+      this.forceRerender++;
+      this.patchRerender++;
+    },
   },
   data() {
     return {
@@ -362,10 +462,6 @@ export default  {
   mounted() {
     document.addEventListener( 'keyup', event => {
       if (event.code === 'Enter' && !this.is_loading) this.change_data_loader();
-    })
-    document.addEventListener( 'InputChanged', async () => {
-      await this.patchChanged();
-      this.patchRerender++;
     })
     document.addEventListener( 'PatchChanged', async () => {
       await this.loadData();

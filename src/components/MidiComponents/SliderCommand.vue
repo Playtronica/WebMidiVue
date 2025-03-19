@@ -23,7 +23,7 @@ export default {
       default: true,
     }
   },
-  emits: ["changedValue"],
+  emits: ["InputChanged"],
   data() {
     return {
       rawValue: -1,
@@ -50,7 +50,7 @@ export default {
       else {
         this.commandObject.set_value(parseInt(event.target.value))
       }
-      document.dispatchEvent(new CustomEvent('InputChanged'))
+      this.$emit('InputChanged', this.commandObject)
     }
   },
   created() {
@@ -87,7 +87,7 @@ export default {
     <label for="value_input">{{ this.commandLabel }}</label>
 
     <div v-if="this.tableValues">
-      <select v-model="this.rawValue" id="scale" class="form-control" @input="this.changed">
+      <select v-model="this.rawValue" id="scale" class="form-control" @change="this.changed">
         <option v-for="(value, key) in this.tableTranslate" v-bind:key="key" :value="key">
           {{this.tableValues[parseInt(value)]}}
         </option>

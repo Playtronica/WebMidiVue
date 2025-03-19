@@ -2,6 +2,7 @@
 import {SysExCommand} from "@/assets/js/SysExCommand";
 
 export default {
+  emits: ['InputChanged'],
   props: {
     commandLabel: {
       default: "",
@@ -22,7 +23,7 @@ export default {
   },
   methods: {
     changed() {
-      document.dispatchEvent(new CustomEvent('InputChanged'))
+      this.$emit('InputChanged', this.commandObject)
     }
   },
   watch: {
@@ -40,7 +41,7 @@ export default {
   <div class="row m-2">
     <label for="value_input">{{ this.commandLabel }}</label>
 
-    <select v-model="this.Value" id="scale" class="form-control" @input="changed">
+    <select v-model="this.Value" id="scale" class="form-control" @change="changed">
       <option v-for="(item, index) in this.listOfVariants" v-bind:key="index" :value="index">
         {{item}}
       </option>

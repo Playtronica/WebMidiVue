@@ -2,8 +2,8 @@
   <div class="container">
     <div class="col w-100 mb-4">
       <label class="switch">
-        <input id="checkbox_input" type="checkbox" :checked="modelValue.value"
-               @click="modelValue.set_value($event.target.checked)" @input="this.changed">
+        <input id="checkbox_input" type="checkbox" :checked="commandObject.value"
+               @click="commandObject.set_value($event.target.checked)" @change="this.changed">
         <span class="slider round"></span>
       </label>
     </div>
@@ -16,14 +16,14 @@ import {SysExCommand} from "@/assets/js/SysExCommand";
 export default {
   name: "SwitchComponent",
   props: {
-    modelValue: {
+    commandObject: {
       type: SysExCommand,
     }
   },
-  emits: ["update:modelValue"],
+  emits: ["InputChanged"],
   methods: {
     changed() {
-      document.dispatchEvent(new CustomEvent('InputChanged'))
+      this.$emit('InputChanged', this.commandObject)
     }
   }
 }
