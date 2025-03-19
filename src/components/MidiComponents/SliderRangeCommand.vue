@@ -1,9 +1,11 @@
 <script>
-import { SysExCommand } from "@/assets/js/SysExCommand"
-import MultiRangeSlider from "multi-range-slider-vue";
+import {sleep, SysExCommand} from "@/assets/js/SysExCommand"
 import "@/../node_modules/multi-range-slider-vue/MultiRangeSliderBarOnly.css"
+import Slider from '@vueform/slider'
+
 export default {
-  components: {MultiRangeSlider},
+  components: {Slider},
+  emits: ["input-changed"],
   props: {
     commandLabel: {
       default: "",
@@ -22,33 +24,22 @@ export default {
     return {
       minValue: 0,
       maxValue: 0,
+      values: [0, 0]
     }
-  },
-  watch: {
   },
   methods: {
-    update_oBarValues(e) {
-      this.minValue = e.minValue;
-      this.maxValue = e.maxValue;
-      this.updateValue()
-      document.dispatchEvent(new CustomEvent('InputChanged'))
-    },
     changed() {
-
+      this.minCommandObject.set_value(this.values[0]);
+      this.maxCommandObject.set_value(this.values[1]);
+      this.$emit('input-changed', this.minCommandObject)
+      sleep(1)
+      this.$emit('input-changed', this.maxCommandObject)
     },
-    updateValue() {
-      if (this.minValue < this.minCommandObject.min_value) this.minValue = this.minCommandObject;
-      if (this.minValue > this.maxValue) this.minValue = this.maxValue;
-      this.minCommandObject.set_value(this.minValue);
-
-      if (this.maxValue < this.minValue) this.maxValue = this.minValue;
-      if (this.maxValue > this.maxCommandObject.max_value) this.minValue = this.maxCommandObject.max_value;
-      this.maxCommandObject.set_value(this.maxValue);
-    }
   },
   created() {
     this.minValue = this.minCommandObject.value;
     this.maxValue = this.maxCommandObject.value;
+    this.values = [this.minCommandObject.value, this.maxCommandObject.value]
     if (this.minValue > this.maxValue) {
       this.minValue = this.maxValue
     }
@@ -59,26 +50,27 @@ export default {
 <template>
   <div class="row m-2">
     <label for="value_input">{{ this.commandLabel }}</label>
-      <div class="row">
+      <div class="row" style="margin-bottom: 10px">
         <div class="col">
-          <input type="number" id="value_input_min" class="form-control" @input="this.changed"
-                 v-model="this.minValue" :min="this.minCommandObject.min_value" :max="this.minCommandObject.max_value" />
+          <input type="number" id="value_input_min" class="form-control" @change="this.changed"
+                 v-model="this.values[0]" :min="this.minCommandObject.min_value" :max="this.minCommandObject.max_value" />
         </div>
         -
         <div class="col">
-          <input type="number" id="value_input_max" class="form-control" @input="this.changed"
-                 v-model="this.maxValue" :min="this.minCommandObject.min_value" :max="this.maxCommandObject.max_value" />
+          <input type="number" id="value_input_max" class="form-control" @change="this.changed"
+                 v-model="this.values[1]" :min="this.minCommandObject.min_value" :max="this.maxCommandObject.max_value" />
         </div>
       </div>
       <div class="row">
-        <MultiRangeSlider
-            baseClassName="multi-range-slider-bar-only"
-            :minValue="this.minValue"
-            :maxValue="this.maxValue"
+        <Slider
+            v-model="values"
+            class="slider-blue"
+            :tooltips="false"
             :max="this.maxCommandObject.max_value"
             :min="this.minCommandObject.min_value"
             :step="this.minCommandObject.step"
-            @input="update_oBarValues"
+            :lazy="false"
+            @change="this.changed"
         />
       </div>
 
@@ -86,5 +78,11 @@ export default {
 </template>
 
 <style scoped>
+@import "@vueform/slider/themes/default.css";
 
+.slider-blue {
+  --slider-connect-bg: #3B82F6;
+  --slider-handle-ring-color: #ffffff80;
+  --slider-handle-bg: #0275ff;
+}
 </style>

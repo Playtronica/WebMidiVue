@@ -1,5 +1,5 @@
 export class SysExCommand {
-    flag_device = [11]
+    flag_device = [20, 13]
 
     name
     number_command;
