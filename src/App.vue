@@ -9,6 +9,10 @@
         <router-link v-if="this.url === '/touchme'" @click="this.update" to="/touchme" class="nav-link active">TouchMe</router-link>
         <router-link v-else to="/touchme" @click="this.update" class="nav-link">TouchMe</router-link>
       </li>
+      <li class="nav-item">
+        <router-link v-if="this.url === '/playtron'" @click="this.update" to="/playtron" class="nav-link active">TouchMe</router-link>
+        <router-link v-else to="/playtron" @click="this.update" class="nav-link">Playtron</router-link>
+      </li>
     </ul>
   </header>
   <div class="wrapper">

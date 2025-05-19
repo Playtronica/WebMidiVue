@@ -12,7 +12,7 @@
         <SliderCommand :command-label="value"
                        v-for="(value, key) in this.num_to_pad" v-bind:key="key"
                        :command-object="this.find_sys_ex('Note', this.num_to_pad[key])"
-                       :table-values="this.num_to_pad" :slider_active="false"/>
+                       :slider_active="false"/>
       </div>
     </template>
   </GroupOfCommands>
