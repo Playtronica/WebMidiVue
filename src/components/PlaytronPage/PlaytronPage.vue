@@ -12,7 +12,7 @@
         <SliderCommand :command-label="value"
                        v-for="(value, key) in this.num_to_pad" v-bind:key="key"
                        :command-object="this.find_sys_ex('Note', this.num_to_pad[key])"
-                       :slider_active="false"/>
+                       :slider_active="false" @input-changed="this.sys_ex_changed"/>
       </div>
     </template>
   </GroupOfCommands>
@@ -108,7 +108,7 @@ export default  {
 
         for (let comm in this.commands_data) {
           if (!extraComp.includes(comm)) {
-            this.commands_data[comm].sendToMidi(this.device, [20, 13])
+            this.commands_data[comm].sendToMidi(this.device)
             sleep(100);
           }
         }
@@ -164,6 +164,11 @@ export default  {
       }
 
       this.db.updatePatch(localStorage.getItem(this.id), state)
+    },
+    async sys_ex_changed() {
+      await this.patchChanged();
+      this.forceRerender++;
+      this.patchRerender++;
     },
   },
   async created() {
