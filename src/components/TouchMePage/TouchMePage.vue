@@ -3,113 +3,113 @@
   <h1 class="text-center">TouchMe change settings</h1>
   <DeviceSelector regex-name="TouchMe" @device_changed="(x) => {this.device = x} "/>
   <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
-  <GroupOfCommands name-of-group="Scale">
-    <template v-slot:objects>
-      <SelectCommand
-          :key="this.forceRerender"
-          :list-of-variants="this.scales"
-          :command-object="this.commands_data.Scale"
-          @input-changed="this.sys_ex_changed"
-      />
-    </template>
-    <template v-slot:description>
-      <p>Scale - scale played from the device</p>
-    </template>
-  </GroupOfCommands>
+    <GroupOfCommands name-of-group="Scale">
+      <template v-slot:objects>
+        <SelectCommand
+            :key="this.forceRerender"
+            :list-of-variants="this.scales"
+            :command-object="this.commands_data.Scale"
+            @input-changed="this.sys_ex_changed"
+        />
+      </template>
+      <template v-slot:description>
+        <p>Scale - scale played from the device</p>
+      </template>
+    </GroupOfCommands>
 
-  <GroupOfCommands name-of-group="Key">
-    <template v-slot:objects v-if="!this.commands_data.customRange.value">
-      <SliderCommand
-          command-label=""
-          :key="this.forceRerender"
-          :command-object="this.commands_data.Key"
-          :table-values="this.dig_to_nums"
-          @input-changed="this.sys_ex_changed"
-      />
-    </template>
-    <template v-slot:description>
-      <p>Key - Start Note in default range (Disabled when custom range is active)</p>
-    </template>
-  </GroupOfCommands>
+    <GroupOfCommands name-of-group="Key">
+      <template v-slot:objects v-if="!this.commands_data.customRange.value">
+        <SliderCommand
+            command-label=""
+            :key="this.forceRerender"
+            :command-object="this.commands_data.Key"
+            :table-values="this.dig_to_nums"
+            @input-changed="this.sys_ex_changed"
+        />
+      </template>
+      <template v-slot:description>
+        <p>Key - Start Note in default range (Disabled when custom range is active)</p>
+      </template>
+    </GroupOfCommands>
 
-  <GroupOfCommands name-of-group="Velocity">
-    <template v-slot:objects>
-      <div class="row">
-        <div class="col">
-          <label for="humanizeSwitch">Humanize</label>
-          <SwitchComponent
-              id="humanizeSwitch"
-              :command-object="this.commands_data.humanize"
-              @update:model-value="newVal => {
+    <GroupOfCommands name-of-group="Velocity">
+      <template v-slot:objects>
+        <div class="row">
+          <div class="col">
+            <label for="humanizeSwitch">Humanize</label>
+            <SwitchComponent
+                id="humanizeSwitch"
+                :command-object="this.commands_data.humanize"
+                @update:model-value="newVal => {
                   this.isHumanize = newVal
                   forceRerender++
                 }"
-              @input-changed="this.sys_ex_changed"
-          />
-        </div>
-        <div class="col">
-          <label for="velocityDisableSwitch">Mute</label>
-          <SwitchComponent
-              id="velocityDisableSwitch"
-              :command-object="this.commands_data.mute"
-              @update:model-value="newVal => {
+                @input-changed="this.sys_ex_changed"
+            />
+          </div>
+          <div class="col">
+            <label for="velocityDisableSwitch">Mute</label>
+            <SwitchComponent
+                id="velocityDisableSwitch"
+                :command-object="this.commands_data.mute"
+                @update:model-value="newVal => {
                   this.isMute = newVal
                 }"
-              @input-changed="this.sys_ex_changed"
-          />
+                @input-changed="this.sys_ex_changed"
+            />
+          </div>
         </div>
-      </div>
-      <div v-if="!this.commands_data.mute.value">
-        <div v-if="!this.commands_data.humanize.value">
-          <SliderCommand :key="this.forceRerender"
-                         :command-object="this.commands_data.maxVelocity"
-                         @input-changed="this.sys_ex_changed"
-          />
+        <div v-if="!this.commands_data.mute.value">
+          <div v-if="!this.commands_data.humanize.value">
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.commands_data.maxVelocity"
+                           @input-changed="this.sys_ex_changed"
+            />
+          </div>
+          <div v-else>
+            <SliderRangeCommand :key="this.forceRerender"
+                                :max-command-object="this.commands_data.maxVelocity"
+                                :min-command-object="this.commands_data.minVelocity"
+                                @input-changed="this.sys_ex_changed"
+            />
+          </div>
         </div>
-        <div v-else>
-          <SliderRangeCommand :key="this.forceRerender"
-                              :max-command-object="this.commands_data.maxVelocity"
-                              :min-command-object="this.commands_data.minVelocity"
-                              @input-changed="this.sys_ex_changed"
-          />
-        </div>
-      </div>
-    </template>
-    <template v-slot:description>
-      <p>Velocity - pressing force</p>
-      <p>Humanize - Velocity randomization at a controlled interval</p>
-      <p>Mute - disable note generation from the channel</p>
-    </template>
-  </GroupOfCommands>
+      </template>
+      <template v-slot:description>
+        <p>Velocity - pressing force</p>
+        <p>Humanize - Velocity randomization at a controlled interval</p>
+        <p>Mute - disable note generation from the channel</p>
+      </template>
+    </GroupOfCommands>
 
-  <GroupOfCommands name-of-group="Notes Range">
-    <template v-slot:objects>
-      <div class="row">
-        <div class="col">
-          <label for="notesRangeSwitch">Custom Range</label>
-          <SwitchComponent
-              id="notesRangeSwitch"
-              :command-object="this.commands_data.customRange"
-              @update:model-value="newVal => {
+    <GroupOfCommands name-of-group="Notes Range">
+      <template v-slot:objects>
+        <div class="row">
+          <div class="col">
+            <label for="notesRangeSwitch">Custom Range</label>
+            <SwitchComponent
+                id="notesRangeSwitch"
+                :command-object="this.commands_data.customRange"
+                @update:model-value="newVal => {
                     this.customRange = newVal
                     forceRerender++
                   }"
-              @input-changed="this.sys_ex_changed"
+                @input-changed="this.sys_ex_changed"
+            />
+          </div>
+        </div>
+        <div v-if="this.commands_data.customRange.value">
+          <SliderRangeCommand :key="this.forceRerender"
+                              :max-command-object="this.commands_data.highestNote"
+                              :min-command-object="this.commands_data.lowestNote"
+                              @input-changed="this.sys_ex_changed"
           />
         </div>
-      </div>
-      <div v-if="this.commands_data.customRange.value">
-        <SliderRangeCommand :key="this.forceRerender"
-                            :max-command-object="this.commands_data.highestNote"
-                            :min-command-object="this.commands_data.lowestNote"
-                            @input-changed="this.sys_ex_changed"
-        />
-      </div>
-    </template>
-    <template v-slot:description>
-      <p>Notes Range - Range of playable notes</p>
-    </template>
-  </GroupOfCommands>
+      </template>
+      <template v-slot:description>
+        <p>Notes Range - Range of playable notes</p>
+      </template>
+    </GroupOfCommands>
 
     <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary mb-1" style="width: 70%">Send</button>
     <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
@@ -128,7 +128,6 @@
 <script>
 
 import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
-import {sleep} from "@/assets/js/SysExCommand"
 import GroupOfCommands from "@/components/MidiComponents/GroupOfCommands.vue";
 import DeviceSelector from "@/components/MidiComponents/DeviceSelector.vue";
 import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
@@ -136,13 +135,16 @@ import FileDropArea from "@/components/MidiComponents/FileDropArea.vue";
 import {saveAs} from "@progress/kendo-file-saver";
 import SwitchComponent from "@/components/MidiComponents/Switch.vue";
 import SliderRangeCommand from "@/components/MidiComponents/SliderRangeCommand.vue";
-import {TouchMeCommandsData, TouchMeDb} from "@/components/TouchMePage/TouchMeIDB";
 import PatchSelector from "@/components/MidiComponents/PatchSelector.vue";
 import UpdateFirmwareComponent from "@/components/MidiComponents/UpdateFirmwareComponent.vue";
 import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
+import {TouchMeCommandsData, TouchMeDb} from "@/components/TouchMePage/TouchMeIDB";
+import {sleep} from "@/assets/js/SysExCommand";
+import TouchMePage from "@/components/TouchMePage/TouchMePageOld.vue";
 
 
 export default  {
+  name: TouchMePage,
   components: {
     LoaderComponent,
     UpdateFirmwareComponent,
@@ -175,34 +177,23 @@ export default  {
 
       setTimeout(function () {
         this.device.send([240, 11, 20, 13, 0, 247])
-        this.sendDataTest()
-        sleep(100)
         this.sendData()
         this.device.send([240, 11, 20, 13, 1, 247])
 
       }.bind(this),10)
-
     },
     async sendData() {
       for (let comm in this.commands_data) {
-          this.commands_data[comm].sendToMidi(this.device)
-          sleep(100);
-      }
-      await this.saveData()
-    },
-    async sendDataTest() {
-      for (let comm in this.commands_data) {
-        this.commands_data[comm].sendToMidi(this.device, [11])
+        this.commands_data[comm].sendToMidi(this.device)
         sleep(100);
       }
-      this.saveData()
+      await this.saveData()
     },
     async saveData() {
       let state = {}
       for (let val of Object.values(this.commands_data)) {
         state[val.name] = val.value
       }
-
       this.db.updatePatch(localStorage.getItem(this.id), state)
     },
     async loadData() {
@@ -218,6 +209,7 @@ export default  {
 
       this.forceRerender++;
     },
+
     async loadDataFromPreset(e) {
       await this.patchChanged();
       for (let item of JSON.parse(e).commands) {
@@ -226,6 +218,7 @@ export default  {
       this.saveData();
       this.forceRerender++;
     },
+
     async createPreset() {
       let state = []
       for (let item in this.commands_data) {
@@ -237,6 +230,7 @@ export default  {
           {type: "text/plain;charset=utf-8"})
       saveAs(myFile, "touchme-preset.txt");
     },
+
     async patchChanged() {
       let patch_id = parseInt(localStorage.getItem(this.id));
 
@@ -245,10 +239,14 @@ export default  {
         this.patches = await this.db.getPatch();
         localStorage.setItem(this.id, patch_id);
       }
-      await this.saveData();
+      this.saveData();
     },
-    async sys_ex_changed() {
+
+    async sys_ex_changed(object) {
       await this.patchChanged();
+      if (this.device) {
+        await object.sendToMidi(this.device)
+      }
       this.forceRerender++;
       this.patchRerender++;
     },
@@ -292,9 +290,6 @@ export default  {
     this.forceRerender++;
   },
   async mounted() {
-    document.addEventListener( 'keyup', event => {
-      if (event.code === 'Enter' && !this.is_loading) this.change_data_loader();
-    })
     document.addEventListener( 'PatchChanged', async () => {
       await this.loadData();
       this.forceRerender++;
