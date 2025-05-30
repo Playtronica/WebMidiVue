@@ -165,8 +165,13 @@ export default  {
 
       this.db.updatePatch(localStorage.getItem(this.id), state)
     },
-    async sys_ex_changed() {
+    async sys_ex_changed(object) {
       await this.patchChanged();
+
+      if (this.device) {
+        await object.sendToMidi(this.device)
+      }
+
       this.forceRerender++;
       this.patchRerender++;
     },
