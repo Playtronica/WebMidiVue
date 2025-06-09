@@ -8,13 +8,17 @@ export default {
       repo: {
         type: String
       },
+      text: {
+        type: String,
+        default: "Update Firmware",
+      },
       device: Object
   }
 }
 </script>
 
 <template>
-  <button data-bs-toggle="modal" data-bs-target="#UpdateConf" class="btn btn-primary mb-1" style="width: 70%">Update Firmware</button>
+  <button data-bs-toggle="modal" data-bs-target="#UpdateConf" class="btn btn-primary mb-1" style="width: 70%">{{text}}</button>
 
   <div class="modal fade" id="UpdateConf" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
