@@ -61,182 +61,170 @@
   </div>
 
   <div>
-    <div class="toggle-label" data-bs-toggle="collapse" href="#more_fun_window" role="button" aria-expanded="false"
-         aria-controls="more_fun_window">
-      <h1>
-        MORE FUN
-      </h1>
-      <hr/>
-    </div>
+    <BootstrapCollapse name_of_collapse="MORE FUN">
+      <template v-slot:objects>
+        <GroupOfCommands name-of-group="NOTE VELOCITY">
+          <template v-slot:objects>
+            <div class="row">
+              <div class="col">
+                <label for="randomPlantVelSwitch">🧍Humanize</label>
+                <SwitchComponent
+                    id="randomPlantVelSwitch"
+                    :command-object="this.commands_data.randomPlantVelocity"
+                    @input-changed="this.sys_ex_changed"
+                />
+              </div>
+            </div>
 
-    <div class="collapse mt-2" id="more_fun_window">
-      <GroupOfCommands name-of-group="NOTE VELOCITY">
-        <template v-slot:objects>
-          <div class="row">
-            <div class="col">
-              <label for="randomPlantVelSwitch">🧍Humanize</label>
-              <SwitchComponent
-                  id="randomPlantVelSwitch"
-                  :command-object="this.commands_data.randomPlantVelocity"
-                  @input-changed="this.sys_ex_changed"
-              />
+            <div v-if="!commands_data.plant_no_velocity.value">
+              <div v-if="!this.commands_data.randomPlantVelocity.value">
+                <SliderCommand :key="this.forceRerender"
+                               :command-object="commands_data.maxPlantVelocity"
+                               @input-changed="this.sys_ex_changed"
+                               command-label="💪 Note velocity "
+                />
+              </div>
+              <div v-else>
+                <SliderRangeCommand :key="this.forceRerender"
+                                    :max-command-object="commands_data.maxPlantVelocity"
+                                    :min-command-object="commands_data.minPlantVelocity"
+                                    @input-changed="this.sys_ex_changed"
+                                    command-label="💪 Note velocity "
+                />
+              </div>
             </div>
-          </div>
+          </template>
+        </GroupOfCommands>
+        <GroupOfCommands name-of-group="SENSITIVITY">
+          <template v-slot:objects>
+            <div class="row">
+              <div class="col">
+                <label> 📡 Ultra sensitivity</label>
+                <SwitchComponent
+                    :key="this.forceRerender"
+                    :command-object="commands_data.randomness"
+                    @input-changed="this.sys_ex_changed"
+                />
+              </div>
+              <div class="col">
+                <label>✋ Manual control</label>
+                <SwitchComponent
+                    :key="this.forceRerender"
+                    :command-object="commands_data.performance"
+                    @input-changed="this.sys_ex_changed"
+                />
+              </div>
+            </div>
 
-          <div v-if="!commands_data.plant_no_velocity.value">
-            <div v-if="!this.commands_data.randomPlantVelocity.value">
-              <SliderCommand :key="this.forceRerender"
-                             :command-object="commands_data.maxPlantVelocity"
-                             @input-changed="this.sys_ex_changed"
-                             command-label="💪 Note velocity "
-              />
-            </div>
-            <div v-else>
-              <SliderRangeCommand :key="this.forceRerender"
-                                  :max-command-object="commands_data.maxPlantVelocity"
-                                  :min-command-object="commands_data.minPlantVelocity"
-                                  @input-changed="this.sys_ex_changed"
-                                  command-label="💪 Note velocity "
-              />
-            </div>
-          </div>
-        </template>
-      </GroupOfCommands>
-      <GroupOfCommands name-of-group="SENSITIVITY">
-        <template v-slot:objects>
-          <div class="row">
-            <div class="col">
-              <label> 📡 Ultra sensitivity</label>
-              <SwitchComponent
-                  :key="this.forceRerender"
-                  :command-object="commands_data.randomness"
-                  @input-changed="this.sys_ex_changed"
-              />
-            </div>
-            <div class="col">
-              <label>✋ Manual control</label>
-              <SwitchComponent
-                  :key="this.forceRerender"
-                  :command-object="commands_data.performance"
-                  @input-changed="this.sys_ex_changed"
-              />
-            </div>
-          </div>
-
-          <SliderCommand
-              :key="this.forceRerender"
-              :command-object="commands_data.same_note_plant"
-              command-label="🔂 Note Repeat"
-              @input-changed="this.sys_ex_changed"
-          />
-          <SliderCommand
-              command-label="🌞 Wake-Up"
-              :key="this.forceRerender"
-              :command-object="this.commands_data.firstValue"
-              @input-changed="this.sys_ex_changed"
-          />
-          <SliderCommand
-              command-label="👣 Step Size"
-              :key="this.forceRerender"
-              :command-object="this.commands_data.noteDistance"
-              @input-changed="this.sys_ex_changed"
-          />
-          <SliderCommand
-              command-label="⏳ Delay"
-              :key="this.forceRerender"
-              :command-object="this.commands_data.smoothness"
-              @input-changed="this.sys_ex_changed"
-          />
-        </template>
-      </GroupOfCommands>
-    </div>
+            <SliderCommand
+                :key="this.forceRerender"
+                :command-object="commands_data.same_note_plant"
+                command-label="🔂 Note Repeat"
+                @input-changed="this.sys_ex_changed"
+            />
+            <SliderCommand
+                command-label="🌞 Wake-Up"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.firstValue"
+                @input-changed="this.sys_ex_changed"
+            />
+            <SliderCommand
+                command-label="👣 Step Size"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.noteDistance"
+                @input-changed="this.sys_ex_changed"
+            />
+            <SliderCommand
+                command-label="⏳ Delay"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.smoothness"
+                @input-changed="this.sys_ex_changed"
+            />
+          </template>
+        </GroupOfCommands>
+      </template>
+    </BootstrapCollapse>
   </div>
 
   <div>
-    <div class="toggle-label" data-bs-toggle="collapse" href="#light_sensor" role="button" aria-expanded="false"
-         aria-controls="light_sensor">
-      <h1>
-        LIGHT SENSOR
-      </h1>
-      <hr/>
-    </div>
-
-    <div class="collapse mt-2" id="light_sensor">
-      <GroupOfCommands>
-        <template v-slot:objects>
-          <div class="row">
-            <div class="col">
-              <label for="lightVelDis">🔇Unmute</label>
-              <SwitchComponent
-                  id="lightVelDis"
-                  :command-object="commands_data.light_no_velocity"
-                  @input-changed="this.sys_ex_changed"
-              />
+    <BootstrapCollapse name_of_collapse="LIGHT SENSOR">
+      <template v-slot:objects>
+        <GroupOfCommands>
+          <template v-slot:objects>
+            <div class="row">
+              <div class="col">
+                <label for="lightVelDis">🔇Unmute</label>
+                <SwitchComponent
+                    id="lightVelDis"
+                    :command-object="commands_data.light_no_velocity"
+                    @input-changed="this.sys_ex_changed"
+                />
+              </div>
+              <div class="col">
+                <label for="randomLightVelSwitch">🧍Humanize</label>
+                <SwitchComponent
+                    id="randomLightVelSwitch"
+                    :command-object="this.commands_data.randomLightVelocity"
+                    @input-changed="this.sys_ex_changed"
+                />
+              </div>
+              <div class="col">
+                <label for="light_pitch_mode">Pitch Bend</label>
+                <SwitchComponent
+                    id="light_pitch_mode"
+                    :command-object="this.commands_data.light_pitch_mode"
+                    @input-changed="this.sys_ex_changed"
+                />
+              </div>
             </div>
-            <div class="col">
-              <label for="randomLightVelSwitch">🧍Humanize</label>
-              <SwitchComponent
-                  id="randomLightVelSwitch"
-                  :command-object="this.commands_data.randomLightVelocity"
-                  @input-changed="this.sys_ex_changed"
-              />
+
+
+            <SliderCommand
+                command-label="☀️Light Bpm"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.lightBpm"
+                @input-changed="this.sys_ex_changed"
+            />
+
+            <SliderCommand
+                :key="this.forceRerender"
+                :command-object="commands_data.same_note_light"
+                command-label="🔂Note Repeat"
+                @input-changed="this.sys_ex_changed"
+            />
+
+            <div class="row" v-if="!commands_data.light_no_velocity.value">
+              <div v-if="!this.commands_data.randomLightVelocity.value">
+                <SliderCommand
+                    :key="this.forceRerender"
+                    :command-object="commands_data.maxLightVelocity"
+                    @input-changed="this.sys_ex_changed"
+                    :name="commands_data.maxLightVelocity.value"
+                    command-label="💪 Note velocity"
+                />
+              </div>
+              <div v-else>
+                <SliderRangeCommand
+                    :key="this.forceRerender"
+                    :max-command-object="commands_data.maxLightVelocity"
+                    :min-command-object="commands_data.minLightVelocity"
+                    @input-changed="this.sys_ex_changed"
+                    command-label="💪 Note velocity"
+                />
+              </div>
             </div>
-            <div class="col">
-              <label for="light_pitch_mode">Pitch Bend</label>
-              <SwitchComponent
-                  id="light_pitch_mode"
-                  :command-object="this.commands_data.light_pitch_mode"
-                  @input-changed="this.sys_ex_changed"
-              />
-            </div>
-          </div>
 
+            <SliderCommand
+                v-if="!this.commands_data.light_pitch_mode.value"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.range_light_note"
+                @input-changed="this.sys_ex_changed"
+            />
+          </template>
+        </GroupOfCommands>
+      </template>
+    </BootstrapCollapse>
 
-
-          <SliderCommand
-              command-label="☀️Light Bpm"
-              :key="this.forceRerender"
-              :command-object="this.commands_data.lightBpm"
-              @input-changed="this.sys_ex_changed"
-          />
-
-          <SliderCommand
-              :key="this.forceRerender"
-              :command-object="commands_data.same_note_light"
-              command-label="🔂Note Repeat"
-              @input-changed="this.sys_ex_changed"
-          />
-
-          <div class="row" v-if="!commands_data.light_no_velocity.value">
-            <div v-if="!this.commands_data.randomLightVelocity.value">
-              <SliderCommand
-                  :key="this.forceRerender"
-                  :command-object="commands_data.maxLightVelocity"
-                  @input-changed="this.sys_ex_changed"
-                  :name="commands_data.maxLightVelocity.value"
-                  command-label="💪 Note velocity"
-              />
-            </div>
-            <div v-else>
-              <SliderRangeCommand
-                  :key="this.forceRerender"
-                  :max-command-object="commands_data.maxLightVelocity"
-                  :min-command-object="commands_data.minLightVelocity"
-                  @input-changed="this.sys_ex_changed"
-                  command-label="💪 Note velocity"
-              />
-            </div>
-          </div>
-
-          <SliderCommand
-              v-if="!this.commands_data.light_pitch_mode.value"
-              :key="this.forceRerender"
-              :command-object="this.commands_data.range_light_note"
-              @input-changed="this.sys_ex_changed"
-          />
-        </template>
-      </GroupOfCommands>
-    </div>
   </div>
 </template>
 
@@ -256,6 +244,7 @@ import PatchSelector from "@/components/MidiComponents/PatchSelector.vue";
 import DeviceSelector from "@/components/MidiComponents/DeviceSelector.vue";
 import UpdateFirmwareComponent from "@/components/MidiComponents/UpdateFirmwareComponent.vue";
 import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
+import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
 
 
 
@@ -263,6 +252,7 @@ import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
 
 export default  {
   components: {
+    BootstrapCollapse,
     LoaderComponent,
     UpdateFirmwareComponent,
     DeviceSelector,
@@ -462,6 +452,7 @@ export default  {
       await this.loadData();
       this.forceRerender++;
     })
+
   }
 
 }
