@@ -42,27 +42,30 @@
 </script>
 
 <template>
-  <div class="droparea"  @click="this.dropAreaClick" @dragover="(e) => e.preventDefault()" @drop="(e) => dropAreaDrop(e)">
-    <div id="dropZone" class="text-center">
-      <input type="file" id="load_preset" style="display: none;" @change="(e) => loadPresetChanged(e)"/>
-      <p>{{this.name}}</p>
-    </div>
+  <div class="fileDropArea" @click="this.dropAreaClick" @dragover="(e) => e.preventDefault()" @drop="(e) => dropAreaDrop(e)">
+    <input type="file" id="load_preset" style="display: none;" @change="(e) => loadPresetChanged(e)"/>
+    <p>{{this.name}}</p>
   </div>
 </template>
 
 <style scoped>
-.droparea {
-  padding: 15px;
+.fileDropArea {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 
-  /* background: rgba(255, 248, 248, 0.7); */
-}
-#dropZone {
-  border: 2px dashed #0072f5;
-  -webkit-border-radius: 5px;
+  border-style: dashed;
+  border-color: rgb(0, 114, 245);
+  padding: 1%;
   border-radius: 5px;
-  padding: 50px;
-  text-align: center;
-  font: 21pt bold arial;
-  color: #0072f5;
+  color: rgb(0, 114, 245);
+}
+
+.fileDropArea p {
+  margin: 0;
+
+
+
 }
 </style>

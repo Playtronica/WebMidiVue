@@ -245,13 +245,16 @@
         <p>Performance mode - Mode for better manual control of the device</p>
       </template>
     </GroupOfCommands>
-    <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary mb-1" style="width: 70%">Send</button>
-    <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">Create Preset</button>
-    <UpdateFirmwareComponent repo="Playtronica/biotron-firmware" :device="this.device"/>
+    <div class="buttons_block">
+      <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary mb-1 w-75" >Send</button>
+      <button @click="this.createPreset" class="btn btn-primary mb-1 w-75">Create Preset</button>
+      <UpdateFirmwareComponent repo="Playtronica/biotron-firmware" :device="this.device" class="mb-1 w-75"/>
+      <FileDropArea class="mb-1 w-75" name="Drop Preset Here" @get_drop="(e) => loadDataFromPreset(e)"/>
+    </div>
+
     </div>
 
 
-    <FileDropArea name="Drop Preset Here" @get_drop="(e) => loadDataFromPreset(e)"/>
     <GroupOfCommands>
       <template v-slot:description>
         <p>Send - sending settings to the device</p>
@@ -485,5 +488,10 @@ export default  {
 </script>
 
 <style scoped>
-
+  .buttons_block {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
 </style>

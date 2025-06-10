@@ -1,15 +1,27 @@
 <template>
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
-  <div>
+
     <h1 class="text-center">Biotron change settings</h1>
     <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} "/>
     <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
-    <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary mb-1" style="width: 70%">SEND</button>
-    <button @click="this.createPreset" class="btn btn-primary mb-1" style="width: 70%">SAVE</button>
-    <UpdateFirmwareComponent text="FIRMWARE UPDATE" repo="Playtronica/biotron-firmware" :device="this.device"/>
-  </div>
+    <div class="row gx-1 mb-5">
+      <div class="col">
+        <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary w-100 h-100">SEND</button>
+      </div>
+      <div class="col">
+        <button @click="this.createPreset" class="btn btn-primary w-100 h-100">SAVE</button>
+      </div>
+      <div class="col">
+        <UpdateFirmwareComponent class="w-100 h-100" text="FIRMWARE UPDATE" repo="Playtronica/biotron-firmware" :device="this.device"/>
+      </div>
 
-  <FileDropArea name="Upload" @get_drop="(e) => loadDataFromPreset(e)"/>
+      <div class="col">
+        <FileDropArea name="UPLOAD" @get_drop="(e) => loadDataFromPreset(e)"/>
+      </div>
+    </div>
+
+
+
 
   <div>
     <h1>PLANT SENSOR</h1>
