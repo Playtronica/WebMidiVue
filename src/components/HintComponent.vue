@@ -24,7 +24,7 @@ export default {
       data-bs-toggle="tooltip"
       data-bs-placement="right"
       :title="text"
-      ref="info"
+      disabled=""
   ></i>
 </template>
 

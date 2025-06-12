@@ -45,7 +45,7 @@ export default {
 
 <template>
   <div class="row m-2">
-    <label for="value_input">
+    <label>
       {{ this.commandLabel }}
       <HintComponent v-if="this.description" :text="this.description" />
     </label>
