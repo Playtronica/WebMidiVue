@@ -36,9 +36,9 @@
       <template v-slot:objects>
         <div class="row">
           <div class="col">
-            <label for="humanizeSwitch">Humanize</label>
             <SwitchComponent
                 id="humanizeSwitch"
+                command-label="Humanize"
                 :command-object="this.commands_data.humanize"
                 @update:model-value="newVal => {
                   this.isHumanize = newVal
@@ -48,9 +48,9 @@
             />
           </div>
           <div class="col">
-            <label for="velocityDisableSwitch">Mute</label>
             <SwitchComponent
                 id="velocityDisableSwitch"
+                command-label="Mute"
                 :command-object="this.commands_data.mute"
                 @update:model-value="newVal => {
                   this.isMute = newVal
@@ -86,9 +86,9 @@
       <template v-slot:objects>
         <div class="row">
           <div class="col">
-            <label for="notesRangeSwitch">Custom Range</label>
             <SwitchComponent
                 id="notesRangeSwitch"
+                command-label="Custom Range"
                 :command-object="this.commands_data.customRange"
                 @update:model-value="newVal => {
                     this.customRange = newVal

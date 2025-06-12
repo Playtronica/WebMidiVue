@@ -1,7 +1,9 @@
 <script>
 import { SysExCommand } from "@/assets/js/SysExCommand"
 import {toRaw} from "vue";
+import HintComponent from "@/components/HintComponent.vue";
 export default {
+  components: {HintComponent},
   props: {
     commandLabel: {
       default: "",
@@ -21,6 +23,10 @@ export default {
     slider_active: {
       type: Boolean,
       default: true,
+    },
+    description: {
+      type: String,
+      required: false,
     }
   },
   emits: ["InputChanged"],
@@ -84,7 +90,10 @@ export default {
 
 <template>
   <div class="row m-2">
-    <label for="value_input">{{ this.commandLabel }}</label>
+    <label for="value_input">
+      {{ this.commandLabel }}
+      <HintComponent v-if="this.description" :text="this.description" />
+    </label>
 
     <div v-if="this.tableValues">
       <select v-model="this.rawValue" id="scale" class="form-control" @change="this.changed">

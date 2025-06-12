@@ -2,9 +2,10 @@
 import {sleep, SysExCommand} from "@/assets/js/SysExCommand"
 import "@/../node_modules/multi-range-slider-vue/MultiRangeSliderBarOnly.css"
 import Slider from '@vueform/slider'
+import HintComponent from "@/components/HintComponent.vue";
 
 export default {
-  components: {Slider},
+  components: {HintComponent, Slider},
   emits: ["input-changed"],
   props: {
     commandLabel: {
@@ -18,6 +19,10 @@ export default {
     maxCommandObject: {
       required: true,
       type: SysExCommand
+    },
+    description: {
+      type: String,
+      required: false,
     }
   },
   data() {
@@ -49,7 +54,10 @@ export default {
 
 <template>
   <div class="row m-2">
-    <label for="value_input">{{ this.commandLabel }}</label>
+    <label for="value_input">
+      {{ this.commandLabel }}
+      <HintComponent v-if="this.description" :text="this.description" />
+    </label>
       <div class="row" style="margin-bottom: 10px">
         <div class="col">
           <input type="number" id="value_input_min" class="form-control" @change="this.changed"

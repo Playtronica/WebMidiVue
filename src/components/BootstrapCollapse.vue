@@ -1,15 +1,21 @@
 <script>
+
 export default {
   name: "BootstrapCollapse",
   props: {
     name_of_collapse: {
       type: String,
       required: true,
+    },
+    open_by_default: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
     return {
-      is_open: false,
+      is_open: this.open_by_default,
+      collapseId: 'collapse-' + Math.random().toString(36).substring(2, 10),
     }
   },
   mounted() {
@@ -24,8 +30,8 @@ export default {
 </script>
 
 <template>
-  <div class="toggle-label" data-bs-toggle="collapse" href="#collapse_object" role="button" aria-expanded="false"
-       aria-controls="collapse_object" ref="collapse_header">
+  <div class="toggle-label" data-bs-toggle="collapse" :href="'#' + collapseId" role="button" aria-expanded="false"
+       :aria-controls="this.collapseId" ref="collapse_header">
     <h1>
       {{name_of_collapse}}
       <span>{{ is_open ? "-" : "+"}}</span>
@@ -33,7 +39,10 @@ export default {
     <hr/>
   </div>
 
-  <div class="collapse mt-2" id="collapse_object" ref="collapse_object">
+  <div v-if="!open_by_default" class="collapse mt-2" :id="this.collapseId" ref="collapse_object">
+    <slot name="objects"></slot>
+  </div>
+  <div v-else class="collapse mt-2 show" :id="this.collapseId" ref="collapse_object">
     <slot name="objects"></slot>
   </div>
 

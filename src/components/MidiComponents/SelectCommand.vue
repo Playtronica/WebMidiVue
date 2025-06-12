@@ -1,7 +1,9 @@
 <script>
 import {SysExCommand} from "@/assets/js/SysExCommand";
+import HintComponent from "@/components/HintComponent.vue";
 
 export default {
+  components: {HintComponent},
   emits: ['InputChanged'],
   props: {
     commandLabel: {
@@ -14,6 +16,10 @@ export default {
     commandObject: {
       required: true,
       type: SysExCommand
+    },
+    description: {
+      type: String,
+      required: false,
     }
   },
   data() {
@@ -39,7 +45,10 @@ export default {
 
 <template>
   <div class="row m-2">
-    <label for="value_input">{{ this.commandLabel }}</label>
+    <label for="value_input">
+      {{ this.commandLabel }}
+      <HintComponent v-if="this.description" :text="this.description" />
+    </label>
 
     <select v-model="this.Value" id="scale" class="form-control" @change="changed">
       <option v-for="(item, index) in this.listOfVariants" v-bind:key="index" :value="index">
@@ -50,7 +59,5 @@ export default {
 </template>
 
 <style scoped>
-  .settings_input {
-    width: 100%;
-  }
+
 </style>

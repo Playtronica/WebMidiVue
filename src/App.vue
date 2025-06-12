@@ -29,6 +29,7 @@
 <script>
 import SocialLinks from "@/components/SocialLinks.vue";
 
+
 export default {
   name: 'App',
   components: {SocialLinks},

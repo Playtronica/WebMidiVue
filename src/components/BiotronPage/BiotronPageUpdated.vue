@@ -20,56 +20,62 @@
       </div>
     </div>
 
-
-
-
   <div>
-    <h1>PLANT SENSOR</h1>
-    <GroupOfCommands name-of-group="COMPOSITION">
+    <BootstrapCollapse name_of_collapse="PLANT SENSOR" open_by_default>
       <template v-slot:objects>
-        <div class="row">
-          <label for="plantVelDis">🔇 MUTE</label>
-          <SwitchComponent
-              id="plantVelDis"
-              :command-object="commands_data.plant_no_velocity"
-              @input-changed="this.sys_ex_changed"
-          />
-        </div>
+        <GroupOfCommands>
+          <template v-slot:objects>
+            <div class="row">
+              <SwitchComponent
+                  id="plantVelDis"
+                  command-label="🔇 MUTE"
+                  description="Turns off notes coming off plant sensor and "
+                  :command-object="commands_data.plant_no_velocity"
+                  @input-changed="this.sys_ex_changed"
+              />
+            </div>
 
-        <SliderCommand
-            command-label="🌱 The Beat"
-            :key="this.forceRerender"
-            :command-object="this.commands_data.plantBpm"
-            @input-changed="this.sys_ex_changed"
-        />
+            <SliderCommand
+                command-label="🌱 The Beat"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.plantBpm"
+                description="Set tempo of plant notes, plant’s BPM."
+                @input-changed="this.sys_ex_changed"
+            />
 
-        <SliderCommand
-            command-label="🎵 Note Hold"
-            :key="this.forceRerender"
-            :command-object="this.commands_data.noteOffPercent"
-            :table-values="this.fractions_note_off"
-            @input-changed="this.sys_ex_changed"
-            table-values-reversed
-        />
+            <SliderCommand
+                command-label="🎵 Note Hold"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.noteOffPercent"
+                :table-values="this.fractions_note_off"
+                description="How long a note plays before stopping (100 = full length, 50 = half, 0 = very short)."
+                @input-changed="this.sys_ex_changed"
+                table-values-reversed
+            />
 
-        <SliderCommand
-            command-label="🏠︎ Home Note"
-            :key="this.forceRerender"
-            :command-object="this.commands_data.middle_plant_note"
-            :table-values="this.root_note_id"
-            @input-changed="this.sys_ex_changed"
-        />
+            <SliderCommand
+                command-label="🏠︎ Home Note"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.middle_plant_note"
+                :table-values="this.root_note_id"
+                description="The main note everything starts from and returns to."
+                @input-changed="this.sys_ex_changed"
+            />
 
-        <SelectCommand
-            command-label="🎼 Scale"
-            :key="this.forceRerender"
-            :list-of-variants="this.scales"
-            :command-object="commands_data.scale"
-            @input-changed="this.sys_ex_changed"
-        />
+            <SelectCommand
+                command-label="🎼 Scale"
+                :key="this.forceRerender"
+                :list-of-variants="this.scales"
+                :command-object="commands_data.scale"
+                @input-changed="this.sys_ex_changed"
+                description="A set of notes that shape the melody and feel of the music. Choose a scale to define the sound of your composition."
+            />
 
+          </template>
+        </GroupOfCommands>
       </template>
-    </GroupOfCommands>
+    </BootstrapCollapse>
+
   </div>
 
   <div>
@@ -79,9 +85,10 @@
           <template v-slot:objects>
             <div class="row">
               <div class="col">
-                <label for="randomPlantVelSwitch">🧍Humanize</label>
                 <SwitchComponent
                     id="randomPlantVelSwitch"
+                    command-label="🧍Humanize"
+                    description="Adds natural variations to note velocity, making the music sound less robotic and more like a real person playing an instrument."
                     :command-object="this.commands_data.randomPlantVelocity"
                     @input-changed="this.sys_ex_changed"
                 />
@@ -93,7 +100,8 @@
                 <SliderCommand :key="this.forceRerender"
                                :command-object="commands_data.maxPlantVelocity"
                                @input-changed="this.sys_ex_changed"
-                               command-label="💪 Note velocity "
+                               command-label="💪 Note velocity"
+                               description="Intensity range of of notes (volume, expression)."
                 />
               </div>
               <div v-else>
@@ -101,7 +109,8 @@
                                     :max-command-object="commands_data.maxPlantVelocity"
                                     :min-command-object="commands_data.minPlantVelocity"
                                     @input-changed="this.sys_ex_changed"
-                                    command-label="💪 Note velocity "
+                                    command-label="💪 Note velocity"
+                                    description="Intensity range of of notes (volume, expression)"
                 />
               </div>
             </div>
@@ -111,19 +120,21 @@
           <template v-slot:objects>
             <div class="row">
               <div class="col">
-                <label> 📡 Ultra sensitivity</label>
                 <SwitchComponent
                     :key="this.forceRerender"
+                    command-label="📡 Ultra sensitivity"
                     :command-object="commands_data.randomness"
                     @input-changed="this.sys_ex_changed"
+                    description="Makes the plant more responsive."
                 />
               </div>
               <div class="col">
-                <label>✋ Manual control</label>
                 <SwitchComponent
                     :key="this.forceRerender"
+                    command-label="✋ Manual control"
                     :command-object="commands_data.performance"
                     @input-changed="this.sys_ex_changed"
+                    description="Plant only reacts to human interaction, doesn’t play by itself."
                 />
               </div>
             </div>
@@ -133,24 +144,28 @@
                 :command-object="commands_data.same_note_plant"
                 command-label="🔂 Note Repeat"
                 @input-changed="this.sys_ex_changed"
+                description="Move near the plant to change notes (1 = small moves change notes, 10 = big moves needed). 🎶"
             />
             <SliderCommand
                 command-label="🌞 Wake-Up"
                 :key="this.forceRerender"
                 :command-object="this.commands_data.firstValue"
                 @input-changed="this.sys_ex_changed"
+                description="A little change that wakes up the first note."
             />
             <SliderCommand
                 command-label="👣 Step Size"
                 :key="this.forceRerender"
                 :command-object="this.commands_data.noteDistance"
                 @input-changed="this.sys_ex_changed"
+                description="How big a change is needed to go to the next note."
             />
             <SliderCommand
                 command-label="⏳ Delay"
                 :key="this.forceRerender"
                 :command-object="this.commands_data.smoothness"
                 @input-changed="this.sys_ex_changed"
+                description="How quickly device reacts to change"
             />
           </template>
         </GroupOfCommands>
@@ -165,27 +180,30 @@
           <template v-slot:objects>
             <div class="row">
               <div class="col">
-                <label for="lightVelDis">🔇Unmute</label>
                 <SwitchComponent
                     id="lightVelDis"
+                    command-label="🔇Unmute"
                     :command-object="commands_data.light_no_velocity"
                     @input-changed="this.sys_ex_changed"
+                    description="Muted by default, unmute to experiment with light resistor on Biotron"
                 />
               </div>
               <div class="col">
-                <label for="randomLightVelSwitch">🧍Humanize</label>
                 <SwitchComponent
                     id="randomLightVelSwitch"
+                    command-label="🧍Humanize"
                     :command-object="this.commands_data.randomLightVelocity"
                     @input-changed="this.sys_ex_changed"
+                    description="Adds natural variations to note velocity, making the music sound less robotic and more like a real person playing an instrument."
                 />
               </div>
               <div class="col">
-                <label for="light_pitch_mode">Pitch Bend</label>
                 <SwitchComponent
                     id="light_pitch_mode"
+                    command-label="Pitch Bend"
                     :command-object="this.commands_data.light_pitch_mode"
                     @input-changed="this.sys_ex_changed"
+                    description="It is a specific mode that mutes all light notes and, instead, alters the pitch of plant notes."
                 />
               </div>
             </div>
@@ -196,6 +214,7 @@
                 :key="this.forceRerender"
                 :command-object="this.commands_data.lightBpm"
                 @input-changed="this.sys_ex_changed"
+                description="Unit to measure the tempo of speed of the Light Channel. The Light BPM does not operate in the same way as a traditional BPM; instead, it acts as a divider of the Plant BPM. For example, if the BPM is equal to 120 and the Light BPM is 4, the actual BPM of the Light Channel is equal to 30."
             />
 
             <SliderCommand
@@ -203,6 +222,7 @@
                 :command-object="commands_data.same_note_light"
                 command-label="🔂Note Repeat"
                 @input-changed="this.sys_ex_changed"
+                description="Increase required light change to change notes (1 = small moves change notes, 10 = big moves needed). 🎶"
             />
 
             <div class="row" v-if="!commands_data.light_no_velocity.value">
@@ -213,6 +233,7 @@
                     @input-changed="this.sys_ex_changed"
                     :name="commands_data.maxLightVelocity.value"
                     command-label="💪 Note velocity"
+                    description="Intensity range of of notes (volume, expression)"
                 />
               </div>
               <div v-else>
@@ -222,6 +243,7 @@
                     :min-command-object="commands_data.minLightVelocity"
                     @input-changed="this.sys_ex_changed"
                     command-label="💪 Note velocity"
+                    description="Intensity range of of notes (volume, expression)"
                 />
               </div>
             </div>
@@ -231,6 +253,8 @@
                 :key="this.forceRerender"
                 :command-object="this.commands_data.range_light_note"
                 @input-changed="this.sys_ex_changed"
+                command-label="Light Notes Range"
+                description="Set's the range of notes played from the photoresistor (lower and upper limits are set)"
             />
           </template>
         </GroupOfCommands>
@@ -257,8 +281,6 @@ import DeviceSelector from "@/components/MidiComponents/DeviceSelector.vue";
 import UpdateFirmwareComponent from "@/components/MidiComponents/UpdateFirmwareComponent.vue";
 import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
-
-
 
 
 

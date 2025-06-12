@@ -95,17 +95,17 @@
           <template v-slot:objects>
             <div class="row">
               <div class="col">
-                  <label for="randomPlantVelSwitch">Humanize</label>
                   <SwitchComponent
                       id="randomPlantVelSwitch"
+                      command-label="Humanize"
                       :command-object="this.commands_data.randomPlantVelocity"
                       @input-changed="this.sys_ex_changed"
                   />
               </div>
               <div class="col">
-                  <label for="plantVelDis">Mute</label>
                   <SwitchComponent
                       id="plantVelDis"
+                      command-label="Mute"
                       :command-object="commands_data.plant_no_velocity"
                       @input-changed="this.sys_ex_changed"
                   />
@@ -135,17 +135,17 @@
           <template v-slot:objects>
             <div class="row">
               <div class="col">
-                <label for="randomLightVelSwitch">Humanize</label>
                 <SwitchComponent
                     id="randomLightVelSwitch"
+                    command-label="Humanize"
                     :command-object="this.commands_data.randomLightVelocity"
                     @input-changed="this.sys_ex_changed"
                 />
               </div>
               <div class="col">
-                <label for="lightVelDis">Mute</label>
                 <SwitchComponent
                     id="lightVelDis"
+                    command-label="Mute"
                     :command-object="commands_data.light_no_velocity"
                     @input-changed="this.sys_ex_changed"
                 />
@@ -202,9 +202,9 @@
     </GroupOfCommands>
     <GroupOfCommands name-of-group="Light Notes Range">
       <template v-slot:objects>
-        <label for="light_pitch_mode">Pitch Bend</label>
         <SwitchComponent
             id="light_pitch_mode"
+            command-label="Pitch Bend"
             :command-object="this.commands_data.light_pitch_mode"
             @input-changed="this.sys_ex_changed"
         />
@@ -223,17 +223,17 @@
       <template v-slot:objects>
         <div class="row">
           <div class="col">
-            <label>Ultra sensitivity</label>
             <SwitchComponent
                 :key="this.forceRerender"
+                command-label="Ultra sensitivity"
                 :command-object="commands_data.randomness"
                 @input-changed="this.sys_ex_changed"
             />
           </div>
           <div class="col">
-            <label>Performance mode</label>
           <SwitchComponent
               :key="this.forceRerender"
+              command-label="Performance mode"
               :command-object="commands_data.performance"
               @input-changed="this.sys_ex_changed"
           />
