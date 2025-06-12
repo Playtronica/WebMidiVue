@@ -103,7 +103,7 @@ export default {
       </select>
     </div>
     <div v-else>
-      <input type="number" id="value_input" class="form-control"
+      <input type="number" id="value_input" class="form-control" style="padding-left: 1vw"
              v-model="this.rawValue" :min="this.minValue" :max="this.maxValue"
              @change="this.changed($event)"/>
     </div>
@@ -120,4 +120,6 @@ export default {
   .settings_input {
     width: 100%;
   }
+
+
 </style>

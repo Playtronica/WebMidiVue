@@ -228,8 +228,8 @@ export default  {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(3, 1fr);
-  gap: 10px;
-  width: 50%;
+  width: 50vh;
+  //gap: 10px;
 }
 
 .buttons_block {
@@ -238,5 +238,6 @@ export default  {
   justify-content: center;
   align-items: center;
 }
+
 
 </style>
