@@ -25,6 +25,12 @@
         <GroupOfCommands>
           <template v-slot:objects>
             <SliderCommand
+                command-label="BPM"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.bpm"
+                @input-changed="this.sys_ex_changed"
+            />
+            <SliderCommand
                 command-label="Sensitivity"
                 :key="this.forceRerender"
                 :command-object="this.commands_data.sensitivity"
