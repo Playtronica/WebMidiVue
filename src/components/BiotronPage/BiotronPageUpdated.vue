@@ -182,10 +182,10 @@
               <div class="col">
                 <SwitchComponent
                     id="lightVelDis"
-                    command-label="🔇Unmute"
+                    command-label="🔇Mute"
                     :command-object="commands_data.light_no_velocity"
                     @input-changed="this.sys_ex_changed"
-                    description="Muted by default, unmute to experiment with light resistor on Biotron"
+                    description="Turns off notes coming off plant sensor and "
                 />
               </div>
               <div class="col">
@@ -210,11 +210,11 @@
 
 
             <SliderCommand
-                command-label="☀️Light Bpm"
+                command-label="🌞 The Beat"
                 :key="this.forceRerender"
                 :command-object="this.commands_data.lightBpm"
                 @input-changed="this.sys_ex_changed"
-                description="Unit to measure the tempo of speed of the Light Channel. The Light BPM does not operate in the same way as a traditional BPM; instead, it acts as a divider of the Plant BPM. For example, if the BPM is equal to 120 and the Light BPM is 4, the actual BPM of the Light Channel is equal to 30."
+                description="Set tempo of light sensor notes BPM"
             />
 
             <SliderCommand
@@ -253,8 +253,8 @@
                 :key="this.forceRerender"
                 :command-object="this.commands_data.range_light_note"
                 @input-changed="this.sys_ex_changed"
-                command-label="Light Notes Range"
-                description="Set's the range of notes played from the photoresistor (lower and upper limits are set)"
+                command-label="Range"
+                description="How many notes are played relative to root note"
             />
           </template>
         </GroupOfCommands>
