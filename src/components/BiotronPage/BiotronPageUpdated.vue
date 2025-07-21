@@ -81,6 +81,16 @@
   <div>
     <BootstrapCollapse name_of_collapse="MORE FUN">
       <template v-slot:objects>
+        <GroupOfCommands name-of-group="Plant Midi Channel">
+          <template v-slot:objects>
+            <SliderCommand
+                :key="this.forceRerender"
+                :command-object="this.commands_data.plant_midi_channel"
+                @input-changed="this.sys_ex_changed"
+            />
+          </template>
+        </GroupOfCommands>
+
         <GroupOfCommands name-of-group="NOTE VELOCITY">
           <template v-slot:objects>
             <div class="row">
@@ -208,6 +218,12 @@
               </div>
             </div>
 
+            <SliderCommand
+                command-label="Light Midi Channel"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.light_midi_channel"
+                @input-changed="this.sys_ex_changed"
+            />
 
             <SliderCommand
                 command-label="🌞 The Beat"

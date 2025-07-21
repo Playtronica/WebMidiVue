@@ -113,6 +113,24 @@ export let BiotronCommandsData = new Map(Object.entries({
         number_command: 25,
         min_value: 60,
         max_value: 72,
+    }),
+    "plant_midi_channel": new SysExCommand({
+        name: "plant_midi_channel",
+        number_command: [127, 0],
+        max_value: 16,
+        min_value: 1,
+        custom_fold:  (arr, val) => {
+            arr.push(val - 1);
+        }
+    }),
+    "light_midi_channel": new SysExCommand({
+        name: "light_midi_channel",
+        number_command: [127, 1],
+        max_value: 16,
+        min_value: 1,
+        custom_fold: (arr, val) => {
+            arr.push(val - 1);
+        }
     })
 }))
 
@@ -139,7 +157,9 @@ const fast_role_preset = {
     "randomPlantVelocity": true,
     "randomLightVelocity": true,
     "performance": 0,
-    "middle_plant_note": 60
+    "middle_plant_note": 60,
+    "plant_midi_channel": 1,
+    "light_midi_channel": 2,
 }
 
 const the_performer_mode = {
@@ -164,7 +184,9 @@ const the_performer_mode = {
     "randomPlantVelocity": true,
     "randomLightVelocity": true,
     "performance": true,
-    "middle_plant_note": 60
+    "middle_plant_note": 60,
+    "plant_midi_channel": 1,
+    "light_midi_channel": 2,
 }
 
 const in_discussion = {
@@ -189,7 +211,9 @@ const in_discussion = {
     "randomPlantVelocity": true,
     "randomLightVelocity": true,
     "performance": true,
-    "middle_plant_note": 60
+    "middle_plant_note": 60,
+    "plant_midi_channel": 1,
+    "light_midi_channel": 2,
 }
 
 const mixolyd = {
@@ -214,14 +238,16 @@ const mixolyd = {
     "randomPlantVelocity": true,
     "randomLightVelocity": 0,
     "performance": true,
-    "middle_plant_note": 60
+    "middle_plant_note": 60,
+    "plant_midi_channel": 1,
+    "light_midi_channel": 2,
 }
 
 
 export class BiotronDb extends Db {
     DB_NAME = "BiotronDB"
     STORE_NAME = "Biotron_Patches"
-    VERSION = 7
+    VERSION = 8
 
     constructor() {
         super(BiotronCommandsData)
