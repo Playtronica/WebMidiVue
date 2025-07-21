@@ -112,7 +112,7 @@
     </GroupOfCommands>
 
   <GroupOfCommands name-of-group="Channel">
-    <template v-slot:objects v-if="!this.commands_data.customRange.value">
+    <template v-slot:objects>
       <SliderCommand
           command-label=""
           :key="this.forceRerender"
@@ -217,6 +217,9 @@ export default  {
       }
 
       for (const [key, value] of Object.entries(preset.data)) {
+        console.log(key);
+        console.log(this.commands_data);
+        console.log(this.commands_data[key]);
         this.commands_data[key].set_value(value);
       }
 

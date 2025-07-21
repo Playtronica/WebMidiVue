@@ -69,12 +69,13 @@ const default_preset = {
     "customRange": 0,
     "humanize": 0,
     "mute": 0,
+    "channel": 1,
 }
 
 export class TouchMeDb extends Db {
     DB_NAME = "TouchMeDB"
     STORE_NAME = "TouchMe_Patches"
-    VERSION = 2
+    VERSION = 3
 
     constructor() {
         super(TouchMeCommandsData);

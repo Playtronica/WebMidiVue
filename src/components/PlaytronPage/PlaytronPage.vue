@@ -17,6 +17,17 @@
     </template>
   </GroupOfCommands>
 
+  <GroupOfCommands name-of-group="Channel">
+    <template v-slot:objects>
+      <SliderCommand
+          command-label=""
+          :key="this.forceRerender"
+          :command-object="this.commands_data.channel"
+          @input-changed="this.sys_ex_changed"
+      />
+    </template>
+  </GroupOfCommands>
+
 
   <div class="buttons_block">
     <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary mb-1 w-75" >Send</button>
@@ -72,7 +83,7 @@ export default  {
       patches: [],
       patch_id: 0,
       is_loading: false,
-      commands_data: PlaytronCommandsData,
+      commands_data: Object.fromEntries(PlaytronCommandsData),
       forceRerender: 0,
       patchRerender: 0,
       num_to_pad: {
