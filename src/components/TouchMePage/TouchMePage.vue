@@ -111,6 +111,17 @@
       </template>
     </GroupOfCommands>
 
+  <GroupOfCommands name-of-group="Channel">
+    <template v-slot:objects v-if="!this.commands_data.customRange.value">
+      <SliderCommand
+          command-label=""
+          :key="this.forceRerender"
+          :command-object="this.commands_data.channel"
+          @input-changed="this.sys_ex_changed"
+      />
+    </template>
+  </GroupOfCommands>
+
     <div class="buttons_block">
       <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary mb-1 w-75" >Send</button>
       <button @click="this.createPreset" class="btn btn-primary mb-1 w-75">Create Preset</button>

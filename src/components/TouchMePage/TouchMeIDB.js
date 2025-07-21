@@ -47,6 +47,15 @@ export let TouchMeCommandsData = new Map(Object.entries({
         default_value: 0,
         value: 0
     }),
+    "channel": new SysExCommand({
+        name: "channel",
+        number_command: 127,
+        max_value: 16,
+        min_value: 1,
+        custom_fold:  (arr, val) => {
+            arr.push(val - 1);
+        }
+    })
 }))
 
 
