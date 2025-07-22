@@ -29,7 +29,7 @@
               <SwitchComponent
                   id="plantVelDis"
                   command-label="🔇 MUTE"
-                  description="Turns off notes coming off plant sensor and "
+                  description="Turns off notes coming off plant sensor."
                   :command-object="commands_data.plant_no_velocity"
                   @input-changed="this.sys_ex_changed"
               />
@@ -84,6 +84,8 @@
         <GroupOfCommands name-of-group="Plant Midi Channel">
           <template v-slot:objects>
             <SliderCommand
+                command-label="🎛️ MIDI channel"
+                description="Pick a midi channel that the plant would be on"
                 :key="this.forceRerender"
                 :command-object="this.commands_data.plant_midi_channel"
                 @input-changed="this.sys_ex_changed"
@@ -195,7 +197,7 @@
                     command-label="🔇Mute"
                     :command-object="commands_data.light_no_velocity"
                     @input-changed="this.sys_ex_changed"
-                    description="Turns off notes coming off plant sensor and "
+                    description="Turns off notes coming off light sensor"
                 />
               </div>
               <div class="col">
@@ -210,16 +212,17 @@
               <div class="col">
                 <SwitchComponent
                     id="light_pitch_mode"
-                    command-label="Pitch Bend"
+                    command-label="〜 Pitch Bend"
                     :command-object="this.commands_data.light_pitch_mode"
                     @input-changed="this.sys_ex_changed"
-                    description="It is a specific mode that mutes all light notes and, instead, alters the pitch of plant notes."
+                    description="Same as pitch bend wheel on your keyboard – makes sound wobbly"
                 />
               </div>
             </div>
 
             <SliderCommand
-                command-label="Light Midi Channel"
+                command-label="🎛️ MIDI channel"
+                description="Pick a midi channel that the light would be on"
                 :key="this.forceRerender"
                 :command-object="this.commands_data.light_midi_channel"
                 @input-changed="this.sys_ex_changed"
@@ -238,7 +241,7 @@
                 :command-object="commands_data.same_note_light"
                 command-label="🔂Note Repeat"
                 @input-changed="this.sys_ex_changed"
-                description="Increase required light change to change notes (1 = small moves change notes, 10 = big moves needed). 🎶"
+                description="Change the light to change notes (1 = small moves change notes, 10 = big moves needed). 🎶"
             />
 
             <div class="row" v-if="!commands_data.light_no_velocity.value">
@@ -248,7 +251,7 @@
                     :command-object="commands_data.maxLightVelocity"
                     @input-changed="this.sys_ex_changed"
                     :name="commands_data.maxLightVelocity.value"
-                    command-label="💪 Note velocity"
+                    command-label="🔨 Note velocity"
                     description="Intensity range of of notes (volume, expression)"
                 />
               </div>
@@ -258,7 +261,7 @@
                     :max-command-object="commands_data.maxLightVelocity"
                     :min-command-object="commands_data.minLightVelocity"
                     @input-changed="this.sys_ex_changed"
-                    command-label="💪 Note velocity"
+                    command-label="🔨 Note velocity"
                     description="Intensity range of of notes (volume, expression)"
                 />
               </div>
@@ -269,9 +272,10 @@
                 :key="this.forceRerender"
                 :command-object="this.commands_data.range_light_note"
                 @input-changed="this.sys_ex_changed"
-                command-label="Range"
+                command-label="📏 Range"
                 description="How many notes are played relative to root note"
             />
+
           </template>
         </GroupOfCommands>
       </template>
@@ -434,8 +438,11 @@ export default  {
       }
       this.saveData();
     },
-    async sys_ex_changed() {
+    async sys_ex_changed(object) {
       await this.patchChanged();
+      if (this.device) {
+        await object.sendToMidi(this.device)
+      }
       this.forceRerender++;
       this.patchRerender++;
     },

@@ -1,12 +1,18 @@
 <template>
-  <div class="input-group mb-3">
-    <select v-model="this.id" class="form-control" @change="this.patchChanged">
-      <option v-for="patch in patches" v-bind:key="patch.id" :value="patch.id">{{patch.name}}</option>
-    </select>
-    <div class="input-group-prepend" :style="{display: active_button_enabled ? 'block' : 'none'}">
-      <button class="btn" :class="{ 'btn-outline-primary': this.button_state === 'Save', 'btn-outline-danger': this.button_state === 'Delete'}"
-              type="button"  data-bs-toggle="modal" @click="this.modelOpen" :data-bs-target="this.button_state === 'Save' ? '#saveModal' : '#deleteModel'">
-        {{ this.button_state }}</button>
+  <div class="mb-3 m-0 w-100">
+    <div class="d-flex ">
+      <div class="form-floating flex-grow-1 me-2">
+        <select v-model="this.id" class="form-control" @change="this.patchChanged">-->
+          <option v-for="patch in patches" v-bind:key="patch.id" :value="patch.id">{{patch.name}}</option>
+        </select>
+        <label for="device">Presets</label>
+      </div>
+        <button class="btn"
+                :class="{ 'btn-outline-primary': this.button_state === 'Save', 'btn-outline-danger': this.button_state === 'Delete'}"
+                type="button"  data-bs-toggle="modal" @click="this.modelOpen"
+                :data-bs-target="this.button_state === 'Save' ? '#saveModal' : '#deleteModel'"
+                :style="{display: active_button_enabled ? 'block' : 'none'}">
+          {{ this.button_state }}</button>
     </div>
   </div>
 
