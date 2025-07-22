@@ -32,18 +32,30 @@ export let ScalesCommandsData = new Map(Object.entries({
             arr.push(val);
         }
     }),
+    "undercover_color": new SysExCommand( {
+        name: "undercover_color",
+        number_command: 2,
+        max_value: 0xffffff,
+        min_value: 0,
+        custom_fold: (arr, val) => {
+            arr.push(parseInt(((val >> 16) & 0xFF) / 2));
+            arr.push(parseInt(((val >> 8) & 0xFF) / 2));
+            arr.push(parseInt((val & 0xFF) / 2));
+        }
+    })
 }))
 
 const default_preset = {
     "bpm": 120,
     "sensitivity": 10000,
+    "undercover_color": 0,
 }
 
 
 export class ScalesDb extends Db {
     DB_NAME = "ScaleDB"
     STORE_NAME = "Scale_Patches"
-    VERSION = 2
+    VERSION = 3
 
     constructor() {
         super(ScalesCommandsData)

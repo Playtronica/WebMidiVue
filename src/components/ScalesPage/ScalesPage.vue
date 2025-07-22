@@ -19,6 +19,7 @@
     </div>
   </div>
 
+
   <div>
     <BootstrapCollapse name_of_collapse="Scales settings" open_by_default>
       <template v-slot:objects>
@@ -36,10 +37,18 @@
                 :command-object="this.commands_data.sensitivity"
                 @input-changed="this.sys_ex_changed"
             />
+
+            <RgbColorCommand
+              command-label="Undercover color"
+              :key="this.forceRerender"
+              :command-object="this.commands_data.undercover_color"
+              @input-changed="this.sys_ex_changed"
+            />
           </template>
         </GroupOfCommands>
       </template>
     </BootstrapCollapse>
+
 
   </div>
 </template>
@@ -57,11 +66,13 @@ import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
 import {ScalesCommandsData, ScalesDb} from "@/components/ScalesPage/ScalesIDB";
 import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
+import RgbColorCommand from "@/components/MidiComponents/RgbColorCommand.vue";
 
 
 
 export default  {
   components: {
+    RgbColorCommand,
     SliderCommand,
     BootstrapCollapse,
     LoaderComponent,
