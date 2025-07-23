@@ -47,22 +47,18 @@ export let BiotronCommandsData = new Map(Object.entries({
     "minPlantVelocity": new SysExCommand({
         name: "minPlantVelocity",
         number_command: 15,
-        max_value: 127
     }),
     "maxPlantVelocity": new SysExCommand({
         name: "maxPlantVelocity",
         number_command: 5,
-        max_value: 127
     }),
     "minLightVelocity": new SysExCommand({
         name: "minLightVelocity",
         number_command: 17,
-        max_value: 127
     }),
     "maxLightVelocity": new SysExCommand({
         name: "maxLightVelocity",
         number_command: 6,
-        max_value: 127
     }),
     "randomness": new SysExCommand({
         name: "randomness",

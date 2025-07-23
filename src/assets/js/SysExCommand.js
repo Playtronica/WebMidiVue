@@ -19,7 +19,7 @@ export class SysExCommand {
                     name = null,
                     number_command = 0,
                     min_value = 0,
-                    max_value = 127,
+                    max_value = 126,
                     step = 1,
                     sendable = true,
                     custom_fold = null,
