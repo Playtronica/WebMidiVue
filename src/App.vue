@@ -43,7 +43,6 @@ export default {
     console.log("Hello! You`re curious, aren`t you?")
 
     if (navigator.requestMIDIAccess) {
-      console.log("MIDI is supported!");
       try {
         await navigator.requestMIDIAccess();
         console.log("MIDI is supported!");

@@ -1,59 +1,91 @@
 <template>
   <div class="form-floating mb-3">
     <select v-model="currentMidiNum" class="form-control">
-      <option v-for="(midi, item) in midiOut" v-bind:key="midi.id" :value="item">{{midi.name}}</option>
+      <option v-for="(value, key) in midiOut" v-bind:key="key" :value="key" @change="this.deviceChanged">{{value.name}} {{this.versions[key]}}</option>
     </select>
     <label for="device">Select device</label>
   </div>
 </template>
 
 <script>
+// eslint-disable-next-line no-unused-vars
+  import {sleep} from "@/assets/js/SysExCommand";
+
   export default {
     props: {
       regexName: {
         default: ".*",
         type: String
       },
+      checkVersionsFlag: {
+        default: false,
+        type: Boolean
+      }
     },
     name: "DeviceSelector",
     data() {
       return {
-        midiIn: [],
-        midiOut: [],
-        currentMidiNum: 0
-      }
-    },
-    watch: {
-      currentMidiNum() {
-        this.deviceChanged();
+        midiIn: {},
+        midiOut: {},
+        versions: {},
+        currentMidiNum: 0,
+        updateTimeout: null
       }
     },
     methods: {
       midiReady(midi) {
-        midi.addEventListener('statechange', (event) => this.initDevices(event.target));
+
+        midi.onstatechange = (event) => {
+          this.initDevices(event.target)
+        };
         this.initDevices(midi);
       },
       initDevices(midi) {
-        this.midiIn = [];
-        this.midiOut = [];
+        this.midiIn = {};
+        this.midiOut = {};
+        this.versions = {};
 
         const inputs = midi.inputs.values();
         for (let input = inputs.next(); input && !input.done; input = inputs.next()) {
           if (input.value.name.match(this.regexName))
-            this.midiIn.push(input.value);
+            this.midiIn[input.id] = input.value;
+            input.value.onmidimessage = (event) => this.handleMidiMessage(event);
         }
 
+        let midi_output_id = 0;
         const outputs = midi.outputs.values();
         for (let output = outputs.next(); output && !output.done; output = outputs.next()) {
           if (output.value.name.match(this.regexName)) {
-            this.midiOut.push(output.value)
-            console.log(output.value)
-            output.value.send([]);
+            this.midiOut[midi_output_id] = output.value
+            output.value.send([])
+            sleep(100)
+            midi_output_id++;
           }
         }
 
-        if (outputs.length !== 0) {
-          this.$emit("device_changed", this.midiOut[this.currentMidiNum])
+        this.deviceChanged()
+
+        if (!this.checkVersionsFlag) return;
+
+        for (const [key, midi_output] of Object.entries(this.midiOut)) {
+          setTimeout(() => {
+                midi_output.send([240, 20, 13, 126, key, 247])
+                sleep(100)
+          }, 3000)
+        }
+
+
+
+      },
+      handleMidiMessage(event) {
+        const [start_sys_ex, flag_byte, num_com, id_of_output, x, y, z, end_sys_ex] = event.data;
+        if (start_sys_ex === 0xF0 &&
+            end_sys_ex === 0xF7 &&
+            flag_byte === 0x0B &&
+            num_com === 126 &&
+            event.data.length === 8
+        ) {
+          this.versions[id_of_output] = `v${x}.${y}.${z}`
         }
       },
       deviceChanged() {

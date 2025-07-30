@@ -55,7 +55,6 @@ const default_preset = {...Object.fromEntries(
     "channel": 1
 }};
 
-console.log(default_preset);
 
 export class PlaytronDb extends Db {
     DB_NAME = "PlaytronDB"
