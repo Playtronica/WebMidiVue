@@ -42,13 +42,19 @@ export let ScalesCommandsData = new Map(Object.entries({
             arr.push(parseInt(((val >> 8) & 0xFF) / 2));
             arr.push(parseInt((val & 0xFF) / 2));
         }
-    })
+    }),
+    "scale": new SysExCommand( {
+        name: "scale",
+        number_command: 4,
+    }),
+
 }))
 
 const default_preset = {
     "bpm": 120,
     "sensitivity": 10000,
     "undercover_color": 0,
+    "scale": 0,
 }
 
 

@@ -44,6 +44,14 @@
               :command-object="this.commands_data.undercover_color"
               @input-changed="this.sys_ex_changed"
             />
+
+            <SelectCommand
+                command-label="🎼 Scale"
+                :key="this.forceRerender"
+                :list-of-variants="this.scales"
+                :command-object="commands_data.scale"
+                @input-changed="this.sys_ex_changed"
+            />
           </template>
         </GroupOfCommands>
       </template>
@@ -67,11 +75,13 @@ import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
 import {ScalesCommandsData, ScalesDb} from "@/components/ScalesPage/ScalesIDB";
 import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
 import RgbColorCommand from "@/components/MidiComponents/RgbColorCommand.vue";
+import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
 
 
 
 export default  {
   components: {
+    SelectCommand,
     RgbColorCommand,
     SliderCommand,
     BootstrapCollapse,
@@ -209,6 +219,9 @@ export default  {
       patch_id: 0,
       is_loading: false,
       commands_data: Object.fromEntries(ScalesCommandsData),
+      scales: ["Major", "Minor", "Chrom", "Dorian", "Mixolydian",
+        "Lydian", "Wholetone", "Minblues", "Majblues", "Minpen",
+        "Majpen", "Diminished"],
     }
   },
   async created() {
