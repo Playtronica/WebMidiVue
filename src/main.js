@@ -8,8 +8,12 @@ import TouchMePage from "@/components/TouchMePage/TouchMePage.vue";
 import ScalaPage from "@/components/ExtraPage/ScalaPage.vue";
 import BiotronUpdatePage from "@/components/BiotronPage/BiotronUpdatePage.vue";
 import PlaytronPage from "@/components/PlaytronPage/PlaytronPage.vue";
-import BiotronPageUpdated from "@/components/BiotronPage/BiotronPageUpdated.vue";
+
 import ScalesPage from "@/components/ScalesPage/ScalesPage.vue";
+
+import BiotronPageUpdated from "@/components/BiotronPage/BiotronPageUpdated.vue";
+import TouchMePageUpdated from "@/components/TouchMePage/TouchMePageUpdated.vue";
+import PlaytronPageUpdated from "@/components/PlaytronPage/PlaytronPageUpdated.vue";
 
 
 
@@ -19,7 +23,9 @@ const routes = [
     { path: '/biotron_updated', component: BiotronPageUpdated, props: {id: "BiotronWebMidiId_2" } },
     { path: "/biotron/update", component: BiotronUpdatePage},
     { path: '/touchme', component: TouchMePage, props: {id: "TouchmeWebMidiId_2"} },
+    { path: '/touchme_updated', component: TouchMePageUpdated, props: {id: "TouchmeWebMidiId_2"} },
     { path: '/playtron', component: PlaytronPage, props: {id: "PlaytronWebMidiId"} },
+    { path: '/playtron_updated', component: PlaytronPageUpdated, props: {id: "PlaytronWebMidiId"} },
     { path: '/scales', component: ScalesPage, props: {id: "ScalesWebMidiId_1"} },
     { path: '/scala', component: ScalaPage}
 ]
