@@ -2,7 +2,7 @@
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
   <div>
     <h1 class="text-center">Playtron change settings</h1>
-    <DeviceSelector regex-name="Playtron" @device_changed="(x) => {this.device = x} "/>
+    <DeviceSelector regex-name="Playtron" @device_changed="(x) => {this.device = x} " check-versions-flag/>
     <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
   </div>
 

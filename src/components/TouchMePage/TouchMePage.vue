@@ -1,7 +1,7 @@
 <template>
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
   <h1 class="text-center">TouchMe change settings</h1>
-  <DeviceSelector regex-name="TouchMe" @device_changed="(x) => {this.device = x} "/>
+  <DeviceSelector regex-name="TouchMe" @device_changed="(x) => {this.device = x} " check-versions-flag/>
   <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
     <GroupOfCommands name-of-group="Scale">
       <template v-slot:objects>
