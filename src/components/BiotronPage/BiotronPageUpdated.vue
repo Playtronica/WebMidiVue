@@ -1,22 +1,22 @@
 <template>
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
 
-    <h1 class="text-center">Biotron change settings</h1>
+    <h1 class="text-center">Biotron Settings ⚙️</h1>
     <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} " text_label="🔌 Select Device" check-versions-flag class="m-2"/>
     <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"  text_label="📂 Preset" class="m-2"/>
     <div class="row gx-1 mb-5">
       <div class="col">
-        <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary w-100 h-100">SEND</button>
+        <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary w-100 h-100">❇️ Send to Device</button>
       </div>
       <div class="col">
-        <button @click="this.createPreset" class="btn btn-primary w-100 h-100">SAVE</button>
+        <button @click="this.createPreset" class="btn btn-primary w-100 h-100">💾 Save Preset</button>
       </div>
       <div class="col">
-        <UpdateFirmwareComponent class="w-100 h-100" text="FIRMWARE UPDATE" repo="Playtronica/biotron-firmware" :device="this.device"/>
+        <UpdateFirmwareComponent class="w-100 h-100" text="🔄 Update Firmware" repo="Playtronica/biotron-firmware" :device="this.device"/>
       </div>
 
       <div class="col">
-        <FileDropArea name="UPLOAD" @get_drop="(e) => loadDataFromPreset(e)"/>
+        <FileDropArea name="📂 Load Preset" @get_drop="(e) => loadDataFromPreset(e)"/>
       </div>
     </div>
 
