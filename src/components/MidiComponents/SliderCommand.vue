@@ -89,7 +89,7 @@ export default {
 </script>
 
 <template>
-  <div class="row m-2">
+  <div class="row">
     <label>
       {{ this.commandLabel }}
       <HintComponent v-if="this.description" :text="this.description" />
@@ -109,7 +109,7 @@ export default {
     </div>
 
 
-    <input v-if="this.slider_active" type="range" id="range_input" class="settings_input"
+    <input v-if="this.slider_active" type="range" id="range_input" class=""
            v-model="this.rawValue" :min="this.minValue" :max="this.maxValue"
            :step="this.commandObject.step"
            @change="this.changed($event)"/>
@@ -117,9 +117,7 @@ export default {
 </template>
 
 <style scoped>
-  .settings_input {
-    width: 100%;
-  }
+
 
 
 </style>
