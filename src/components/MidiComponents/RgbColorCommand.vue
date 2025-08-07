@@ -41,7 +41,7 @@ export default {
 </script>
 
 <template>
-  <div class="row m-2">
+  <div class="row">
     <label>
       {{ this.commandLabel }}
       <HintComponent v-if="this.description" :text="this.description"/>

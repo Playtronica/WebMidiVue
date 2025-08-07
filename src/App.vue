@@ -155,4 +155,15 @@ input:checked + .slider:before {
   align-items: center;
   border-top: 1px black dashed;
 }
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Hide spin buttons in Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
 </style>

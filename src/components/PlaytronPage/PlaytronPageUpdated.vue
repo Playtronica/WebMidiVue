@@ -2,8 +2,8 @@
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
 
   <h1 class="text-center">Playtron change settings</h1>
-  <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} " text_label="🔌 Select Device" check-versions-flag/>
-  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" text_label="📂 Preset"/>
+  <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} " text_label="🔌 Select Device" check-versions-flag class="m-2"/>
+  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" text_label="📂 Preset" class="m-2"/>
   <div class="row gx-1 mb-5">
     <div class="col">
       <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary w-100 h-100">SEND</button>
@@ -39,9 +39,9 @@
           <SliderCommand
               :key="this.forceRerender"
               :command-object="this.commands_data.channel"
-              command-label="🎚️ MIDI Channel"
-              description="Slide to choose channels <br>1–16.<br>
-               🔀 What it does: Routes your pads to the correct instrument track—channel 1 for piano, 10 for drums, and so on!"
+              command-label="🎛️ MIDI channel"
+              description="Pick a midi channel that the plant would be on"
+              class="m-2"
               @input-changed="this.sys_ex_changed"/>
         </template>
       </GroupOfCommands>
@@ -246,8 +246,8 @@ export default  {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(3, 1fr);
-  width: 50vh;
   gap: 10px;
+  max-width: 225px;
 }
 
 .buttons_block {

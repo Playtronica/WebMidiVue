@@ -1,267 +1,285 @@
 <template>
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
-  <div>
-    <h1 class="text-center">Biotron change settings</h1>
-    <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} "/>
-    <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
-    <GroupOfCommands name-of-group="BPM">
-      <template v-slot:objects>
-        <SliderCommand
-            command-label="Plant Bpm"
-            :key="this.forceRerender"
-            :command-object="this.commands_data.plantBpm"
-            @input-changed="this.sys_ex_changed"
-        />
 
-        <SliderCommand
-            command-label="Note Off Percent"
-            :key="this.forceRerender"
-            :command-object="this.commands_data.noteOffPercent"
-            :table-values="this.fractions_note_off"
-            @input-changed="this.sys_ex_changed"
-            table-values-reversed
-        />
+  <h1 class="text-center">Biotron change settings</h1>
+  <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x}" class="m-2"/>
+  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" class="mb-2"/>
 
-        <SliderCommand
-            command-label="Light Bpm"
-            :key="this.forceRerender"
-            :command-object="this.commands_data.lightBpm"
-            @input-changed="this.sys_ex_changed"
-        />
+  <GroupOfCommands name-of-group="BPM">
+    <template v-slot:objects>
+      <SliderCommand
+          command-label="Plant Bpm"
+          :key="this.forceRerender"
+          :command-object="this.commands_data.plantBpm"
+          @input-changed="this.sys_ex_changed"
+          class="m-2"
+      />
 
-        <SliderCommand
-            command-label="Root Note"
-            :key="this.forceRerender"
-            :command-object="this.commands_data.middle_plant_note"
-            :table-values="this.root_note_id"
-            @input-changed="this.sys_ex_changed"
-        />
-      </template>
-      <template v-slot:description>
-        <p>BPM - how many notes from the plant will be generated per minute</p>
-        <p>Note Off Percent - how many percent of the time the note will sound, where 100 is the full sound before the note changes, 50 is half the time the note is played</p>
-        <p>Light Bpm - once every number of notes from the plant the note from the photoresistor will sound</p>
-        <p>Plant Middle Note - center of notes</p>
-      </template>
-    </GroupOfCommands>
-    <GroupOfCommands name-of-group="Sensitivity (fib)">
-      <template v-slot:objects>
-        <SliderCommand
-            command-label="Note Distance"
-            :key="this.forceRerender"
-            :command-object="this.commands_data.noteDistance"
-            @input-changed="this.sys_ex_changed"
-        />
-        <SliderCommand
-            command-label="First Value"
-            :key="this.forceRerender"
-            :command-object="this.commands_data.firstValue"
-            @input-changed="this.sys_ex_changed"
-        />
-      </template>
-      <template v-slot:description>
-        <p>Sensitivity (fib) - Fibonacci parameter responsible for the note distribution curve</p>
-      </template>
-    </GroupOfCommands>
-    <GroupOfCommands name-of-group="Smoothness">
-      <template v-slot:objects>
-        <SliderCommand
-            :key="this.forceRerender"
-            :command-object="this.commands_data.smoothness"
-            @input-changed="this.sys_ex_changed"
-        />
-      </template>
-      <template v-slot:description>
-        <p>Smoothness - the smoothness of the notes played, where 0 is an instant change in notes,
-          99 is a smooth change (notes change over time)</p>
-      </template>
-    </GroupOfCommands>
-    <GroupOfCommands name-of-group="Scale">
-      <template v-slot:objects>
-        <SelectCommand
-            :key="this.forceRerender"
-            :list-of-variants="this.scales"
-            :command-object="commands_data.scale"
-            @input-changed="this.sys_ex_changed"
-        />
-      </template>
-      <template v-slot:description>
-        <p>Scale - scale played from the device</p>
-      </template>
-    </GroupOfCommands>
-    <GroupOfCommands name-of-group="Velocity">
-      <template v-slot:objects>
-        <GroupOfCommands name-of-group="Plant">
-          <template v-slot:objects>
-            <div class="row">
-              <div class="col">
-                  <SwitchComponent
-                      id="randomPlantVelSwitch"
-                      command-label="Humanize"
-                      :command-object="this.commands_data.randomPlantVelocity"
-                      @input-changed="this.sys_ex_changed"
-                  />
-              </div>
-              <div class="col">
-                  <SwitchComponent
-                      id="plantVelDis"
-                      command-label="Mute"
-                      :command-object="commands_data.plant_no_velocity"
-                      @input-changed="this.sys_ex_changed"
-                  />
-              </div>
-            </div>
-            <div v-if="!commands_data.plant_no_velocity.value">
-              <div v-if="!this.commands_data.randomPlantVelocity.value">
-                <SliderCommand :key="this.forceRerender"
-                               :command-object="commands_data.maxPlantVelocity"
-                               @input-changed="this.sys_ex_changed"
-                />
-              </div>
-              <div v-else>
-                <SliderRangeCommand :key="this.forceRerender"
-                                    :max-command-object="commands_data.maxPlantVelocity"
-                                    :min-command-object="commands_data.minPlantVelocity"
-                                    @input-changed="this.sys_ex_changed"
-                />
-              </div>
-            </div>
-          </template>
-          <template v-slot:description>
-            <p>Plant - responsible for the notes generated by the plant</p>
-          </template>
-        </GroupOfCommands>
-        <GroupOfCommands name-of-group="Light">
-          <template v-slot:objects>
-            <div class="row">
-              <div class="col">
+      <SliderCommand
+          command-label="Note Off Percent"
+          :key="this.forceRerender"
+          :command-object="this.commands_data.noteOffPercent"
+          :table-values="this.fractions_note_off"
+          @input-changed="this.sys_ex_changed"
+          table-values-reversed
+          class="m-2"
+      />
+
+      <SliderCommand
+          command-label="Light Bpm"
+          :key="this.forceRerender"
+          :command-object="this.commands_data.lightBpm"
+          @input-changed="this.sys_ex_changed"
+          class="m-2"
+      />
+
+      <SliderCommand
+          command-label="Root Note"
+          :key="this.forceRerender"
+          :command-object="this.commands_data.middle_plant_note"
+          :table-values="this.root_note_id"
+          @input-changed="this.sys_ex_changed"
+          class="m-2"
+      />
+    </template>
+    <template v-slot:description>
+      <p>BPM - how many notes from the plant will be generated per minute</p>
+      <p>Note Off Percent - how many percent of the time the note will sound, where 100 is the full sound before the note changes, 50 is half the time the note is played</p>
+      <p>Light Bpm - once every number of notes from the plant the note from the photoresistor will sound</p>
+      <p>Plant Middle Note - center of notes</p>
+    </template>
+  </GroupOfCommands>
+  <GroupOfCommands name-of-group="Sensitivity (fib)">
+    <template v-slot:objects>
+      <SliderCommand
+          command-label="Note Distance"
+          :key="this.forceRerender"
+          :command-object="this.commands_data.noteDistance"
+          @input-changed="this.sys_ex_changed"
+          class="m-2"
+      />
+      <SliderCommand
+          command-label="First Value"
+          :key="this.forceRerender"
+          :command-object="this.commands_data.firstValue"
+          @input-changed="this.sys_ex_changed"
+          class="m-2"
+      />
+    </template>
+    <template v-slot:description>
+      <p>Sensitivity (fib) - Fibonacci parameter responsible for the note distribution curve</p>
+    </template>
+  </GroupOfCommands>
+  <GroupOfCommands name-of-group="Smoothness">
+    <template v-slot:objects>
+      <SliderCommand
+          :key="this.forceRerender"
+          :command-object="this.commands_data.smoothness"
+          @input-changed="this.sys_ex_changed"
+          class="m-2"
+      />
+    </template>
+    <template v-slot:description>
+      <p>Smoothness - the smoothness of the notes played, where 0 is an instant change in notes,
+        99 is a smooth change (notes change over time)</p>
+    </template>
+  </GroupOfCommands>
+  <GroupOfCommands name-of-group="Scale">
+    <template v-slot:objects>
+      <SelectCommand
+          :key="this.forceRerender"
+          :list-of-variants="this.scales"
+          :command-object="commands_data.scale"
+          @input-changed="this.sys_ex_changed"
+          class="m-3"
+      />
+    </template>
+    <template v-slot:description>
+      <p>Scale - scale played from the device</p>
+    </template>
+  </GroupOfCommands>
+  <GroupOfCommands name-of-group="Velocity">
+    <template v-slot:objects>
+      <GroupOfCommands name-of-group="Plant">
+        <template v-slot:objects>
+          <div class="row m-2">
+            <div class="col">
                 <SwitchComponent
-                    id="randomLightVelSwitch"
+                    id="randomPlantVelSwitch"
                     command-label="Humanize"
-                    :command-object="this.commands_data.randomLightVelocity"
+                    :command-object="this.commands_data.randomPlantVelocity"
                     @input-changed="this.sys_ex_changed"
+
                 />
-              </div>
-              <div class="col">
+            </div>
+            <div class="col">
                 <SwitchComponent
-                    id="lightVelDis"
+                    id="plantVelDis"
                     command-label="Mute"
-                    :command-object="commands_data.light_no_velocity"
+                    :command-object="commands_data.plant_no_velocity"
                     @input-changed="this.sys_ex_changed"
                 />
-              </div>
             </div>
-            <div class="row" v-if="!commands_data.light_no_velocity.value">
-              <div v-if="!this.commands_data.randomLightVelocity.value">
-                <SliderCommand
-                    :key="this.forceRerender"
-                    :command-object="commands_data.maxLightVelocity"
-                    @input-changed="this.sys_ex_changed"
-                />
-              </div>
-              <div v-else>
-                <SliderRangeCommand
-                    :key="this.forceRerender"
-                    :max-command-object="commands_data.maxLightVelocity"
-                    :min-command-object="commands_data.minLightVelocity"
-                    @input-changed="this.sys_ex_changed"
-                />
-              </div>
-            </div>
-          </template>
-          <template v-slot:description>
-            <p>Light - responsible for notes generated from the photoresistor</p>
-          </template>
-        </GroupOfCommands>
-      </template>
-      <template v-slot:description>
-        <p>Velocity - pressing force</p>
-        <p>Humanize - Velocity randomization at a controlled interval</p>
-        <p>Mute - disable note generation from the channel</p>
-      </template>
-    </GroupOfCommands>
-    <GroupOfCommands name-of-group="Same Note">
-      <template v-slot:objects>
-        <SliderCommand
-            :key="this.forceRerender"
-            :command-object="commands_data.same_note_plant"
-            :command-label="'Plant'"
-            @input-changed="this.sys_ex_changed"
-        />
-        <SliderCommand
-            :key="this.forceRerender"
-            :command-object="commands_data.same_note_light"
-            :command-label="'Light'"
-            @input-changed="this.sys_ex_changed"
-        />
-      </template>
-      <template v-slot:description>
-        <p>Same Note - notes that are played only when changing notes with a customizable step,
-          where 1 - produces a note if the notes have changed by 1 note, 10 if there has been a shift by 10 notes</p>
-      </template>
-    </GroupOfCommands>
-    <GroupOfCommands name-of-group="Light Notes Range">
-      <template v-slot:objects>
-        <SwitchComponent
-            id="light_pitch_mode"
-            command-label="Pitch Bend"
-            :command-object="this.commands_data.light_pitch_mode"
-            @input-changed="this.sys_ex_changed"
-        />
-        <SliderCommand
-            v-if="!this.commands_data.light_pitch_mode.value"
-            :key="this.forceRerender"
-            :command-object="this.commands_data.range_light_note"
-            @input-changed="this.sys_ex_changed"
-        />
-      </template>
-      <template v-slot:description>
-        <p>Light Notes Range - setting the range of notes played from the photoresistor (lower and upper limits are set)</p>
-      </template>
-    </GroupOfCommands>
-    <GroupOfCommands name-of-group="Extra">
-      <template v-slot:objects>
-        <div class="row">
-          <div class="col">
-            <SwitchComponent
-                :key="this.forceRerender"
-                command-label="Ultra sensitivity"
-                :command-object="commands_data.randomness"
-                @input-changed="this.sys_ex_changed"
-            />
           </div>
-          <div class="col">
+          <div v-if="!commands_data.plant_no_velocity.value">
+            <div v-if="!this.commands_data.randomPlantVelocity.value">
+              <SliderCommand :key="this.forceRerender"
+                             :command-object="commands_data.maxPlantVelocity"
+                             @input-changed="this.sys_ex_changed"
+                             class="m-2"
+              />
+            </div>
+            <div v-else>
+              <SliderRangeCommand :key="this.forceRerender"
+                                  :max-command-object="commands_data.maxPlantVelocity"
+                                  :min-command-object="commands_data.minPlantVelocity"
+                                  @input-changed="this.sys_ex_changed"
+                                  class="m-2"
+              />
+            </div>
+          </div>
+        </template>
+        <template v-slot:description>
+          <p>Plant - responsible for the notes generated by the plant</p>
+        </template>
+      </GroupOfCommands>
+      <GroupOfCommands name-of-group="Light">
+        <template v-slot:objects>
+          <div class="row m-2">
+            <div class="col">
+              <SwitchComponent
+                  id="randomLightVelSwitch"
+                  command-label="Humanize"
+                  :command-object="this.commands_data.randomLightVelocity"
+                  @input-changed="this.sys_ex_changed"
+              />
+            </div>
+            <div class="col">
+              <SwitchComponent
+                  id="lightVelDis"
+                  command-label="Mute"
+                  :command-object="commands_data.light_no_velocity"
+                  @input-changed="this.sys_ex_changed"
+              />
+            </div>
+          </div>
+          <div class="row" v-if="!commands_data.light_no_velocity.value">
+            <div v-if="!this.commands_data.randomLightVelocity.value">
+              <SliderCommand
+                  :key="this.forceRerender"
+                  :command-object="commands_data.maxLightVelocity"
+                  @input-changed="this.sys_ex_changed"
+                  class="m-2"
+              />
+            </div>
+            <div v-else>
+              <SliderRangeCommand
+                  :key="this.forceRerender"
+                  :max-command-object="commands_data.maxLightVelocity"
+                  :min-command-object="commands_data.minLightVelocity"
+                  @input-changed="this.sys_ex_changed"
+                  class="m-2"
+              />
+            </div>
+          </div>
+        </template>
+        <template v-slot:description>
+          <p>Light - responsible for notes generated from the photoresistor</p>
+        </template>
+      </GroupOfCommands>
+    </template>
+    <template v-slot:description>
+      <p>Velocity - pressing force</p>
+      <p>Humanize - Velocity randomization at a controlled interval</p>
+      <p>Mute - disable note generation from the channel</p>
+    </template>
+  </GroupOfCommands>
+  <GroupOfCommands name-of-group="Same Note">
+    <template v-slot:objects>
+      <SliderCommand
+          :key="this.forceRerender"
+          :command-object="commands_data.same_note_plant"
+          :command-label="'Plant'"
+          @input-changed="this.sys_ex_changed"
+          class="m-2"
+      />
+      <SliderCommand
+          :key="this.forceRerender"
+          :command-object="commands_data.same_note_light"
+          :command-label="'Light'"
+          @input-changed="this.sys_ex_changed"
+          class="m-2"
+      />
+    </template>
+    <template v-slot:description>
+      <p>Same Note - notes that are played only when changing notes with a customizable step,
+        where 1 - produces a note if the notes have changed by 1 note, 10 if there has been a shift by 10 notes</p>
+    </template>
+  </GroupOfCommands>
+  <GroupOfCommands name-of-group="Light Notes Range">
+    <template v-slot:objects>
+      <SwitchComponent
+          id="light_pitch_mode"
+          command-label="Pitch Bend"
+          :command-object="this.commands_data.light_pitch_mode"
+          @input-changed="this.sys_ex_changed"
+          class="m-2"
+      />
+      <SliderCommand
+          v-if="!this.commands_data.light_pitch_mode.value"
+          :key="this.forceRerender"
+          :command-object="this.commands_data.range_light_note"
+          @input-changed="this.sys_ex_changed"
+          class="m-2"
+      />
+    </template>
+    <template v-slot:description>
+      <p>Light Notes Range - setting the range of notes played from the photoresistor (lower and upper limits are set)</p>
+    </template>
+  </GroupOfCommands>
+  <GroupOfCommands name-of-group="Extra">
+    <template v-slot:objects>
+      <div class="row m-2">
+        <div class="col">
           <SwitchComponent
               :key="this.forceRerender"
-              command-label="Performance mode"
-              :command-object="commands_data.performance"
+              command-label="Ultra sensitivity"
+              :command-object="commands_data.randomness"
               @input-changed="this.sys_ex_changed"
           />
-          </div>
         </div>
-      </template>
-      <template v-slot:description>
-        <p>Ultra sensitivity - Increases the sensitivity of generation from a plant</p>
-        <p>Performance mode - Mode for better manual control of the device</p>
-      </template>
-    </GroupOfCommands>
-    <div class="buttons_block">
-      <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary mb-1 w-75" >Send</button>
-      <button @click="this.createPreset" class="btn btn-primary mb-1 w-75">Create Preset</button>
-      <UpdateFirmwareComponent repo="Playtronica/biotron-firmware" :device="this.device" class="mb-1 w-75"/>
-      <FileDropArea class="mb-1 w-75" name="Drop Preset Here" @get_drop="(e) => loadDataFromPreset(e)"/>
-    </div>
+        <div class="col">
+        <SwitchComponent
+            :key="this.forceRerender"
+            command-label="Performance mode"
+            :command-object="commands_data.performance"
+            @input-changed="this.sys_ex_changed"
+        />
+        </div>
+      </div>
+    </template>
+    <template v-slot:description>
+      <p>Ultra sensitivity - Increases the sensitivity of generation from a plant</p>
+      <p>Performance mode - Mode for better manual control of the device</p>
+    </template>
+  </GroupOfCommands>
+  <div class="buttons_block">
+    <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary mb-1 w-75" >Send</button>
+    <button @click="this.createPreset" class="btn btn-primary mb-1 w-75">Create Preset</button>
+    <UpdateFirmwareComponent repo="Playtronica/biotron-firmware" :device="this.device" class="mb-1 w-75"/>
+    <FileDropArea class="mb-1 w-75" name="Drop Preset Here" @get_drop="(e) => loadDataFromPreset(e)"/>
+  </div>
 
-    </div>
 
 
-    <GroupOfCommands>
-      <template v-slot:description>
-        <p>Send - sending settings to the device</p>
-        <p>Create Preset - saves settings to a file</p>
-        <p>Drop Preset Here - you need to transfer the file there by drag drop, or by clicking on the button, select the settings file.</p>
-      </template>
-    </GroupOfCommands>
+
+  <GroupOfCommands>
+    <template v-slot:description>
+      <p>Send - sending settings to the device</p>
+      <p>Create Preset - saves settings to a file</p>
+      <p>Drop Preset Here - you need to transfer the file there by drag drop, or by clicking on the button, select the settings file.</p>
+    </template>
+  </GroupOfCommands>
 
 </template>
 

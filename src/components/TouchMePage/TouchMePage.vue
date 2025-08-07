@@ -1,8 +1,8 @@
 <template>
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
   <h1 class="text-center">TouchMe change settings</h1>
-  <DeviceSelector regex-name="TouchMe" @device_changed="(x) => {this.device = x} " check-versions-flag/>
-  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
+  <DeviceSelector regex-name="TouchMe" @device_changed="(x) => {this.device = x} " class="m-2"/>
+  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" class="m-2"/>
   <GroupOfCommands name-of-group="Scale">
     <template v-slot:objects>
       <SelectCommand
@@ -10,6 +10,7 @@
           :list-of-variants="this.scales"
           :command-object="this.commands_data.Scale"
           @input-changed="this.sys_ex_changed"
+          class="m-3"
       />
     </template>
     <template v-slot:description>
@@ -25,6 +26,7 @@
           :command-object="this.commands_data.Key"
           :table-values="this.dig_to_nums"
           @input-changed="this.sys_ex_changed"
+          class="m-2"
       />
     </template>
     <template v-slot:description>
@@ -34,7 +36,7 @@
 
   <GroupOfCommands name-of-group="Velocity">
     <template v-slot:objects>
-      <div class="row">
+      <div class="row m-2">
         <div class="col">
           <SwitchComponent
               id="humanizeSwitch"
@@ -64,6 +66,7 @@
           <SliderCommand :key="this.forceRerender"
                          :command-object="this.commands_data.maxVelocity"
                          @input-changed="this.sys_ex_changed"
+                         class="m-2"
           />
         </div>
         <div v-else>
@@ -71,6 +74,7 @@
                               :max-command-object="this.commands_data.maxVelocity"
                               :min-command-object="this.commands_data.minVelocity"
                               @input-changed="this.sys_ex_changed"
+                              class="m-2"
           />
         </div>
       </div>
@@ -84,7 +88,7 @@
 
   <GroupOfCommands name-of-group="Notes Range">
     <template v-slot:objects>
-      <div class="row">
+      <div class="row m-2">
         <div class="col">
           <SwitchComponent
               id="notesRangeSwitch"
@@ -103,6 +107,7 @@
                             :max-command-object="this.commands_data.highestNote"
                             :min-command-object="this.commands_data.lowestNote"
                             @input-changed="this.sys_ex_changed"
+                            class="m-2"
         />
       </div>
     </template>
@@ -118,6 +123,7 @@
           :key="this.forceRerender"
           :command-object="this.commands_data.channel"
           @input-changed="this.sys_ex_changed"
+          class="m-2"
       />
     </template>
   </GroupOfCommands>

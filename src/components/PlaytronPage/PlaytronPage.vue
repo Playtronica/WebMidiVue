@@ -2,8 +2,8 @@
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
   <div>
     <h1 class="text-center">Playtron change settings</h1>
-    <DeviceSelector regex-name="Playtron" @device_changed="(x) => {this.device = x} " check-versions-flag/>
-    <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
+    <DeviceSelector regex-name="Playtron" @device_changed="(x) => {this.device = x} " check-versions-flag class="m-2"/>
+    <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" class="m-2"/>
   </div>
 
   <GroupOfCommands name-of-group="Notes For Pad" class="row justify-content-center m-1">
@@ -24,6 +24,7 @@
           :key="this.forceRerender"
           :command-object="this.commands_data.channel"
           @input-changed="this.sys_ex_changed"
+          class="m-2"
       />
     </template>
   </GroupOfCommands>

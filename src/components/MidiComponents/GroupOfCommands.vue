@@ -41,11 +41,6 @@
 </template>
 
 <style scoped>
-  .settings_block {
-    margin: 1%;
-    margin-top: 2%;
-  }
-
   .settings_elem {
     border: 1px solid;
     border-radius: 5px;

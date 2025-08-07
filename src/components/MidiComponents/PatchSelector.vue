@@ -1,59 +1,61 @@
 <template>
-  <div class="mb-3 m-0 w-100">
-    <div class="d-flex ">
-      <div class="form-floating flex-grow-1 me-2">
-        <select v-model="this.id" class="form-control" @change="this.patchChanged">-->
-          <option v-for="patch in patches" v-bind:key="patch.id" :value="patch.id">{{patch.name}}</option>
-        </select>
-        <label for="device">{{this.text_label}}</label>
-      </div>
-        <button class="btn"
-                :class="{ 'btn-outline-primary': this.button_state === 'Save', 'btn-outline-danger': this.button_state === 'Delete'}"
-                type="button"  data-bs-toggle="modal" @click="this.modelOpen"
-                :data-bs-target="this.button_state === 'Save' ? '#saveModal' : '#deleteModel'"
-                :style="{display: active_button_enabled ? 'block' : 'none'}">
-          {{ this.button_state }}</button>
-    </div>
-  </div>
-
-
-  <div class="modal fade" id="saveModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLabel">Save Patch</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cancel"></button>
+  <div>
+    <div class=" m-0 w-100">
+      <div class="d-flex ">
+        <div class="form-floating flex-grow-1 me-2">
+          <select v-model="this.id" class="form-control" @change="this.patchChanged">-->
+            <option v-for="patch in patches" v-bind:key="patch.id" :value="patch.id">{{patch.name}}</option>
+          </select>
+          <label for="device">{{this.text_label}}</label>
         </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="recipient-name" class="col-form-label">Patch Name</label>
-            <input type="text" class="form-control" id="patchName" v-model="this.patchName"
-                   :key="this.forceRerender" autocomplete="off" data-autofocus>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal" @click="this.savePatch">Save</button>
-        </div>
+          <button class="btn"
+                  :class="{ 'btn-outline-primary': this.button_state === 'Save', 'btn-outline-danger': this.button_state === 'Delete'}"
+                  type="button"  data-bs-toggle="modal" @click="this.modelOpen"
+                  :data-bs-target="this.button_state === 'Save' ? '#saveModal' : '#deleteModel'"
+                  :style="{display: active_button_enabled ? 'block' : 'none'}">
+            {{ this.button_state }}</button>
       </div>
     </div>
-  </div>
 
-  <div class="modal fade" id="deleteModel" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLabel">Delete Patch</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cancel"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            Do you really want to delete this patch?
+
+    <div class="modal fade" id="saveModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Save Patch</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cancel"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="recipient-name" class="col-form-label">Patch Name</label>
+              <input type="text" class="form-control" id="patchName" v-model="this.patchName"
+                     :key="this.forceRerender" autocomplete="off" data-autofocus>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" @click="this.savePatch">Save</button>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-danger" data-bs-dismiss="modal" @click="this.deletePatch">Delete</button>
+      </div>
+    </div>
+
+    <div class="modal fade" id="deleteModel" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Delete Patch</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cancel"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              Do you really want to delete this patch?
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger" data-bs-dismiss="modal" @click="this.deletePatch">Delete</button>
+          </div>
         </div>
       </div>
     </div>
