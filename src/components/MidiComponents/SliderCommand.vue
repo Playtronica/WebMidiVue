@@ -109,7 +109,7 @@ export default {
     </div>
 
 
-    <input v-if="this.slider_active" type="range" id="range_input" class=""
+    <input v-if="this.slider_active" type="range" id="range_input"
            v-model="this.rawValue" :min="this.minValue" :max="this.maxValue"
            :step="this.commandObject.step"
            @change="this.changed($event)"/>
@@ -117,7 +117,6 @@ export default {
 </template>
 
 <style scoped>
-
 
 
 </style>

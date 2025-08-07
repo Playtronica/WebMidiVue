@@ -25,7 +25,7 @@
       <GroupOfCommands name-of-group="🎵 Notes for Pad" class="row justify-content-center m-1" 
       description="Click any box in the grid to assign a new MIDI note to that pad. Mix and match high and low notes to build your perfect layout!">
         <template v-slot:objects>
-          <div class="grid-container center" :key="this.forceRerender">
+          <div class="grid-container " :key="this.forceRerender">
             <SliderCommand :command-label="value"
                            v-for="(value, key) in this.num_to_pad" v-bind:key="key"
                            :command-object="this.find_sys_ex('Note', this.num_to_pad[key])"
@@ -247,7 +247,7 @@ export default  {
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(3, 1fr);
   width: 50vh;
-  //gap: 10px;
+  gap: 10px;
 }
 
 .buttons_block {
