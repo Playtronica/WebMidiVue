@@ -6,17 +6,17 @@
   <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" text_label="📂 Preset"/>
   <div class="row gx-1 mb-5">
     <div class="col">
-      <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary w-100 h-100">🚀 Send Settings</button>
+      <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary w-100 h-100">SEND</button>
     </div>
     <div class="col">
-      <button @click="this.createPreset" class="btn btn-primary w-100 h-100">💾 Save Preset</button>
+      <button @click="this.createPreset" class="btn btn-primary w-100 h-100">SAVE</button>
     </div>
     <div class="col">
-      <UpdateFirmwareComponent class="w-100 h-100" text="🔄 Update Firmware" repo="Playtronica/biotron-firmware" :device="this.device"/>
+      <UpdateFirmwareComponent class="w-100 h-100" text="FIRMWARE UPDATE" repo="Playtronica/biotron-firmware" :device="this.device"/>
     </div>
 
     <div class="col">
-      <FileDropArea name="📥 Load Preset" @get_drop="(e) => loadDataFromPreset(e)"/>
+      <FileDropArea name="UPLOAD" @get_drop="(e) => loadDataFromPreset(e)"/>
     </div>
   </div>
 
