@@ -18,14 +18,15 @@ export default {
 </script>
 
 <template>
-  <i
+  <div
       class="fas fa-info-circle"
       style="color: #0d6efd"
       data-bs-toggle="tooltip"
       data-bs-placement="right"
+      data-bs-html='true'
       :title="text"
       disabled=""
-  ></i>
+  ></div>
 </template>
 
 <style scoped>

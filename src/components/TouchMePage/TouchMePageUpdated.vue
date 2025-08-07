@@ -2,8 +2,9 @@
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
   <h1 class="text-center">TouchMe change settings</h1>
 
-  <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} " check-versions-flag/>
-  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
+  <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} " text_label="🔌 Select Device" check-versions-flag/>
+  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" text_label="📂 Preset"/>
+
   <div class="row gx-1 mb-5">
     <div class="col">
       <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary w-100 h-100">SEND</button>
@@ -28,20 +29,22 @@
             <div class="col">
               <SwitchComponent
                   id="humanizeSwitch"
-                  command-label="Humanize"
+                  command-label="🤖 Humanize"
                   :command-object="this.commands_data.humanize"
                   @update:model-value="newVal => {
                   this.isHumanize = newVal
                   forceRerender++
                 }"
                   @input-changed="this.sys_ex_changed"
-                  description="Velocity randomization at a controlled interval"
+                  description="Humanize adds a natural feel to your music by slightly varying the timing and volume
+                   of each note—just like a live performer would. Instead of every note sounding perfectly the same
+                    and perfectly on the beat, small random shifts make your performance feel more expressive and organic."
               />
             </div>
             <div class="col">
               <SwitchComponent
                   id="velocityDisableSwitch"
-                  command-label="Mute"
+                  command-label="🔇 Mute"
                   :command-object="this.commands_data.mute"
                   @update:model-value="newVal => {
                   this.isMute = newVal
@@ -60,6 +63,9 @@
                     forceRerender++
                   }"
                   @input-changed="this.sys_ex_changed"
+                  description="Toggle Custom Range (?) to set your own low and high notes—perfect for
+                  focusing on just the notes you love. Limits the playable notes between your chosen
+                  minimum and maximum, so every touch stays within your musical zone!"
               />
             </div>
           </div>
@@ -69,17 +75,18 @@
               :list-of-variants="this.scales"
               :command-object="this.commands_data.Scale"
               @input-changed="this.sys_ex_changed"
-              command-label="Scale"
-              description="Scale played from the device"
+              command-label="🎼 Scale Selection"
+              description="Choose the musical mood you want.
+               Whether it’s a happy major scale or a mysterious minor scale, this lets you pick the pattern of notes TouchMe will play."
           />
 
           <SliderCommand
-              command-label="Key"
+              command-label="🎹 Root Note"
               :key="this.forceRerender"
               :command-object="this.commands_data.Key"
               :table-values="this.dig_to_nums"
               @input-changed="this.sys_ex_changed"
-              description="Start Note in default range (Disabled when custom range is active)"
+              description="This is your starting note—like picking the key on a piano. All other notes follow from here based on the scale you chose."
           />
 
           <div v-if="!this.commands_data.mute.value">
@@ -87,8 +94,10 @@
               <SliderCommand :key="this.forceRerender"
                              :command-object="this.commands_data.maxVelocity"
                              @input-changed="this.sys_ex_changed"
-                             command-label="Velocity"
-                             description="Pressing force"
+                             command-label="🔊 Volume (MIDI Velocity)"
+                             description="Controls how loud or soft each note sounds based on MIDI velocity.
+                                   Think of velocity like how hard you hit a piano key: a gentle tap creates a quiet tone,
+                                    while a strong press produces a louder, more vibrant sound. Adjust this to match your playing style!"
               />
             </div>
             <div v-else>
@@ -96,8 +105,10 @@
                                   :max-command-object="this.commands_data.maxVelocity"
                                   :min-command-object="this.commands_data.minVelocity"
                                   @input-changed="this.sys_ex_changed"
-                                  command-label="Velocity"
-                                  description="Pressing force"
+                                  command-label="🔊 Volume (MIDI Velocity)"
+                                  description="Controls how loud or soft each note sounds based on MIDI velocity.
+                                   Think of velocity like how hard you hit a piano key: a gentle tap creates a quiet tone,
+                                    while a strong press produces a louder, more vibrant sound. Adjust this to match your playing style!"
               />
             </div>
           </div>
@@ -107,16 +118,21 @@
                                 :max-command-object="this.commands_data.highestNote"
                                 :min-command-object="this.commands_data.lowestNote"
                                 @input-changed="this.sys_ex_changed"
-                                command-label="Notes Range"
-                                description="Range of playable notes"
+                                command-label="🎶 Notes Range"
+                                description="Toggle Custom Range (?) to set your own low and high notes—perfect for
+                                 focusing on just the notes you love. Limits the playable notes between your chosen
+                                  minimum and maximum, so every touch stays within your musical zone!"
             />
           </div>
 
           <SliderCommand
-              command-label="Channel"
+              command-label="🎚️ MIDI Channel Selection"
               :key="this.forceRerender"
               :command-object="this.commands_data.channel"
               @input-changed="this.sys_ex_changed"
+              description="Choose a MIDI Channel (1–16) to decide which virtual instrument or track TouchMe sends its notes to.
+               Routes your performance to the right place—pick channel 1 for your piano plugin, channel 10 for drums,
+               or any other channel for special effects!"
           />
         </template>
       </GroupOfCommands>

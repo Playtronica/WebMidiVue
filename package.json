@@ -52,7 +52,14 @@
     "parserOptions": {
       "parser": "@babel/eslint-parser"
     },
-    "rules": {}
+    "rules": {
+      "vue/no-parsing-error": [
+        "error",
+        {
+          "control-character-reference": false
+        }
+      ]
+    }
   },
   "browserslist": [
     "> 1%",

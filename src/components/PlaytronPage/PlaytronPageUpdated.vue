@@ -2,27 +2,28 @@
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
 
   <h1 class="text-center">Playtron change settings</h1>
-  <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} " check-versions-flag/>
-  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"/>
+  <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} " text_label="🔌 Select Device" check-versions-flag/>
+  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" text_label="📂 Preset"/>
   <div class="row gx-1 mb-5">
     <div class="col">
-      <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary w-100 h-100">SEND</button>
+      <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary w-100 h-100">🚀 Send Settings</button>
     </div>
     <div class="col">
-      <button @click="this.createPreset" class="btn btn-primary w-100 h-100">SAVE</button>
+      <button @click="this.createPreset" class="btn btn-primary w-100 h-100">💾 Save Preset</button>
     </div>
     <div class="col">
-      <UpdateFirmwareComponent class="w-100 h-100" text="FIRMWARE UPDATE" repo="Playtronica/biotron-firmware" :device="this.device"/>
+      <UpdateFirmwareComponent class="w-100 h-100" text="🔄 Update Firmware" repo="Playtronica/biotron-firmware" :device="this.device"/>
     </div>
 
     <div class="col">
-      <FileDropArea name="UPLOAD" @get_drop="(e) => loadDataFromPreset(e)"/>
+      <FileDropArea name="📥 Load Preset" @get_drop="(e) => loadDataFromPreset(e)"/>
     </div>
   </div>
 
-  <BootstrapCollapse name_of_collapse="Playtron settings" open_by_default>
+  <BootstrapCollapse name_of_collapse="🎹 Playtron Settings" open_by_default>
     <template v-slot:objects>
-      <GroupOfCommands name-of-group="Notes For Pad" class="row justify-content-center m-1">
+      <GroupOfCommands name-of-group="🎵 Notes for Pad" class="row justify-content-center m-1" 
+      description="Click any box in the grid to assign a new MIDI note to that pad. Mix and match high and low notes to build your perfect layout!">
         <template v-slot:objects>
           <div class="grid-container center" :key="this.forceRerender">
             <SliderCommand :command-label="value"
@@ -36,11 +37,12 @@
       <GroupOfCommands>
         <template v-slot:objects>
           <SliderCommand
-              command-label="Channel"
               :key="this.forceRerender"
               :command-object="this.commands_data.channel"
-              @input-changed="this.sys_ex_changed"
-          />
+              command-label="🎚️ MIDI Channel"
+              description="Slide to choose channels <br>1–16.<br>
+               🔀 What it does: Routes your pads to the correct instrument track—channel 1 for piano, 10 for drums, and so on!"
+              @input-changed="this.sys_ex_changed"/>
         </template>
       </GroupOfCommands>
     </template>

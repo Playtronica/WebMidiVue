@@ -3,7 +3,7 @@
     <select v-model="currentMidiNum" class="form-control">
       <option v-for="(value, key) in midiOut" v-bind:key="key" :value="key" @change="this.deviceChanged">{{value.name}} {{this.versions[key]}}</option>
     </select>
-    <label for="device">Select device</label>
+    <label for="device">{{ this.text_label }}</label>
   </div>
 </template>
 
@@ -20,7 +20,11 @@
       checkVersionsFlag: {
         default: false,
         type: Boolean
-      }
+      },
+      text_label: {
+        default: "Select device",
+        type: String,
+      },
     },
     name: "DeviceSelector",
     data() {

@@ -5,7 +5,7 @@
         <select v-model="this.id" class="form-control" @change="this.patchChanged">-->
           <option v-for="patch in patches" v-bind:key="patch.id" :value="patch.id">{{patch.name}}</option>
         </select>
-        <label for="device">Presets</label>
+        <label for="device">{{this.text_label}}</label>
       </div>
         <button class="btn"
                 :class="{ 'btn-outline-primary': this.button_state === 'Save', 'btn-outline-danger': this.button_state === 'Delete'}"
@@ -69,7 +69,11 @@
       page_id: {
         type: String,
         required: true
-      }
+      },
+      text_label: {
+        default: "Presets",
+        type: String,
+      },
     },
     name: "PatchSelector",
     data() {

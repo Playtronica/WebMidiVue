@@ -1,13 +1,18 @@
 <script>
-  import {getTransitionRawChildren} from "@vue/runtime-core";
+  import HintComponent from "@/components/HintComponent.vue";
 
   export default {
     name: "GroupOfCommands",
-    methods: {getTransitionRawChildren},
+    components: {HintComponent},
+
     props: {
       nameOfGroup: {
         default: "",
         type: String
+      },
+      description: {
+        require: false,
+        type: String,
       }
     },
     data() {
@@ -19,13 +24,20 @@
 </script>
 
 <template>
-  <div class="settings_elem">
-    <h2>{{this.nameOfGroup}}</h2>
+<div class="settings_elem">
+    <h2 v-if="nameOfGroup">
+      <label>
+        {{this.nameOfGroup}}
+        <HintComponent v-if="this.description" :text="this.description" />
+      </label>
+    </h2>
+    
     <slot name="objects"></slot>
+
     <div class="description_elem" v-if="this.$slots.description">
       <slot name="description"></slot>
     </div>
-  </div>
+</div>
 </template>
 
 <style scoped>
