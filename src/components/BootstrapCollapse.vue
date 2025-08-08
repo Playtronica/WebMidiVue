@@ -34,7 +34,7 @@ export default {
        :aria-controls="this.collapseId" ref="collapse_header">
     <h1>
       {{name_of_collapse}}
-      <span>{{ is_open ? "-" : "+"}}</span>
+      <span><i class="fa-solid " :class="{'fa-chevron-up': is_open, 'fa-chevron-down': !is_open}"></i></span>
     </h1>
     <hr/>
   </div>
