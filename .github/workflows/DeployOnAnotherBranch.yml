@@ -18,6 +18,10 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Add CNAME file
+        run: |
+          echo "settings.playtronica.com" > ./dist/CNAME
     
       - name: Push
         uses: s0/git-publish-subdir-action@develop
