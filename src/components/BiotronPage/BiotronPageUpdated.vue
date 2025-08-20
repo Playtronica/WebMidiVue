@@ -470,7 +470,7 @@ export default  {
       page_is_inited: false,
       scales: ["Major", "Minor", "Chrom", "Dorian", "Mixolydian",
         "Lydian", "Wholetone", "Minblues", "Majblues", "Minpen",
-        "Majpen", "Diminished"],
+        "Majpen", "Diminished", "Hirajōshi"],
       root_note_id: {
         60: 'C4', 61: 'C#4', 62: 'D4', 63: 'D#4', 64: 'E4', 65: 'F4',
         66: 'F#4', 67: 'G4', 68: 'G#4', 69: 'A4', 70: 'A#4', 71: 'B4', 72: 'C5',
