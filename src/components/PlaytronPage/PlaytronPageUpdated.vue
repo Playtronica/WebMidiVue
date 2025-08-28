@@ -12,7 +12,7 @@
       <button @click="this.createPreset" class="btn btn-primary w-100 h-100">💾 Save Preset</button>
     </div>
     <div class="col">
-      <UpdateFirmwareComponent class="w-100 h-100" text="🔄 Update Firmware" repo="Playtronica/biotron-firmware" :device="this.device"/>
+      <UpdateFirmwareComponent class="w-100 h-100" text="🔄 Update Firmware" repo="Playtronica/playtron-releases" :device="this.device"/>
     </div>
 
     <div class="col">
