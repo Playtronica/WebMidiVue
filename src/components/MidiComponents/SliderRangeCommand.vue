@@ -1,5 +1,5 @@
 <script>
-import {sleep, SysExCommand} from "@/assets/js/SysExCommand"
+import {SysExCommand} from "@/assets/js/SysExCommand"
 import "@/../node_modules/multi-range-slider-vue/MultiRangeSliderBarOnly.css"
 import Slider from '@vueform/slider'
 import HintComponent from "@/components/HintComponent.vue";
@@ -33,12 +33,21 @@ export default {
     }
   },
   methods: {
-    changed() {
+    changed_min_val() {
       this.minCommandObject.set_value(this.values[0]);
-      this.maxCommandObject.set_value(this.values[1]);
       this.$emit('input-changed', this.minCommandObject)
-      sleep(1)
+    },
+    changed_max_val() {
+      this.maxCommandObject.set_value(this.values[1]);
       this.$emit('input-changed', this.maxCommandObject)
+    },
+    changed() {
+      if (this.minCommandObject.value !== this.values[0]) {
+        this.changed_min_val()
+      }
+      if (this.maxCommandObject.value !== this.values[1]) {
+        this.changed_max_val()
+      }
     },
   },
   created() {
@@ -60,12 +69,12 @@ export default {
     </label>
       <div class="row" style="margin-bottom: 10px">
         <div class="col">
-          <input type="number" id="value_input_min" class="form-control" @change="this.changed"
+          <input type="number" id="value_input_min" class="form-control" @change="this.changed_min_val"
                  v-model="this.values[0]" :min="this.minCommandObject.min_value" :max="this.minCommandObject.max_value" />
         </div>
         -
         <div class="col">
-          <input type="number" id="value_input_max" class="form-control" @change="this.changed"
+          <input type="number" id="value_input_max" class="form-control" @change="this.changed_max_val"
                  v-model="this.values[1]" :min="this.minCommandObject.min_value" :max="this.maxCommandObject.max_value" />
         </div>
       </div>

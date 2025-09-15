@@ -1,6 +1,7 @@
 import {Db} from "@/assets/js/PresetsIDB";
 import {SysExCommand} from "@/assets/js/SysExCommand";
 
+
 export let TouchMeCommandsData = new Map(Object.entries({
     "Scale": new SysExCommand( {
         name: "Scale",
@@ -55,7 +56,13 @@ export let TouchMeCommandsData = new Map(Object.entries({
         custom_fold:  (arr, val) => {
             arr.push(val - 1);
         }
-    })
+    }),
+    "sens_mode": new SysExCommand({
+        name: "sens_mode",
+        number_command: 9,
+        max_value: 10,
+    }),
+
 }))
 
 
@@ -70,12 +77,13 @@ const default_preset = {
     "humanize": 0,
     "mute": 0,
     "channel": 1,
+    "sens_mode": 0,
 }
 
 export class TouchMeDb extends Db {
     DB_NAME = "TouchMeDB"
     STORE_NAME = "TouchMe_Patches"
-    VERSION = 3
+    VERSION = 4
 
     constructor() {
         super(TouchMeCommandsData);

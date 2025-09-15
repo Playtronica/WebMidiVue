@@ -132,6 +132,20 @@
     </template>
   </BootstrapCollapse>
 
+  <BootstrapCollapse name_of_collapse="Extra">
+    <template v-slot:objects>
+      <GroupOfCommands>
+        <template v-slot:objects>
+          <SliderCommand :key="this.forceRerender"
+                              :command-object="this.commands_data.sens_mode"
+                              @input-changed="this.sys_ex_changed"
+                              command-label="Sensitivity of device"
+                              class="m-2"/>
+        </template>
+      </GroupOfCommands>
+    </template>
+  </BootstrapCollapse>
+
 </template>
 
 <script>
