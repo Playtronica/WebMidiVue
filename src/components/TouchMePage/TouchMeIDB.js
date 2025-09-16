@@ -60,7 +60,11 @@ export let TouchMeCommandsData = new Map(Object.entries({
     "sens_mode": new SysExCommand({
         name: "sens_mode",
         number_command: 9,
+        min_value: -8,
         max_value: 10,
+        custom_fold:  (arr, val) => {
+            arr.push(val + 8);
+        }
     }),
 
 }))
@@ -83,7 +87,7 @@ const default_preset = {
 export class TouchMeDb extends Db {
     DB_NAME = "TouchMeDB"
     STORE_NAME = "TouchMe_Patches"
-    VERSION = 4
+    VERSION = 5
 
     constructor() {
         super(TouchMeCommandsData);
