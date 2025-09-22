@@ -98,6 +98,19 @@
           </template>
         </GroupOfCommands>
 
+        <GroupOfCommands name-of-group="Swing note">
+          <template v-slot:objects>
+            <SliderCommand
+                command-label="Swing note"
+                description="Duration of the first note compare to BPM"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.swing_first_note_percent"
+                @input-changed="this.sys_ex_changed"
+                class="m-2"
+            />
+          </template>
+        </GroupOfCommands>
+
         <GroupOfCommands name-of-group="NOTE VELOCITY">
           <template v-slot:objects>
             <div class="row m-2">
