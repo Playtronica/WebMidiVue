@@ -1,23 +1,24 @@
 <template>
+  <img src="//shop.playtronica.com/cdn/shop/files/622830795_031e8bd9-cf9e-4bb9-8230-6b9565aef17d.png?v=1630593066&amp;width=280" alt="" srcset="//shop.playtronica.com/cdn/shop/files/622830795_031e8bd9-cf9e-4bb9-8230-6b9565aef17d.png?v=1630593066&amp;width=140 140w, //shop.playtronica.com/cdn/shop/files/622830795_031e8bd9-cf9e-4bb9-8230-6b9565aef17d.png?v=1630593066&amp;width=280 280w" width="140" height="72.5925925925926" loading="eager" class="small--hide image-element" sizes="140px" itemprop="logo" fetchpriority="">
+
   <header class="d-flex justify-content-center">
-    <ul class="nav nav-pills">
+
+      <ul class="nav nav-pills">
       <li class="nav-item">
-        <router-link v-if="this.url === '/biotron'" to="/biotron" @click="this.update" class="nav-link active">Biotron</router-link>
-        <router-link v-else to="/biotron" @click="this.update" class="nav-link">Biotron</router-link>
+        <router-link  to="/biotron" @click="this.update" class="nav-link">Biotron</router-link>
       </li>
       <li class="nav-item">
-        <router-link v-if="this.url === '/touchme'" @click="this.update" to="/touchme" class="nav-link active">TouchMe</router-link>
-        <router-link v-else to="/touchme" @click="this.update" class="nav-link">TouchMe</router-link>
+        <router-link  to="/touchme" @click="this.update" class="nav-link">TouchMe</router-link>
       </li>
       <li class="nav-item">
-        <router-link v-if="this.url === '/playtron'" @click="this.update" to="/playtron" class="nav-link active">TouchMe</router-link>
-        <router-link v-else to="/playtron" @click="this.update" class="nav-link">Playtron</router-link>
+        <router-link to="/playtron" @click="this.update" class="nav-link">Playtron</router-link>
       </li>
     </ul>
   </header>
   <div class="wrapper">
-    <div class="m-2 content">
+    <div class="m-2 content ">
       <router-view></router-view>
+
     </div>
     <footer class="bottom-panel">
       <SocialLinks/>
