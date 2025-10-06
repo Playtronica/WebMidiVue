@@ -1,7 +1,7 @@
 <template>
   <div class="form-floating mb-3">
-    <select v-model="currentMidiNum" class="form-control">
-      <option v-for="(value, key) in midiOut" v-bind:key="key" :value="key" @change="this.deviceChanged">{{value.name}} {{this.versions[key]}}</option>
+    <select v-model="currentMidiNum" class="form-control" @change="this.deviceChanged">
+      <option v-for="(value, key) in midiOut" v-bind:key="key" :value="key" >{{value.name}} {{this.versions[key]}}</option>
     </select>
     <label for="device">{{ this.text_label }}</label>
   </div>
@@ -26,6 +26,7 @@
         type: String,
       },
     },
+    emits: ["device_changed"],
     name: "DeviceSelector",
     data() {
       return {
@@ -93,6 +94,7 @@
         }
       },
       deviceChanged() {
+        console.log(this.currentMidiNum)
         this.$emit("device_changed", this.midiOut[this.currentMidiNum])
       }
     },
