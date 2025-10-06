@@ -2,10 +2,12 @@
 // eslint-disable-next-line no-unused-vars
 import HintComponent from "@/components/HintComponent.vue";
 import {SysExCommand} from "@/assets/js/SysExCommand";
+import ColorPicker from "@/components/MidiComponents/ColorPicker.vue";
 
 export default {
   name: "RgbColorCommand",
   components: {
+    ColorPicker,
     HintComponent
   },
   props: {
@@ -46,7 +48,8 @@ export default {
       {{ this.commandLabel }}
       <HintComponent v-if="this.description" :text="this.description"/>
     </label>
-    <input type="color" v-model="this.rawValue" @change="changed">
+<!--    <input type="color" v-model="this.rawValue" @change="changed">-->
+    <ColorPicker/>
   </div>
 </template>
 

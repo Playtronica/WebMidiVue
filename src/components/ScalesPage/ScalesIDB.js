@@ -47,21 +47,34 @@ export let ScalesCommandsData = new Map(Object.entries({
         name: "scale",
         number_command: 4,
     }),
+    "color": new SysExCommand({
+        name: "color",
+        sendable: false,
+        max_value: 0xffffff,
+        min_value: 0,
+    }),
+    "brightness": new SysExCommand({
+        name: "brightness",
+        sendable: false,
+        min_value: 0,
+        max_value: 100,
+    })
 
 }))
 
 const default_preset = {
     "bpm": 120,
     "sensitivity": 10000,
-    "undercover_color": 0,
+    "undercover_color": 0x7500FF,
     "scale": 0,
+    "brightness": 100,
 }
 
 
 export class ScalesDb extends Db {
     DB_NAME = "ScaleDB"
     STORE_NAME = "Scale_Patches"
-    VERSION = 3
+    VERSION = 4
 
     constructor() {
         super(ScalesCommandsData)

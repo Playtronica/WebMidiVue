@@ -40,19 +40,29 @@
                 class="m-2"
             />
 
-            <RgbColorCommand
-              command-label="Undercover color"
-              :key="this.forceRerender"
-              :command-object="this.commands_data.undercover_color"
-              @input-changed="this.sys_ex_changed"
-              class="m-3"
-            />
-
             <SelectCommand
                 command-label="🎼 Scale"
                 :key="this.forceRerender"
                 :list-of-variants="this.scales"
                 :command-object="commands_data.scale"
+                @input-changed="this.sys_ex_changed"
+                class="m-3"
+            />
+          </template>
+        </GroupOfCommands>
+      </template>
+    </BootstrapCollapse>
+
+    <BootstrapCollapse name_of_collapse="Color Settings">
+      <template v-slot:objects>
+        <GroupOfCommands name-of-group="">
+          <template v-slot:objects>
+            <ColorPicker
+                command-label="Undercover color"
+                :key="this.forceRerender"
+                :command-color-object="this.commands_data.color"
+                :command-bright-object="this.commands_data.brightness"
+                :command-color-and-brightness-object="this.commands_data.undercover_color"
                 @input-changed="this.sys_ex_changed"
                 class="m-3"
             />
@@ -78,15 +88,15 @@ import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
 import {ScalesCommandsData, ScalesDb} from "@/components/ScalesPage/ScalesIDB";
 import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
-import RgbColorCommand from "@/components/MidiComponents/RgbColorCommand.vue";
 import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
+import ColorPicker from "@/components/MidiComponents/ColorPicker.vue";
 
 
 
 export default  {
   components: {
+    ColorPicker,
     SelectCommand,
-    RgbColorCommand,
     SliderCommand,
     BootstrapCollapse,
     LoaderComponent,
