@@ -93,15 +93,7 @@ export default {
   },
   data() {
     return {
-      colors: [
-        '#E6E6E6',
-        '#FF0000', '#FF4000', '#FF8000',
-        '#FFBF00', '#FFFF00', '#C8FF00', '#90FF00',
-        '#59FF00', '#21FF00', '#00FFFF',
-        '#00BFFF', '#0080FF', '#0040FF', '#0000FF',
-        '#7500FF', '#AE00FF', '#E600FF',
-        '#FF00BF', '#FF007F',
-      ],
+      colors: ['#E6E6E6', '#FF0000',  '#FF4000', "#FFA000", '#90FF00', '#00FFFF', '#0040FF', '#AE00FF'],
       selectedColor: '',
       brightness: 100,
     }
