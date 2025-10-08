@@ -5,9 +5,9 @@
       <HintComponent v-if="this.description" :text="this.description"/>
     </label>
     <div class="d-flex flex-wrap justify-content-around">
-      <div class="rounded-circle color-square m-2" v-for="(color, index) in colors" :key="index"
-           :style="{backgroundColor: color, border: this.selectedColor === color ? '2px solid black' : ''}"
-           @click="selectColor(color)">
+      <div class="rounded-circle color-square m-2" v-for="(index, web_color) in colors" :key="index"
+           :style="{backgroundColor: web_color, border: this.selectedColor === web_color ? '2px solid black' : ''}"
+           @click="selectColor(web_color)">
       </div>
     </div>
     <label>
@@ -57,7 +57,7 @@ export default {
       this.changed()
     },
     getBrightnessColor() {
-      let c = this.selectedColor.substring(1);
+      let c = this.colors[this.selectedColor].substring(1);
       let rgb = parseInt(c, 16);
       let r = (rgb >> 16) & 0xff;
       let g = (rgb >>  8) & 0xff;
@@ -93,7 +93,16 @@ export default {
   },
   data() {
     return {
-      colors: ['#E6E6E6', '#FF0000',  '#FF4000', "#FFA000", '#90FF00', '#00FFFF', '#0040FF', '#AE00FF'],
+      colors: {
+        "#E6E6E6": "#FFE9AD",
+        '#FF0000': "#FF0000",
+        "#FFA500": "#FF4000",
+        "#FFFF00": "#FF6E00",
+        "#90FF00": "#90FF00",
+        '#00FFFF': '#00FFFF',
+        "#0040FF": "#0040FF",
+        "#AE00FF": "#AE00FF",
+      },
       selectedColor: '',
       brightness: 100,
     }

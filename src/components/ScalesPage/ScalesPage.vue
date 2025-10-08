@@ -66,9 +66,7 @@
                 @input-changed="this.sys_ex_changed"
                 class="m-3"
             />
-            <RgbColorCommand :command-object="this.commands_data.undercover_color"
-                             @input-changed="this.sys_ex_changed"
-                             class="m-3"/>
+
           </template>
         </GroupOfCommands>
       </template>
@@ -93,13 +91,11 @@ import {ScalesCommandsData, ScalesDb} from "@/components/ScalesPage/ScalesIDB";
 import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
 import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
 import ColorPicker from "@/components/MidiComponents/ColorPicker.vue";
-import RgbColorCommand from "@/components/MidiComponents/RgbColorCommand.vue";
 
 
 
 export default  {
   components: {
-    RgbColorCommand,
     ColorPicker,
     SelectCommand,
     SliderCommand,
