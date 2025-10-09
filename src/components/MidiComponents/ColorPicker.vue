@@ -100,7 +100,7 @@ export default {
         "#FFFF00": "#FF6E00",
         "#90FF00": "#90FF00",
         '#00FFFF': '#00FFFF',
-        "#0040FF": "#0040FF",
+        "#0040FF": '#0080FF',
         "#AE00FF": "#AE00FF",
       },
       selectedColor: '',
