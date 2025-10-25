@@ -98,6 +98,19 @@
           </template>
         </GroupOfCommands>
 
+        <GroupOfCommands name-of-group="Buttons Mode">
+          <template v-slot:objects>
+            <SwitchComponent
+                id="randomPlantVelSwitch"
+                command-label="Mute button state"
+                description="Enables and disables mute button"
+                :command-object="this.commands_data.button_mode_state"
+                @input-changed="this.sys_ex_changed"
+
+            />
+          </template>
+        </GroupOfCommands>
+
         <GroupOfCommands name-of-group="Swing note">
           <template v-slot:objects>
             <SliderCommand

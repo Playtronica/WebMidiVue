@@ -133,6 +133,10 @@ export let BiotronCommandsData = new Map(Object.entries({
         number_command: 26,
         max_value: 100,
         min_value: 1,
+    }),
+    "button_mode_state": new SysExCommand({
+        name: "button_mode_state",
+        number_command: 27,
     })
 }))
 
@@ -163,6 +167,7 @@ const fast_role_preset = {
     "plant_midi_channel": 1,
     "light_midi_channel": 2,
     "swing_first_note_percent": 100,
+    "button_mode_state": false,
 }
 
 const the_performer_mode = {
@@ -191,6 +196,7 @@ const the_performer_mode = {
     "plant_midi_channel": 1,
     "light_midi_channel": 2,
     "swing_first_note_percent": 100,
+    "button_mode_state": false,
 }
 
 const in_discussion = {
@@ -219,6 +225,7 @@ const in_discussion = {
     "plant_midi_channel": 1,
     "light_midi_channel": 2,
     "swing_first_note_percent": 100,
+    "button_mode_state": false,
 }
 
 const mixolyd = {
@@ -247,13 +254,14 @@ const mixolyd = {
     "plant_midi_channel": 1,
     "light_midi_channel": 2,
     "swing_first_note_percent": 100,
+    "button_mode_state": false,
 }
 
 
 export class BiotronDb extends Db {
     DB_NAME = "BiotronDB"
     STORE_NAME = "Biotron_Patches"
-    VERSION = 9
+    VERSION = 10
 
     constructor() {
         super(BiotronCommandsData)
