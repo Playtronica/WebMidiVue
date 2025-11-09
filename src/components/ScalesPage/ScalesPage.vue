@@ -32,12 +32,14 @@
                 @input-changed="this.sys_ex_changed"
                 class="m-2"
             />
-            <SliderCommand
-                command-label="Sensitivity"
+
+            <SelectCommand
+                command-label="🎼 Sensitivity"
                 :key="this.forceRerender"
-                :command-object="this.commands_data.sensitivity"
+                :list-of-variants="this.sensitivity_modes"
+                :command-object="commands_data.sensitivity"
                 @input-changed="this.sys_ex_changed"
-                class="m-2"
+                class="m-3"
             />
 
             <SelectCommand
@@ -237,6 +239,7 @@ export default  {
       scales: ["Major", "Minor", "Chrom", "Dorian", "Mixolydian",
         "Lydian", "Wholetone", "Minblues", "Majblues", "Minpen",
         "Majpen", "Diminished"],
+      sensitivity_modes: ["250g", "500g", "1000g", "1500g", "2000g"],
     }
   },
   async created() {
