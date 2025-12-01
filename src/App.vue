@@ -13,6 +13,9 @@
       <li class="nav-item">
         <router-link to="/playtron" @click="this.update" class="nav-link">Playtron</router-link>
       </li>
+      <li class="nav-item">
+        <a href="https://playtronica.github.io/WebMidiOrbita/" class="nav-link" aria-current="page">Orbita</a>
+      </li>
     </ul>
   </header>
   <div class="wrapper">
