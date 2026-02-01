@@ -9,17 +9,20 @@ import BiotronUpdatePage from "@/components/BiotronPage/BiotronUpdatePage.vue";
 import ScalesPage from "@/components/ScalesPage/ScalesPage.vue";
 
 import BiotronPageUpdated from "@/components/BiotronPage/BiotronPageUpdated.vue";
-import TouchMePageUpdated from "@/components/TouchMePage/TouchMePageUpdated.vue";
+import TouchMePageRelease from "@/components/TouchMePage/TouchMePageRelease.vue";
 import PlaytronPageRelease from "@/components/PlaytronPage/PlaytronPageRelease.vue";
 import HomeComponent from "@/components/HomeComponent.vue";
 import PlaytronPageTest from "@/components/PlaytronPage/PlaytronPageTest.vue";
+import TouchMePageTest from "@/components/TouchMePage/TouchMePageTest.vue";
 
 
 
 const routes = [
     { path: '/', component: HomeComponent},
     { path: '/biotron', component: BiotronPageUpdated, props: {id: "BiotronWebMidiId_2" } },
-    { path: '/touchme', component: TouchMePageUpdated, props: {id: "TouchmeWebMidiId_2"} },
+
+    { path: '/touchme', component: TouchMePageRelease, props: {id: "TouchmeWebMidiId_2"} },
+    { path: '/touchme/test', component: TouchMePageTest, props: {id: "TouchmeWebMidiId_2"} },
 
     { path: '/playtron', component: PlaytronPageRelease, props: {id: "PlaytronWebMidiId"} },
     { path: '/playtron/test', component: PlaytronPageTest, props: {id: "PlaytronWebMidiId"} },

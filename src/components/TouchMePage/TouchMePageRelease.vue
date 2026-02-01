@@ -69,7 +69,7 @@
           <SelectCommand
               :key="this.forceRerender"
               :list-of-variants="this.scales"
-              :command-object="this.commands_data.Scale"
+              :command-object="this.commands_data.PlayMode"
               @input-changed="this.sys_ex_changed"
               command-label="🎼 Scale"
               description="A set of notes that shape the melody and feel of the music. Choose a scale to define the sound of your composition."
@@ -167,7 +167,7 @@ import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
 
 
 export default  {
-  name: "TouchMePageUpdated",
+  name: "TouchMePageRelease",
   components: {
     BootstrapCollapse,
     LoaderComponent,

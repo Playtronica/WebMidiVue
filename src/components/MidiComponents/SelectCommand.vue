@@ -20,7 +20,7 @@ export default {
     description: {
       type: String,
       required: false,
-    }
+    },
   },
   data() {
     return {

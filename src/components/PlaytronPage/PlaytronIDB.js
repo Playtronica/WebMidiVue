@@ -64,7 +64,7 @@ const default_preset = {...Object.fromEntries(
 export class PlaytronDb extends Db {
     DB_NAME = "PlaytronDB"
     STORE_NAME = "Playtron_Patches"
-    VERSION = 5
+    VERSION = 6
 
     constructor() {
         super(PlaytronCommandsData);

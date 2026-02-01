@@ -3,10 +3,9 @@ import {SysExCommand} from "@/assets/js/SysExCommand";
 
 
 export let TouchMeCommandsData = new Map(Object.entries({
-    "Scale": new SysExCommand( {
-        name: "Scale",
+    "PlayMode": new SysExCommand( {
+        name: "PlayMode",
         number_command: 0,
-        max_value: 11
     }),
     "Key": new SysExCommand( {
         name: "Key",
@@ -66,12 +65,16 @@ export let TouchMeCommandsData = new Map(Object.entries({
             arr.push(val + 10);
         }
     }),
-
+    "play_mode_page": new SysExCommand({
+        name: "play_mode_page",
+        number_command: 10,
+    })
 }))
 
 
 const default_preset = {
-    "Scale": 0,
+    "PlayMode": 0,
+    "play_mode_page": 0,
     "Key": 8,
     "maxVelocity": 70,
     "minVelocity": 50,
@@ -87,7 +90,7 @@ const default_preset = {
 export class TouchMeDb extends Db {
     DB_NAME = "TouchMeDB"
     STORE_NAME = "TouchMe_Patches"
-    VERSION = 6
+    VERSION = 7
 
     constructor() {
         super(TouchMeCommandsData);
