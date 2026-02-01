@@ -1,49 +1,66 @@
 <template class="row">
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
-  <div>
-    <h1 class="text-center">Playtron change settings</h1>
-    <DeviceSelector regex-name="Playtron" @device_changed="(x) => {this.device = x} " check-versions-flag class="m-2"/>
-    <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" class="m-2"/>
+
+  <h1 class="text-center">Playtron Settings ⚙️</h1>
+  <DeviceSelector regex-name="Playtron" @device_changed="(x) => {this.device = x} " text_label="🔌 Select Device" check-versions-flag class="m-2"/>
+  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" text_label="📂 Preset" class="m-2"/>
+  <div class="row gx-1 mb-5">
+    <div class="col">
+      <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary w-100 h-100">❇️ Send to Device</button>
+    </div>
+    <div class="col">
+      <button @click="this.createPreset" class="btn btn-primary w-100 h-100">💾 Save Preset</button>
+    </div>
+    <div class="col">
+      <UpdateFirmwareComponent class="w-100 h-100" text="🔄 Update Firmware" repo="Playtronica/playtron-releases" :device="this.device"/>
+    </div>
+
+    <div class="col">
+      <FileDropArea name="📂 Load Preset" @get_drop="(e) => loadDataFromPreset(e)"/>
+    </div>
   </div>
 
-  <GroupOfCommands name-of-group="Notes For Pad" class="row justify-content-center m-1">
+  <BootstrapCollapse name_of_collapse="🎹 Playtron Settings" open_by_default>
     <template v-slot:objects>
-      <div class="grid-container center" :key="this.forceRerender">
-        <SliderCommand :command-label="value"
-                       v-for="(value, key) in this.num_to_pad" v-bind:key="key"
-                       :command-object="this.find_sys_ex('Note', this.num_to_pad[key])"
-                       :slider_active="false" @input-changed="this.sys_ex_changed"/>
-      </div>
+      <GroupOfCommands name-of-group="🎵 Notes for Pad" class="row justify-content-center m-1"
+                       description="Click any box in the grid to assign a new MIDI note to that pad. Mix and match high and low notes to build your perfect layout!">
+        <template v-slot:objects>
+          <div class="grid-container " :key="this.forceRerender">
+            <SliderCommand :command-label="value"
+                           v-for="(value, key) in this.num_to_pad" v-bind:key="key"
+                           :command-object="this.find_sys_ex('Note', this.num_to_pad[key])"
+                           :slider_active="false" @input-changed="this.sys_ex_changed"/>
+          </div>
+        </template>
+      </GroupOfCommands>
+
+      <GroupOfCommands>
+        <template v-slot:objects>
+          <SliderCommand
+              :key="this.forceRerender"
+              :command-object="this.commands_data.channel"
+              command-label="🎛️ MIDI channel"
+              description="Pick a midi channel that the plant would be on"
+              class="m-2"
+              @input-changed="this.sys_ex_changed"/>
+        </template>
+      </GroupOfCommands>
+
+      <GroupOfCommands>
+        <template v-slot:objects>
+          <SelectCommand
+              command-label="🎼 Chords Mode"
+              :key="this.forceRerender"
+              :list-of-variants="this.chords_modes"
+              :command-object="commands_data.chord_mode"
+              @input-changed="this.sys_ex_changed"
+              class="m-3"
+          />
+        </template>
+      </GroupOfCommands>
     </template>
-  </GroupOfCommands>
+  </BootstrapCollapse>
 
-  <GroupOfCommands name-of-group="Channel">
-    <template v-slot:objects>
-      <SliderCommand
-          command-label=""
-          :key="this.forceRerender"
-          :command-object="this.commands_data.channel"
-          @input-changed="this.sys_ex_changed"
-          class="m-2"
-      />
-    </template>
-  </GroupOfCommands>
-
-
-  <div class="buttons_block">
-    <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary mb-1 w-75" >Send</button>
-    <button @click="this.createPreset" class="btn btn-primary mb-1 w-75">Create Preset</button>
-    <UpdateFirmwareComponent repo="Playtronica/playtron-releases" :device="this.device" class="mb-1 w-75"/>
-    <FileDropArea class="mb-1 w-75" name="Drop Preset Here" @get_drop="(e) => loadDataFromPreset(e)"/>
-  </div>
-
-  <GroupOfCommands>
-    <template v-slot:description>
-      <p>Send - sending settings to the device</p>
-      <p>Create Preset - saves settings to a file</p>
-      <p>Drop Preset Here - you need to transfer the file there by drag drop, or by clicking on the button, select the settings file.</p>
-    </template>
-  </GroupOfCommands>
 </template>
 
 <script>
@@ -58,9 +75,13 @@ import GroupOfCommands from "@/components/MidiComponents/GroupOfCommands.vue";
 import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
 import FileDropArea from "@/components/MidiComponents/FileDropArea.vue";
 import UpdateFirmwareComponent from "@/components/MidiComponents/UpdateFirmwareComponent.vue";
+import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
+import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
 
 export default  {
   components: {
+    SelectCommand,
+    BootstrapCollapse,
     UpdateFirmwareComponent,
     FileDropArea,
     SliderCommand,
@@ -93,6 +114,9 @@ export default  {
         44: "G#3", 45: "A3", 46: "A#3", 47: "B3",
         48: "C4", 49: "C#4", 50: "D4", 51: "D#4"
       },
+      chords_modes: [
+        "None", "Major", "Minor", "Seventh"
+      ],
       chosen_pad: 36,
     }
   },
@@ -240,8 +264,8 @@ export default  {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(3, 1fr);
-  width: 50vh;
-  //gap: 10px;
+  gap: 10px;
+  max-width: 225px;
 }
 
 .buttons_block {

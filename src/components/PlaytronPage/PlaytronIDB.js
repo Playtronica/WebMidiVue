@@ -29,6 +29,10 @@ export let PlaytronCommandsData = new Map([...Object.entries({
         custom_fold:  (arr, val) => {
             arr.push(val - 1);
         }
+    }),
+    "chord_mode": new SysExCommand({
+        name: "chord_mode",
+        number_command: 1.
     })
 }), ...new Map(
     pads_name.map(x =>
@@ -52,7 +56,8 @@ const default_preset = {...Object.fromEntries(
     ),
 
 ), ...{
-    "channel": 1
+        "channel": 1,
+        "chord_mode": 0,
 }};
 
 
