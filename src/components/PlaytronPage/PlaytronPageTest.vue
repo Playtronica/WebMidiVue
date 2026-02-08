@@ -115,7 +115,7 @@ export default  {
         48: "C4", 49: "C#4", 50: "D4", 51: "D#4"
       },
       chords_modes: [
-        "None", "Major", "Minor", "Seventh"
+        "None", "Major", "Minor", "Seventh", "Cmaj", "Cmin"
       ],
       chosen_pad: 36,
     }
