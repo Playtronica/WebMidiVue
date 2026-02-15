@@ -320,6 +320,9 @@ export default {
         14: "Seventh Chord",
         15: "Cmaj",
         16: "Cmin",
+        17: "Balafon 1",
+        18: "Al-Farabi 25-tone/10-Fret Oud",
+        19: "Greater Perfect System (Chromatic)"
       },
       play_mode_pages: [
         "1 Page (Scales)",
