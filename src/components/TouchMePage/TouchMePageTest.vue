@@ -317,7 +317,9 @@ export default {
         11: "Diminished",
         12: "Major Chord",
         13: "Minor Chord",
-        14: "Seventh Chord"
+        14: "Seventh Chord",
+        15: "Cmaj",
+        16: "Cmin",
       },
       play_mode_pages: [
         "1 Page (Scales)",
