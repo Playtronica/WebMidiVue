@@ -49,8 +49,47 @@ export let ScalesCommandsData = new Map(Object.entries({
         sendable: false,
         min_value: 0,
         max_value: 100,
-    })
+    }),
+    "mute_vibration_time": new SysExCommand({
+        name: "mute_vibration_time",
+        number_command: [5, 2],
+        min_value: 0,
+        max_value: 1_000_000,
 
+        custom_fold: (arr, val) => {
+            while (val > 127) {
+                arr.push(val % 127);
+                val = div(val,127);
+            }
+            arr.push(val);
+        }
+    }),
+    "tare_vibration_time": new SysExCommand({
+        name: "mute_vibration_time",
+        number_command: [5, 1],
+        min_value: 0,
+        max_value: 1_000_000,
+        custom_fold: (arr, val) => {
+            while (val > 127) {
+                arr.push(val % 127);
+                val = div(val,127);
+            }
+            arr.push(val);
+        }
+    }),
+    "func_vibration_time": new SysExCommand({
+        name: "mute_vibration_time",
+        number_command: [5, 0],
+        min_value: 0,
+        max_value: 1_000_000,
+        custom_fold: (arr, val) => {
+            while (val > 127) {
+                arr.push(val % 127);
+                val = div(val,127);
+            }
+            arr.push(val);
+        }
+    })
 }))
 
 const default_preset = {
@@ -59,13 +98,16 @@ const default_preset = {
     "undercover_color": 0x7500FF,
     "scale": 0,
     "brightness": 100,
+    "mute_vibration_time": 10000,
+    "func_vibration_time": 10000,
+    "tare_vibration_time": 10000,
 }
 
 
 export class ScalesDb extends Db {
     DB_NAME = "ScaleDB"
     STORE_NAME = "Scale_Patches"
-    VERSION = 5
+    VERSION = 6
 
     constructor() {
         super(ScalesCommandsData)
