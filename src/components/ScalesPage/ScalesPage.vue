@@ -87,6 +87,14 @@
             />
 
             <SliderCommand
+                command-label="Func button vibration pwm level"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.func_pwm_level"
+                @input-changed="this.sys_ex_changed"
+                class="m-2"
+            />
+
+            <SliderCommand
                 command-label="Tare button vibration time us"
                 :key="this.forceRerender"
                 :command-object="this.commands_data.tare_vibration_time"
@@ -95,9 +103,25 @@
             />
 
             <SliderCommand
+                command-label="Tare button vibration pwm level"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.tare_pwm_level"
+                @input-changed="this.sys_ex_changed"
+                class="m-2"
+            />
+
+            <SliderCommand
                 command-label="Mute button vibration time us"
                 :key="this.forceRerender"
                 :command-object="this.commands_data.mute_vibration_time"
+                @input-changed="this.sys_ex_changed"
+                class="m-2"
+            />
+
+            <SliderCommand
+                command-label="Mute button vibration pwm level"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.mute_pwm_level"
                 @input-changed="this.sys_ex_changed"
                 class="m-2"
             />

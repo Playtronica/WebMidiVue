@@ -50,12 +50,11 @@ export let ScalesCommandsData = new Map(Object.entries({
         min_value: 0,
         max_value: 100,
     }),
-    "mute_vibration_time": new SysExCommand({
+    "func_vibration_time": new SysExCommand({
         name: "mute_vibration_time",
-        number_command: [5, 2],
+        number_command: [5, 0],
         min_value: 0,
         max_value: 1_000_000,
-
         custom_fold: (arr, val) => {
             while (val > 127) {
                 arr.push(val % 127);
@@ -77,11 +76,12 @@ export let ScalesCommandsData = new Map(Object.entries({
             arr.push(val);
         }
     }),
-    "func_vibration_time": new SysExCommand({
+    "mute_vibration_time": new SysExCommand({
         name: "mute_vibration_time",
-        number_command: [5, 0],
+        number_command: [5, 2],
         min_value: 0,
         max_value: 1_000_000,
+
         custom_fold: (arr, val) => {
             while (val > 127) {
                 arr.push(val % 127);
@@ -89,7 +89,49 @@ export let ScalesCommandsData = new Map(Object.entries({
             }
             arr.push(val);
         }
-    })
+    }),
+    "func_pwm_level": new SysExCommand({
+        name: "func_pwm_level",
+        number_command: [6, 0],
+        min_value: 0,
+        max_value: 1_000,
+        custom_fold: (arr, val) => {
+            while (val > 127) {
+                arr.push(val % 127);
+                val = div(val,127);
+            }
+            arr.push(val);
+        }
+    }),
+    "tare_pwm_level": new SysExCommand({
+        name: "tare_pwm_level",
+        number_command: [6, 1],
+        min_value: 0,
+        max_value: 1_000,
+        custom_fold: (arr, val) => {
+            while (val > 127) {
+                arr.push(val % 127);
+                val = div(val,127);
+            }
+            arr.push(val);
+        }
+    }),
+    "mute_pwm_level": new SysExCommand({
+        name: "mute_pwm_level",
+        number_command: [6, 2],
+        min_value: 0,
+        max_value: 1_000,
+
+        custom_fold: (arr, val) => {
+            while (val > 127) {
+                arr.push(val % 127);
+                val = div(val,127);
+            }
+            arr.push(val);
+        }
+    }),
+
+
 }))
 
 const default_preset = {
@@ -101,13 +143,16 @@ const default_preset = {
     "mute_vibration_time": 10000,
     "func_vibration_time": 10000,
     "tare_vibration_time": 10000,
+    "mute_pwm_level": 1000,
+    "func_pwm_level": 1000,
+    "tare_pwm_level": 1000,
 }
 
 
 export class ScalesDb extends Db {
     DB_NAME = "ScaleDB"
     STORE_NAME = "Scale_Patches"
-    VERSION = 6
+    VERSION = 7
 
     constructor() {
         super(ScalesCommandsData)
