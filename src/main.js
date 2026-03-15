@@ -14,6 +14,7 @@ import PlaytronPageRelease from "@/components/PlaytronPage/PlaytronPageRelease.v
 import HomeComponent from "@/components/HomeComponent.vue";
 import PlaytronPageTest from "@/components/PlaytronPage/PlaytronPageTest.vue";
 import TouchMePageTest from "@/components/TouchMePage/TouchMePageTest.vue";
+import ScalesPageTest from "@/components/ScalesPage/ScalesPageTest.vue";
 
 
 
@@ -27,8 +28,11 @@ const routes = [
     { path: '/playtron', component: PlaytronPageRelease, props: {id: "PlaytronWebMidiId"} },
     { path: '/playtron/test', component: PlaytronPageTest, props: {id: "PlaytronWebMidiId"} },
 
-    { path: "/biotron/update", component: BiotronUpdatePage},
     { path: '/scales', component: ScalesPage, props: {id: "ScalesWebMidiId_1"} },
+    { path: '/scales/test', component: ScalesPageTest, props: {id: "ScalesWebMidiId_1"} },
+
+    { path: "/biotron/update", component: BiotronUpdatePage},
+
     { path: '/scala', component: ScalaPage}
 ]
 

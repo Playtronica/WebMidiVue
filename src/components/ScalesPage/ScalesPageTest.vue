@@ -1,8 +1,8 @@
 <template>
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
   <h1 class="text-center">Scales change settings</h1>
-  <DeviceSelector regex-name="Scales" @device_changed="(x) => {this.device = x}" text_label="🔌 Select Device" class="m-2" check-versions-flag/>
-  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" text_label="📂 Preset" class="m-2"/>
+  <DeviceSelector regex-name="Scales" @device_changed="(x) => {this.device = x}" class="m-2" check-versions-flag/>
+  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" class="m-2"/>
   <div class="row gx-1 mb-5">
     <div class="col">
       <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary w-100 h-100">SEND</button>
