@@ -50,7 +50,10 @@ export let ScalesCommandsData = new Map(Object.entries({
         min_value: 0,
         max_value: 100,
     }),
-
+    "performance": new SysExCommand({
+        name: "performance",
+        number_command: 5,
+    }),
 
 }))
 
@@ -60,13 +63,14 @@ const default_preset = {
     "undercover_color": 0x7500FF,
     "scale": 0,
     "brightness": 100,
+    "performance": 0,
 }
 
 
 export class ScalesDb extends Db {
     DB_NAME = "ScaleDB"
     STORE_NAME = "Scale_Patches"
-    VERSION = 8
+    VERSION = 9
 
     constructor() {
         super(ScalesCommandsData)

@@ -73,6 +73,20 @@
         </GroupOfCommands>
       </template>
     </BootstrapCollapse>
+
+    <BootstrapCollapse name_of_collapse="Extra">
+      <template v-slot:objects>
+        <GroupOfCommands name-of-group="">
+          <template v-slot:objects>
+            <SwitchComponent
+                commandLabel="Performance Mode"
+                :command-object=this.commands_data.performance
+                @input-changed="this.sys_ex_changed"
+            />
+          </template>
+        </GroupOfCommands>
+      </template>
+    </BootstrapCollapse>
   </div>
 </template>
 
@@ -91,11 +105,13 @@ import {ScalesCommandsData, ScalesDb} from "@/components/ScalesPage/ScalesIDB";
 import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
 import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
 import ColorPicker from "@/components/MidiComponents/ColorPicker.vue";
+import SwitchComponent from "@/components/MidiComponents/Switch.vue";
 
 
 
 export default  {
   components: {
+    SwitchComponent,
     ColorPicker,
     SelectCommand,
     SliderCommand,
