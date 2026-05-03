@@ -54,7 +54,10 @@ export let ScalesCommandsData = new Map(Object.entries({
         name: "performance",
         number_command: 5,
     }),
-
+    "one_channel_mode": new SysExCommand({
+        name: "one_channel_mode",
+        number_command: 6,
+    })
 }))
 
 const default_preset = {
@@ -70,7 +73,7 @@ const default_preset = {
 export class ScalesDb extends Db {
     DB_NAME = "ScaleDB"
     STORE_NAME = "Scale_Patches"
-    VERSION = 9
+    VERSION = 10
 
     constructor() {
         super(ScalesCommandsData)

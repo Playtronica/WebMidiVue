@@ -95,6 +95,7 @@ export class SysExCommand {
 }
 
 export function bootDevice(device) {
+    console.log(device)
     if (!device) return;
     device.send([240, 11, 127, 247])
     sleep(100)
