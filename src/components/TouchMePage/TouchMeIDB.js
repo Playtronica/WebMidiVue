@@ -87,10 +87,38 @@ const default_preset = {
     "sens_mode": 0,
 }
 
+function synthParam(name, param_id, max_value, default_value = 0) {
+    let cmd = new SysExCommand({
+        name,
+        number_command: param_id,
+        min_value: 0,
+        max_value,
+    });
+    cmd.flag_device = [20, 13, 10];
+    cmd.set_value(default_value);
+    return cmd;
+}
+
+export let TouchMeSynthCommandsData = new Map(Object.entries({
+    "synth_octave_shift": synthParam("synth_octave_shift", 0, 9, 0),
+    "synth_osc_waveform": synthParam("synth_osc_waveform", 1, 1, 1),
+    "synth_osc_2_coarse_pitch": synthParam("synth_osc_2_coarse_pitch", 2, 24, 0),
+    "synth_osc_2_fine_pitch": synthParam("synth_osc_2_fine_pitch", 3, 32, 0),
+    "synth_osc_1_2_mix": synthParam("synth_osc_1_2_mix", 4, 64, 59),
+    "synth_eg_sustain_level": synthParam("synth_eg_sustain_level", 5, 64, 56),
+    "synth_eg_decay_time": synthParam("synth_eg_decay_time", 6, 64, 18),
+    "synth_filter_cutoff": synthParam("synth_filter_cutoff", 7, 120, 60),
+    "synth_filter_resonance": synthParam("synth_filter_resonance", 8, 5, 4),
+    "synth_filter_mod_amount": synthParam("synth_filter_mod_amount", 9, 60, 2),
+    "synth_lfo_depth": synthParam("synth_lfo_depth", 10, 64, 8),
+    "synth_lfo_rate": synthParam("synth_lfo_rate", 11, 64, 58),
+}))
+
+
 export class TouchMeDb extends Db {
     DB_NAME = "TouchMeDB"
     STORE_NAME = "TouchMe_Patches"
-    VERSION = 7
+    VERSION = 8
 
     constructor() {
         super(TouchMeCommandsData);
