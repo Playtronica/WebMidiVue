@@ -148,7 +148,94 @@ export let TouchMeCommandsData = new Map(Object.entries({
         max_value: 64,
         custom_fold: synthFold(11),
     }),
+    "synth_volume": new SysExCommand({
+        name: "synth_volume",
+        number_command: 12,
+        min_value: 0,
+        max_value: 100,
+    }),
 }))
+
+
+export const synthFactoryPresetNames = [
+    "Default", "Vibrola", "Recorder", "Superlead", "Chromabits",
+    "Bell", "Oboe", "Acid bass", "Lasercat", "Minitone",
+]
+
+export const synthFactoryPresets = [
+    {   // 0 Default
+        synth_octave_shift: 5, synth_osc_waveform: 0, synth_osc_2_coarse_pitch: 0,
+        synth_osc_2_fine_pitch: 4, synth_osc_1_2_mix: 16, synth_eg_sustain_level: 0,
+        synth_eg_decay_time: 40, synth_filter_cutoff: 60, synth_filter_resonance: 3,
+        synth_filter_mod_amount: 60, synth_lfo_depth: 16, synth_lfo_rate: 48,
+    },
+    {   // 1 Vibrola
+        synth_octave_shift: 5, synth_osc_waveform: 1, synth_osc_2_coarse_pitch: 4,
+        synth_osc_2_fine_pitch: 8, synth_osc_1_2_mix: 8, synth_eg_sustain_level: 0,
+        synth_eg_decay_time: 40, synth_filter_cutoff: 50, synth_filter_resonance: 1,
+        synth_filter_mod_amount: 60, synth_lfo_depth: 16, synth_lfo_rate: 24,
+    },
+    {   // 2 Recorder
+        synth_octave_shift: 5, synth_osc_waveform: 1, synth_osc_2_coarse_pitch: 0,
+        synth_osc_2_fine_pitch: 1, synth_osc_1_2_mix: 1, synth_eg_sustain_level: 50,
+        synth_eg_decay_time: 35, synth_filter_cutoff: 33, synth_filter_resonance: 4,
+        synth_filter_mod_amount: 42, synth_lfo_depth: 7, synth_lfo_rate: 39,
+    },
+    {   // 3 Superlead (octave -2)
+        synth_octave_shift: 3, synth_osc_waveform: 0, synth_osc_2_coarse_pitch: 12,
+        synth_osc_2_fine_pitch: 12, synth_osc_1_2_mix: 24, synth_eg_sustain_level: 50,
+        synth_eg_decay_time: 14, synth_filter_cutoff: 68, synth_filter_resonance: 4,
+        synth_filter_mod_amount: 45, synth_lfo_depth: 12, synth_lfo_rate: 45,
+    },
+    {   // 4 Chromabits
+        synth_octave_shift: 5, synth_osc_waveform: 1, synth_osc_2_coarse_pitch: 3,
+        synth_osc_2_fine_pitch: 2, synth_osc_1_2_mix: 0, synth_eg_sustain_level: 46,
+        synth_eg_decay_time: 20, synth_filter_cutoff: 100, synth_filter_resonance: 4,
+        synth_filter_mod_amount: 60, synth_lfo_depth: 12, synth_lfo_rate: 32,
+    },
+    {   // 5 Bell
+        synth_octave_shift: 5, synth_osc_waveform: 1, synth_osc_2_coarse_pitch: 12,
+        synth_osc_2_fine_pitch: 2, synth_osc_1_2_mix: 21, synth_eg_sustain_level: 29,
+        synth_eg_decay_time: 53, synth_filter_cutoff: 70, synth_filter_resonance: 5,
+        synth_filter_mod_amount: 19, synth_lfo_depth: 4, synth_lfo_rate: 8,
+    },
+    {   // 6 Oboe (octave -2)
+        synth_octave_shift: 3, synth_osc_waveform: 0, synth_osc_2_coarse_pitch: 12,
+        synth_osc_2_fine_pitch: 1, synth_osc_1_2_mix: 55, synth_eg_sustain_level: 64,
+        synth_eg_decay_time: 34, synth_filter_cutoff: 40, synth_filter_resonance: 5,
+        synth_filter_mod_amount: 18, synth_lfo_depth: 0, synth_lfo_rate: 0,
+    },
+    {   // 7 Acid bass (octave -3)
+        synth_octave_shift: 2, synth_osc_waveform: 0, synth_osc_2_coarse_pitch: 12,
+        synth_osc_2_fine_pitch: 12, synth_osc_1_2_mix: 61, synth_eg_sustain_level: 6,
+        synth_eg_decay_time: 12, synth_filter_cutoff: 97, synth_filter_resonance: 1,
+        synth_filter_mod_amount: 40, synth_lfo_depth: 4, synth_lfo_rate: 45,
+    },
+    {   // 8 Lasercat
+        synth_octave_shift: 5, synth_osc_waveform: 0, synth_osc_2_coarse_pitch: 12,
+        synth_osc_2_fine_pitch: 2, synth_osc_1_2_mix: 9, synth_eg_sustain_level: 32,
+        synth_eg_decay_time: 42, synth_filter_cutoff: 44, synth_filter_resonance: 3,
+        synth_filter_mod_amount: 59, synth_lfo_depth: 10, synth_lfo_rate: 9,
+    },
+    {   // 9 Minitone
+        synth_octave_shift: 5, synth_osc_waveform: 1, synth_osc_2_coarse_pitch: 0,
+        synth_osc_2_fine_pitch: 0, synth_osc_1_2_mix: 59, synth_eg_sustain_level: 56,
+        synth_eg_decay_time: 18, synth_filter_cutoff: 60, synth_filter_resonance: 4,
+        synth_filter_mod_amount: 2, synth_lfo_depth: 8, synth_lfo_rate: 58,
+    },
+]
+
+// Команда загрузки заводского пресета: F0 20 13 0D 0N F7.
+// Держится отдельно от TouchMeCommandsData — это разовое действие, а не
+// сохраняемый/массово отправляемый параметр.
+export function makeSynthPresetCommand() {
+    return new SysExCommand({
+        name: "synth_preset",
+        number_command: 13,
+        min_value: 0,
+        max_value: synthFactoryPresets.length - 1,
+    })
+}
 
 
 const default_preset = {
@@ -176,12 +263,13 @@ const default_preset = {
     "synth_filter_mod_amount": 2,
     "synth_lfo_depth": 8,
     "synth_lfo_rate": 58,
+    "synth_volume": 50,
 }
 
 export class TouchMeDb extends Db {
     DB_NAME = "TouchMeDB"
     STORE_NAME = "TouchMe_Patches"
-    VERSION = 9
+    VERSION = 10
 
     constructor() {
         super(TouchMeCommandsData);

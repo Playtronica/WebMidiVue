@@ -148,6 +148,30 @@
 
   <BootstrapCollapse name_of_collapse="🎛️ Synth">
     <template v-slot:objects>
+      <GroupOfCommands name-of-group="Factory Preset">
+        <template v-slot:objects>
+          <SelectCommand
+              :key="this.forceRerender"
+              :list-of-variants="this.synthFactoryPresetNames"
+              :command-object="this.synthPresetCommand"
+              @input-changed="this.loadFactoryPreset"
+              command-label="🎹 Factory Preset"
+              description="Loads a factory synth preset on the device and updates all synth parameters below to match."
+              class="m-2"/>
+        </template>
+      </GroupOfCommands>
+
+      <GroupOfCommands name-of-group="Output">
+        <template v-slot:objects>
+          <SliderCommand :key="this.forceRerender"
+                         :command-object="this.commands_data.synth_volume"
+                         @input-changed="this.sys_ex_changed"
+                         command-label="🔊 Volume"
+                         description="Overall synth output volume (0–100%). 20% = unity gain (1.0×); values above amplify and may clip."
+                         class="m-2"/>
+        </template>
+      </GroupOfCommands>
+
       <GroupOfCommands name-of-group="Oscillator">
         <template v-slot:objects>
           <SliderCommand :key="this.forceRerender"
@@ -246,7 +270,13 @@ import SliderRangeCommand from "@/components/MidiComponents/SliderRangeCommand.v
 import PatchSelector from "@/components/MidiComponents/PatchSelector.vue";
 import UpdateFirmwareComponent from "@/components/MidiComponents/UpdateFirmwareComponent.vue";
 import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
-import {TouchMeCommandsData, TouchMeDb} from "@/components/TouchMePage/TouchMeIDB";
+import {
+  makeSynthPresetCommand,
+  synthFactoryPresetNames,
+  synthFactoryPresets,
+  TouchMeCommandsData,
+  TouchMeDb
+} from "@/components/TouchMePage/TouchMeIDB";
 import {sleep} from "@/assets/js/SysExCommand";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
 
@@ -361,6 +391,27 @@ export default  {
       this.forceRerender++;
       this.patchRerender++;
     },
+
+    async loadFactoryPreset(presetCommand) {
+      const preset = synthFactoryPresets[presetCommand.value];
+      if (!preset) return;
+
+      await this.patchChanged();
+
+      // Sync the on-screen synth sliders with the factory preset values.
+      for (const [name, value] of Object.entries(preset)) {
+        this.commands_data[name].set_value(value);
+      }
+
+      // The device loads the preset itself via command 13 (F0 20 13 0D 0N F7).
+      if (this.device) {
+        presetCommand.sendToMidi(this.device);
+      }
+
+      this.saveData();
+      this.forceRerender++;
+      this.patchRerender++;
+    },
   },
   data() {
     return {
@@ -384,6 +435,8 @@ export default  {
       patch_id: 0,
       is_loading: false,
       commands_data: Object.fromEntries(TouchMeCommandsData),
+      synthFactoryPresetNames,
+      synthPresetCommand: makeSynthPresetCommand(),
     }
   },
   async created() {
