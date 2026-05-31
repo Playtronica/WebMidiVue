@@ -78,7 +78,7 @@ const default_preset = {
 export class ScalesDb extends Db {
     DB_NAME = "ScaleDB"
     STORE_NAME = "Scale_Patches"
-    VERSION = 10
+    VERSION = 11
 
     constructor() {
         super(ScalesCommandsData)
