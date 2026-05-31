@@ -10,23 +10,21 @@
            @click="selectColor(web_color)">
       </div>
     </div>
-    <label>
-      Brightness
-    </label>
-    <div>
-      <input type="range" id="range_input" class="settings_input"
-             v-model="this.brightness" :min="0" :max="100"
-             :step="1" @change="this.changed($event)"/>
-    </div>
+    <SliderCommand
+        command-label="Brightness"
+        :command-object="this.commandBrightObject"
+        @input-changed="this.brightnessChanged"
+    />
   </div>
 </template>
 
 <script>
 import {SysExCommand} from "@/assets/js/SysExCommand";
 import HintComponent from "@/components/HintComponent.vue";
+import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
 
 export default {
-  components: {HintComponent},
+  components: {HintComponent, SliderCommand},
   props: {
     commandLabel: {
       default: "",
@@ -84,6 +82,10 @@ export default {
       this.commandColorObject.set_value(parseInt(this.selectedColor.substring(1), 16))
       this.commandBrightObject.set_value(this.brightness)
       this.$emit('InputChanged', this.commandColorAndBrightnessObject)
+    },
+    brightnessChanged() {
+      this.brightness = this.commandBrightObject.value
+      this.changed()
     },
 
   },
