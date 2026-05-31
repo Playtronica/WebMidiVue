@@ -57,6 +57,10 @@ export let ScalesCommandsData = new Map(Object.entries({
     "one_channel_mode": new SysExCommand({
         name: "one_channel_mode",
         number_command: 6,
+    }),
+    "beginning_mode": new SysExCommand({
+        name: "beginning_mode",
+        number_command: 7,
     })
 }))
 
@@ -67,6 +71,7 @@ const default_preset = {
     "scale": 0,
     "brightness": 100,
     "performance": 0,
+    "beginning_mode": 0,
 }
 
 

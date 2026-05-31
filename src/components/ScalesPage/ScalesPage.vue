@@ -80,18 +80,27 @@
           <template v-slot:objects>
             <div class="row">
               <SwitchComponent
-                  class="w-50"
+                  class="col-sm"
                   commandLabel="Performance Mode"
                   :command-object=this.commands_data.performance
                   @input-changed="this.sys_ex_changed"
               />
+
               <SwitchComponent
-                  class="w-50"
+                  class="col-sm"
+                  commandLabel="Beginners Mode"
+                  :command-object=this.commands_data.beginning_mode
+                  @input-changed="this.sys_ex_changed"
+              />
+
+              <SwitchComponent
+                  class="col-sm"
                   commandLabel="One Channel Mode"
                   :command-object=this.commands_data.one_channel_mode
                   @input-changed="this.sys_ex_changed"
               />
             </div>
+
 
           </template>
         </GroupOfCommands>
