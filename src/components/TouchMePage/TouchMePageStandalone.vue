@@ -150,29 +150,29 @@
     <template v-slot:objects>
       <GroupOfCommands name-of-group="Oscillator">
         <template v-slot:objects>
-          <SliderCommand :key="this.synthRerender"
-                         :command-object="this.synth_commands_data.synth_octave_shift"
-                         @input-changed="this.synth_param_changed"
+          <SliderCommand :key="this.forceRerender"
+                         :command-object="this.commands_data.synth_octave_shift"
+                         @input-changed="this.sys_ex_changed"
                          command-label="🎚️ Octave Shift"
                          class="m-2"/>
-          <SliderCommand :key="this.synthRerender"
-                         :command-object="this.synth_commands_data.synth_osc_waveform"
-                         @input-changed="this.synth_param_changed"
+          <SliderCommand :key="this.forceRerender"
+                         :command-object="this.commands_data.synth_osc_waveform"
+                         @input-changed="this.sys_ex_changed"
                          command-label="〰️ OSC Waveform"
                          class="m-2"/>
-          <SliderCommand :key="this.synthRerender"
-                         :command-object="this.synth_commands_data.synth_osc_2_coarse_pitch"
-                         @input-changed="this.synth_param_changed"
+          <SliderCommand :key="this.forceRerender"
+                         :command-object="this.commands_data.synth_osc_2_coarse_pitch"
+                         @input-changed="this.sys_ex_changed"
                          command-label="🎼 OSC 2 Coarse Pitch"
                          class="m-2"/>
-          <SliderCommand :key="this.synthRerender"
-                         :command-object="this.synth_commands_data.synth_osc_2_fine_pitch"
-                         @input-changed="this.synth_param_changed"
+          <SliderCommand :key="this.forceRerender"
+                         :command-object="this.commands_data.synth_osc_2_fine_pitch"
+                         @input-changed="this.sys_ex_changed"
                          command-label="🎵 OSC 2 Fine Pitch"
                          class="m-2"/>
-          <SliderCommand :key="this.synthRerender"
-                         :command-object="this.synth_commands_data.synth_osc_1_2_mix"
-                         @input-changed="this.synth_param_changed"
+          <SliderCommand :key="this.forceRerender"
+                         :command-object="this.commands_data.synth_osc_1_2_mix"
+                         @input-changed="this.sys_ex_changed"
                          command-label="🎚️ OSC 1/2 Mix"
                          class="m-2"/>
         </template>
@@ -180,14 +180,14 @@
 
       <GroupOfCommands name-of-group="Envelope">
         <template v-slot:objects>
-          <SliderCommand :key="this.synthRerender"
-                         :command-object="this.synth_commands_data.synth_eg_sustain_level"
-                         @input-changed="this.synth_param_changed"
+          <SliderCommand :key="this.forceRerender"
+                         :command-object="this.commands_data.synth_eg_sustain_level"
+                         @input-changed="this.sys_ex_changed"
                          command-label="📊 EG Sustain Level"
                          class="m-2"/>
-          <SliderCommand :key="this.synthRerender"
-                         :command-object="this.synth_commands_data.synth_eg_decay_time"
-                         @input-changed="this.synth_param_changed"
+          <SliderCommand :key="this.forceRerender"
+                         :command-object="this.commands_data.synth_eg_decay_time"
+                         @input-changed="this.sys_ex_changed"
                          command-label="⏱️ EG Decay Time"
                          class="m-2"/>
         </template>
@@ -195,19 +195,19 @@
 
       <GroupOfCommands name-of-group="Filter">
         <template v-slot:objects>
-          <SliderCommand :key="this.synthRerender"
-                         :command-object="this.synth_commands_data.synth_filter_cutoff"
-                         @input-changed="this.synth_param_changed"
+          <SliderCommand :key="this.forceRerender"
+                         :command-object="this.commands_data.synth_filter_cutoff"
+                         @input-changed="this.sys_ex_changed"
                          command-label="🎛️ Filter Cutoff"
                          class="m-2"/>
-          <SliderCommand :key="this.synthRerender"
-                         :command-object="this.synth_commands_data.synth_filter_resonance"
-                         @input-changed="this.synth_param_changed"
+          <SliderCommand :key="this.forceRerender"
+                         :command-object="this.commands_data.synth_filter_resonance"
+                         @input-changed="this.sys_ex_changed"
                          command-label="🌀 Filter Resonance"
                          class="m-2"/>
-          <SliderCommand :key="this.synthRerender"
-                         :command-object="this.synth_commands_data.synth_filter_mod_amount"
-                         @input-changed="this.synth_param_changed"
+          <SliderCommand :key="this.forceRerender"
+                         :command-object="this.commands_data.synth_filter_mod_amount"
+                         @input-changed="this.sys_ex_changed"
                          command-label="📈 Filter Mod Amount"
                          class="m-2"/>
         </template>
@@ -215,14 +215,14 @@
 
       <GroupOfCommands name-of-group="LFO">
         <template v-slot:objects>
-          <SliderCommand :key="this.synthRerender"
-                         :command-object="this.synth_commands_data.synth_lfo_depth"
-                         @input-changed="this.synth_param_changed"
+          <SliderCommand :key="this.forceRerender"
+                         :command-object="this.commands_data.synth_lfo_depth"
+                         @input-changed="this.sys_ex_changed"
                          command-label="🌊 LFO Depth"
                          class="m-2"/>
-          <SliderCommand :key="this.synthRerender"
-                         :command-object="this.synth_commands_data.synth_lfo_rate"
-                         @input-changed="this.synth_param_changed"
+          <SliderCommand :key="this.forceRerender"
+                         :command-object="this.commands_data.synth_lfo_rate"
+                         @input-changed="this.sys_ex_changed"
                          command-label="⚡ LFO Rate"
                          class="m-2"/>
         </template>
@@ -246,7 +246,7 @@ import SliderRangeCommand from "@/components/MidiComponents/SliderRangeCommand.v
 import PatchSelector from "@/components/MidiComponents/PatchSelector.vue";
 import UpdateFirmwareComponent from "@/components/MidiComponents/UpdateFirmwareComponent.vue";
 import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
-import {TouchMeCommandsData, TouchMeDb, TouchMeSynthCommandsData} from "@/components/TouchMePage/TouchMeIDB";
+import {TouchMeCommandsData, TouchMeDb} from "@/components/TouchMePage/TouchMeIDB";
 import {sleep} from "@/assets/js/SysExCommand";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
 
@@ -314,9 +314,8 @@ export default  {
 
       for (const [key, value] of Object.entries(preset.data)) {
         console.log(key);
-        console.log(this.commands_data);
-        console.log(this.commands_data[key]);
         this.commands_data[key].set_value(value);
+        console.log(this.commands_data[key].value);
       }
 
       this.forceRerender++;
@@ -362,13 +361,6 @@ export default  {
       this.forceRerender++;
       this.patchRerender++;
     },
-
-    async synth_param_changed(object) {
-      if (this.device) {
-        await object.sendToMidi(this.device)
-      }
-      this.synthRerender++;
-    },
   },
   data() {
     return {
@@ -392,8 +384,6 @@ export default  {
       patch_id: 0,
       is_loading: false,
       commands_data: Object.fromEntries(TouchMeCommandsData),
-      synth_commands_data: Object.fromEntries(TouchMeSynthCommandsData),
-      synthRerender: 0,
     }
   },
   async created() {

@@ -2,6 +2,13 @@ import {Db} from "@/assets/js/PresetsIDB";
 import {SysExCommand} from "@/assets/js/SysExCommand";
 
 
+function synthFold(param_id) {
+    return (arr, val) => {
+        arr.push(param_id);
+        arr.push(val);
+    };
+}
+
 export let TouchMeCommandsData = new Map(Object.entries({
     "PlayMode": new SysExCommand( {
         name: "PlayMode",
@@ -68,7 +75,79 @@ export let TouchMeCommandsData = new Map(Object.entries({
     "play_mode_page": new SysExCommand({
         name: "play_mode_page",
         number_command: 10,
-    })
+    }),
+    "synth_octave_shift": new SysExCommand({
+        name: "synth_octave_shift",
+        number_command: 10,
+        max_value: 9,
+        custom_fold: synthFold(0),
+    }),
+    "synth_osc_waveform": new SysExCommand({
+        name: "synth_osc_waveform",
+        number_command: 10,
+        max_value: 1,
+        custom_fold: synthFold(1),
+    }),
+    "synth_osc_2_coarse_pitch": new SysExCommand({
+        name: "synth_osc_2_coarse_pitch",
+        number_command: 10,
+        max_value: 24,
+        custom_fold: synthFold(2),
+    }),
+    "synth_osc_2_fine_pitch": new SysExCommand({
+        name: "synth_osc_2_fine_pitch",
+        number_command: 10,
+        max_value: 32,
+        custom_fold: synthFold(3),
+    }),
+    "synth_osc_1_2_mix": new SysExCommand({
+        name: "synth_osc_1_2_mix",
+        number_command: 10,
+        max_value: 64,
+        custom_fold: synthFold(4),
+    }),
+    "synth_eg_sustain_level": new SysExCommand({
+        name: "synth_eg_sustain_level",
+        number_command: 10,
+        max_value: 64,
+        custom_fold: synthFold(5),
+    }),
+    "synth_eg_decay_time": new SysExCommand({
+        name: "synth_eg_decay_time",
+        number_command: 10,
+        max_value: 64,
+        custom_fold: synthFold(6),
+    }),
+    "synth_filter_cutoff": new SysExCommand({
+        name: "synth_filter_cutoff",
+        number_command: 10,
+        max_value: 120,
+        custom_fold: synthFold(7),
+    }),
+    "synth_filter_resonance": new SysExCommand({
+        name: "synth_filter_resonance",
+        number_command: 10,
+        max_value: 5,
+        custom_fold: synthFold(8),
+    }),
+    "synth_filter_mod_amount": new SysExCommand({
+        name: "synth_filter_mod_amount",
+        number_command: 10,
+        max_value: 60,
+        custom_fold: synthFold(9),
+    }),
+    "synth_lfo_depth": new SysExCommand({
+        name: "synth_lfo_depth",
+        number_command: 10,
+        max_value: 64,
+        custom_fold: synthFold(10),
+    }),
+    "synth_lfo_rate": new SysExCommand({
+        name: "synth_lfo_rate",
+        number_command: 10,
+        max_value: 64,
+        custom_fold: synthFold(11),
+    }),
 }))
 
 
@@ -85,40 +164,24 @@ const default_preset = {
     "mute": 0,
     "channel": 1,
     "sens_mode": 0,
+    "synth_octave_shift": 0,
+    "synth_osc_waveform": 1,
+    "synth_osc_2_coarse_pitch": 0,
+    "synth_osc_2_fine_pitch": 0,
+    "synth_osc_1_2_mix": 59,
+    "synth_eg_sustain_level": 56,
+    "synth_eg_decay_time": 18,
+    "synth_filter_cutoff": 60,
+    "synth_filter_resonance": 4,
+    "synth_filter_mod_amount": 2,
+    "synth_lfo_depth": 8,
+    "synth_lfo_rate": 58,
 }
-
-function synthParam(name, param_id, max_value, default_value = 0) {
-    let cmd = new SysExCommand({
-        name,
-        number_command: param_id,
-        min_value: 0,
-        max_value,
-    });
-    cmd.flag_device = [20, 13, 10];
-    cmd.set_value(default_value);
-    return cmd;
-}
-
-export let TouchMeSynthCommandsData = new Map(Object.entries({
-    "synth_octave_shift": synthParam("synth_octave_shift", 0, 9, 0),
-    "synth_osc_waveform": synthParam("synth_osc_waveform", 1, 1, 1),
-    "synth_osc_2_coarse_pitch": synthParam("synth_osc_2_coarse_pitch", 2, 24, 0),
-    "synth_osc_2_fine_pitch": synthParam("synth_osc_2_fine_pitch", 3, 32, 0),
-    "synth_osc_1_2_mix": synthParam("synth_osc_1_2_mix", 4, 64, 59),
-    "synth_eg_sustain_level": synthParam("synth_eg_sustain_level", 5, 64, 56),
-    "synth_eg_decay_time": synthParam("synth_eg_decay_time", 6, 64, 18),
-    "synth_filter_cutoff": synthParam("synth_filter_cutoff", 7, 120, 60),
-    "synth_filter_resonance": synthParam("synth_filter_resonance", 8, 5, 4),
-    "synth_filter_mod_amount": synthParam("synth_filter_mod_amount", 9, 60, 2),
-    "synth_lfo_depth": synthParam("synth_lfo_depth", 10, 64, 8),
-    "synth_lfo_rate": synthParam("synth_lfo_rate", 11, 64, 58),
-}))
-
 
 export class TouchMeDb extends Db {
     DB_NAME = "TouchMeDB"
     STORE_NAME = "TouchMe_Patches"
-    VERSION = 8
+    VERSION = 9
 
     constructor() {
         super(TouchMeCommandsData);
