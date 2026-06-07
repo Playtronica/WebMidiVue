@@ -61,6 +61,15 @@ export let ScalesCommandsData = new Map(Object.entries({
     "beginning_mode": new SysExCommand({
         name: "beginning_mode",
         number_command: 7,
+    }),
+    "music_cc_num": new SysExCommand({
+        name: "music_cc_num",
+        number_command: 8,
+        min_value: 0,
+        max_value: 127,
+        custom_fold: (arr, val) => {
+            arr.push(val);
+        }
     })
 }))
 
@@ -72,13 +81,14 @@ const default_preset = {
     "brightness": 100,
     "performance": 0,
     "beginning_mode": 0,
+    "music_cc_num": 90,
 }
 
 
 export class ScalesDb extends Db {
     DB_NAME = "ScaleDB"
     STORE_NAME = "Scale_Patches"
-    VERSION = 11
+    VERSION = 12
 
     constructor() {
         super(ScalesCommandsData)

@@ -50,6 +50,7 @@
                 @input-changed="this.sys_ex_changed"
                 class="m-3"
             />
+
           </template>
         </GroupOfCommands>
       </template>
@@ -100,8 +101,18 @@
                   @input-changed="this.sys_ex_changed"
               />
             </div>
-
-
+          </template>
+        </GroupOfCommands>
+        <GroupOfCommands>
+          <template v-slot:objects>
+            <SliderCommand
+                command-label="🎛️ Music CC Number"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.music_cc_num"
+                @input-changed="this.sys_ex_changed"
+                description="MIDI Continuous Controller number sent during music play (0–127, default 90)"
+                class="m-2"
+            />
           </template>
         </GroupOfCommands>
       </template>
