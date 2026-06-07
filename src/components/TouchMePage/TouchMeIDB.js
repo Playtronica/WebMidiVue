@@ -1,5 +1,5 @@
 import {Db} from "@/assets/js/PresetsIDB";
-import {SysExCommand} from "@/assets/js/SysExCommand";
+import {div, SysExCommand} from "@/assets/js/SysExCommand";
 
 
 function synthFold(param_id) {
@@ -154,6 +154,36 @@ export let TouchMeCommandsData = new Map(Object.entries({
         min_value: 0,
         max_value: 100,
     }),
+    "pitch_mode": new SysExCommand({
+        name: "pitch_mode",
+        number_command: 14,
+    }),
+    "pitch_min_freq": new SysExCommand({
+        name: "pitch_min_freq",
+        number_command: 15,
+        min_value: 1,
+        max_value: 255 ** 2,
+        custom_fold: (arr, val) => {
+            while (val > 127) {
+                arr.push(val % 127);
+                val = div(val,127);
+            }
+            arr.push(val);
+        }
+    }),
+    "pitch_max_freq": new SysExCommand({
+        name: "pitch_max_freq",
+        number_command: 16,
+        min_value: 1,
+        max_value: 255 ** 2,
+        custom_fold: (arr, val) => {
+            while (val > 127) {
+                arr.push(val % 127);
+                val = div(val,127);
+            }
+            arr.push(val);
+        }
+    }),
 }))
 
 
@@ -264,12 +294,15 @@ const default_preset = {
     "synth_lfo_depth": 8,
     "synth_lfo_rate": 58,
     "synth_volume": 50,
+    "pitch_mode": 0,
+    "pitch_min_freq": 80,
+    "pitch_max_freq": 2000,
 }
 
 export class TouchMeDb extends Db {
     DB_NAME = "TouchMeDB"
     STORE_NAME = "TouchMe_Patches"
-    VERSION = 10
+    VERSION = 11
 
     constructor() {
         super(TouchMeCommandsData);

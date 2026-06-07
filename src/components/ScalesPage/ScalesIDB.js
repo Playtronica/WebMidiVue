@@ -1,9 +1,7 @@
 import {Db} from "@/assets/js/PresetsIDB";
-import {SysExCommand} from "@/assets/js/SysExCommand";
+import {div, SysExCommand} from "@/assets/js/SysExCommand";
 
-function div(val, by){
-    return (val - val % by) / by;
-}
+
 
 export let ScalesCommandsData = new Map(Object.entries({
     "bpm": new SysExCommand( {

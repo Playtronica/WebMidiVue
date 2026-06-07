@@ -255,6 +255,41 @@
     </template>
   </BootstrapCollapse>
 
+  <BootstrapCollapse name_of_collapse="🎵 Pitch Mode">
+    <template v-slot:objects>
+      <GroupOfCommands name-of-group="Pitch Mode">
+        <template v-slot:objects>
+          <div class="row m-2">
+            <div class="col">
+              <SwitchComponent
+                  id="pitchModeSwitch"
+                  command-label="🎚️ Pitch Mode"
+                  :command-object="this.commands_data.pitch_mode"
+                  @update:model-value="newVal => {
+                    this.isPitchMode = newVal
+                    forceRerender++
+                  }"
+                  @input-changed="this.sys_ex_changed"
+                  description="Sends continuous pitch_on/pitch_off events to the i2s synth (frequency derived from the ADC reading) instead of discrete notes."
+              />
+            </div>
+          </div>
+
+          <div v-if="this.commands_data.pitch_mode.value">
+            <SliderRangeCommand :key="this.forceRerender"
+                                :max-command-object="this.commands_data.pitch_max_freq"
+                                :min-command-object="this.commands_data.pitch_min_freq"
+                                @input-changed="this.sys_ex_changed"
+                                command-label="🎼 Frequency Range (Hz)"
+                                description="Lowest and highest frequency (in Hz) used in pitch mode. The minimum must stay below the maximum."
+                                class="m-2"
+            />
+          </div>
+        </template>
+      </GroupOfCommands>
+    </template>
+  </BootstrapCollapse>
+
 </template>
 
 <script>
@@ -428,6 +463,7 @@ export default  {
       isHumanize: false,
       isMute: false,
       customRange: false,
+      isPitchMode: false,
       db: {
         type: TouchMeDb
       },

@@ -1,3 +1,7 @@
+export function div(val, by){
+    return (val - val % by) / by;
+}
+
 export class SysExCommand {
     flag_device = [20, 13]
 
