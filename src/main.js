@@ -16,6 +16,7 @@ import HomeComponent from "@/components/HomeComponent.vue";
 import PlaytronPageTest from "@/components/PlaytronPage/PlaytronPageTest.vue";
 import TouchMePageTest from "@/components/TouchMePage/TouchMePageTest.vue";
 import ScalesPageTest from "@/components/ScalesPage/ScalesPageTest.vue";
+import CirclePage from "@/components/CirclePage/CirclePage.vue";
 
 
 
@@ -35,7 +36,9 @@ const routes = [
 
     { path: "/biotron/update", component: BiotronUpdatePage},
 
-    { path: '/scala', component: ScalaPage}
+    { path: '/scala', component: ScalaPage},
+
+    { path: '/circle', component: CirclePage, props: {id: "CircleWebMidiId"} }
 ]
 
 const router = createRouter({
