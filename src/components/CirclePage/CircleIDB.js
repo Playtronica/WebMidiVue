@@ -7,7 +7,7 @@ export let CircleCommandsData = new Map(Object.entries({
         name: "bpm",
         number_command: 0,
         min_value: 1,
-        max_value: 300,
+        max_value: 999,
         custom_fold: (arr, val) => {
             while (val > 127) {
                 arr.push(val % 127);
@@ -19,7 +19,7 @@ export let CircleCommandsData = new Map(Object.entries({
     "octave": new SysExCommand({
         name: "octave",
         number_command: 1,
-        min_value: 3,
+        min_value: 1,
         max_value: 6,
         custom_fold: (arr, val) => { arr.push(val); }
     }),
@@ -27,14 +27,14 @@ export let CircleCommandsData = new Map(Object.entries({
         name: "transpose",
         number_command: 2,
         min_value: 0,
-        max_value: 5,
+        max_value: 8,
         custom_fold: (arr, val) => { arr.push(val); }
     }),
     "note_count": new SysExCommand({
         name: "note_count",
         number_command: 3,
-        min_value: 0,
-        max_value: 6,
+        min_value: 3,
+        max_value: 8,
         custom_fold: (arr, val) => { arr.push(val); }
     }),
     "play_mode": new SysExCommand({
@@ -48,16 +48,16 @@ export let CircleCommandsData = new Map(Object.entries({
 
 const default_preset = {
     "bpm": 120,
-    "octave": 4,
+    "octave": 3,
     "transpose": 0,
-    "note_count": 0,
+    "note_count": 3,
     "play_mode": 0,
 }
 
 export class CircleDb extends Db {
     DB_NAME = "CircleDB"
     STORE_NAME = "Circle_Patches"
-    VERSION = 1
+    VERSION = 2
 
     constructor() {
         super(CircleCommandsData)

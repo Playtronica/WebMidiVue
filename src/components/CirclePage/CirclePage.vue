@@ -16,6 +16,24 @@
   </div>
 
   <div>
+    <BootstrapCollapse name_of_collapse="Circle Settings" open_by_default>
+      <template v-slot:objects>
+        <GroupOfCommands>
+          <template v-slot:objects>
+            <SelectCommand
+                command-label="Play Mode"
+                :key="this.forceRerender"
+                :list-of-variants="this.play_modes"
+                :command-object="commands_data.play_mode"
+                @input-changed="this.sys_ex_changed"
+                class="m-3"
+            />
+          </template>
+        </GroupOfCommands>
+      </template>
+    </BootstrapCollapse>
+
+
     <BootstrapCollapse name_of_collapse="Arpeggiator Settings" open_by_default>
       <template v-slot:objects>
         <GroupOfCommands>
@@ -53,14 +71,7 @@
                 class="m-2"
             />
 
-            <SelectCommand
-                command-label="Play Mode"
-                :key="this.forceRerender"
-                :list-of-variants="this.play_modes"
-                :command-object="commands_data.play_mode"
-                @input-changed="this.sys_ex_changed"
-                class="m-3"
-            />
+
           </template>
         </GroupOfCommands>
       </template>
@@ -199,7 +210,7 @@ export default {
       patch_id: 0,
       is_loading: false,
       commands_data: Object.fromEntries(CircleCommandsData),
-      play_modes: ["Arpeggiator", "Strum"],
+      play_modes: ["Arpeggiator", "Chords"],
     }
   },
   async created() {
