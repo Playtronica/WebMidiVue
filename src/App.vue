@@ -1,5 +1,5 @@
 <template>
-  <img src="//shop.playtronica.com/cdn/shop/files/622830795_031e8bd9-cf9e-4bb9-8230-6b9565aef17d.png?v=1630593066&amp;width=280" alt="" srcset="//shop.playtronica.com/cdn/shop/files/622830795_031e8bd9-cf9e-4bb9-8230-6b9565aef17d.png?v=1630593066&amp;width=140 140w, //shop.playtronica.com/cdn/shop/files/622830795_031e8bd9-cf9e-4bb9-8230-6b9565aef17d.png?v=1630593066&amp;width=280 280w" width="140" height="72.5925925925926" loading="eager" class="small--hide image-element" sizes="140px" itemprop="logo" fetchpriority="">
+  <img src="/Logo-Black.png" alt="Playtronica logo" width="140" loading="eager" class="small--hide image-element" itemprop="logo">
 
   <header class="d-flex justify-content-center">
 
