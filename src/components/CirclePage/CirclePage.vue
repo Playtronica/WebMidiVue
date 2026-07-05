@@ -210,7 +210,7 @@ export default {
       patch_id: 0,
       is_loading: false,
       commands_data: Object.fromEntries(CircleCommandsData),
-      play_modes: ["Arpeggiator", "Chords"],
+      play_modes: ["Arpeggiator", "Chords", "Strum"],
     }
   },
   async created() {

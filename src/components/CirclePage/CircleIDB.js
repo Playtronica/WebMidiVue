@@ -41,7 +41,7 @@ export let CircleCommandsData = new Map(Object.entries({
         name: "play_mode",
         number_command: 4,
         min_value: 0,
-        max_value: 1,
+        max_value: 2,
         custom_fold: (arr, val) => { arr.push(val); }
     }),
 }))
@@ -57,7 +57,7 @@ const default_preset = {
 export class CircleDb extends Db {
     DB_NAME = "CircleDB"
     STORE_NAME = "Circle_Patches"
-    VERSION = 2
+    VERSION = 3
 
     constructor() {
         super(CircleCommandsData)
