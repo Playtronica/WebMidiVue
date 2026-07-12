@@ -74,7 +74,8 @@ export let ScalesCommandsData = new Map(Object.entries({
 const default_preset = {
     "bpm": 120,
     "sensitivity": 0,
-    "undercover_color": 0x7500FF,
+    "undercover_color": 0x0080FF,
+    "color": 0x0040FF,
     "scale": 0,
     "brightness": 100,
     "performance": 0,

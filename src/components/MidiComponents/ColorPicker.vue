@@ -55,7 +55,8 @@ export default {
       this.changed()
     },
     getBrightnessColor() {
-      let c = this.colors[this.selectedColor].substring(1);
+      let baseColor = this.colors[this.selectedColor] ?? this.selectedColor;
+      let c = baseColor.substring(1);
       let rgb = parseInt(c, 16);
       let r = (rgb >> 16) & 0xff;
       let g = (rgb >>  8) & 0xff;
