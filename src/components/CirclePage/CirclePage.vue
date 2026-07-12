@@ -71,6 +71,14 @@
                 class="m-2"
             />
 
+            <SwitchComponent
+                class="m-2"
+                commandLabel="Continuous Arpeggio"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.continuous_arpeggio"
+                description="Keep the arpeggio step position across a full release instead of resetting to step 0"
+                @input-changed="this.sys_ex_changed"
+            />
 
           </template>
         </GroupOfCommands>
@@ -91,9 +99,11 @@ import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
 import {CircleCommandsData, CircleDb} from "@/components/CirclePage/CircleIDB";
 import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
 import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
+import SwitchComponent from "@/components/MidiComponents/Switch.vue";
 
 export default {
   components: {
+    SwitchComponent,
     SelectCommand,
     SliderCommand,
     BootstrapCollapse,

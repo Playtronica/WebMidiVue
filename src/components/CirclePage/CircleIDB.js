@@ -44,6 +44,10 @@ export let CircleCommandsData = new Map(Object.entries({
         max_value: 2,
         custom_fold: (arr, val) => { arr.push(val); }
     }),
+    "continuous_arpeggio": new SysExCommand({
+        name: "continuous_arpeggio",
+        number_command: 5,
+    }),
 }))
 
 const default_preset = {
@@ -52,6 +56,7 @@ const default_preset = {
     "transpose": 0,
     "note_count": 3,
     "play_mode": 0,
+    "continuous_arpeggio": 0,
 }
 
 export class CircleDb extends Db {
