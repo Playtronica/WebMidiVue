@@ -48,6 +48,24 @@ export let CircleCommandsData = new Map(Object.entries({
         name: "continuous_arpeggio",
         number_command: 5,
     }),
+    "arp_direction": new SysExCommand({
+        name: "arp_direction",
+        number_command: 6,
+        min_value: 0,
+        max_value: 4,
+        custom_fold: (arr, val) => { arr.push(val); }
+    }),
+    "arp_one_shot": new SysExCommand({
+        name: "arp_one_shot",
+        number_command: 7,
+    }),
+    "octave_boost_count": new SysExCommand({
+        name: "octave_boost_count",
+        number_command: 8,
+        min_value: 0,
+        max_value: 8,
+        custom_fold: (arr, val) => { arr.push(val); }
+    }),
 }))
 
 const default_preset = {
@@ -57,12 +75,15 @@ const default_preset = {
     "note_count": 3,
     "play_mode": 0,
     "continuous_arpeggio": 0,
+    "arp_direction": 0,
+    "arp_one_shot": 0,
+    "octave_boost_count": 0,
 }
 
 export class CircleDb extends Db {
     DB_NAME = "CircleDB"
     STORE_NAME = "Circle_Patches"
-    VERSION = 3
+    VERSION = 5
 
     constructor() {
         super(CircleCommandsData)

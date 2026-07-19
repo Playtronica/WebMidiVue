@@ -71,14 +71,48 @@
                 class="m-2"
             />
 
-            <SwitchComponent
-                class="m-2"
-                commandLabel="Continuous Arpeggio"
+            <SliderCommand
+                command-label="Octave Boost Count"
                 :key="this.forceRerender"
-                :command-object="this.commands_data.continuous_arpeggio"
-                description="Keep the arpeggio step position across a full release instead of resetting to step 0"
+                :command-object="this.commands_data.octave_boost_count"
                 @input-changed="this.sys_ex_changed"
+                description="Shifts the first N notes (by build order) up one octave; 0 = off"
+                class="m-2"
             />
+
+            <div class="row">
+              <div class="col">
+                <SwitchComponent
+                    class="m-2"
+                    commandLabel="Continuous Arpeggio"
+                    :key="this.forceRerender"
+                    :command-object="this.commands_data.continuous_arpeggio"
+                    description="Keep the arpeggio step position across a full release instead of resetting to step 0"
+                    @input-changed="this.sys_ex_changed"
+                />
+              </div>
+              <div class="col">
+                <SwitchComponent
+                    class="m-2"
+                    commandLabel="Arp One-Shot"
+                    :key="this.forceRerender"
+                    :command-object="this.commands_data.arp_one_shot"
+                    description="Play the arpeggio pattern once per press instead of looping while held"
+                    @input-changed="this.sys_ex_changed"
+                />
+              </div>
+            </div>
+
+            <SelectCommand
+                command-label="Arp Direction"
+                :key="this.forceRerender"
+                :list-of-variants="this.arp_directions"
+                :command-object="commands_data.arp_direction"
+                @input-changed="this.sys_ex_changed"
+                class="m-3"
+            />
+
+
 
           </template>
         </GroupOfCommands>
@@ -221,6 +255,7 @@ export default {
       is_loading: false,
       commands_data: Object.fromEntries(CircleCommandsData),
       play_modes: ["Arpeggiator", "Chords", "Strum"],
+      arp_directions: ["Up", "Down", "Up-Down", "Down-Up", "Random"],
     }
   },
   async created() {
