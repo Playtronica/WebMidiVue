@@ -76,7 +76,7 @@
                 :key="this.forceRerender"
                 :command-object="this.commands_data.octave_boost_count"
                 @input-changed="this.sys_ex_changed"
-                description="Shifts the first N notes (by build order) up one octave; 0 = off"
+                description="Inverts the notes of buttons at the start (n > 0) or end (n < 0) of the chromatic scale by |n| positions; 0 = off"
                 class="m-2"
             />
 
@@ -94,10 +94,10 @@
               <div class="col">
                 <SwitchComponent
                     class="m-2"
-                    commandLabel="Arp One-Shot"
+                    commandLabel="Arp Loop"
                     :key="this.forceRerender"
-                    :command-object="this.commands_data.arp_one_shot"
-                    description="Play the arpeggio pattern once per press instead of looping while held"
+                    :command-object="this.commands_data.arp_loop"
+                    description="Keep looping the arpeggio pattern while held instead of playing it once per press"
                     @input-changed="this.sys_ex_changed"
                 />
               </div>
@@ -112,7 +112,15 @@
                 class="m-3"
             />
 
-
+            <SelectCommand
+                command-label="Arp Rate"
+                :key="this.forceRerender"
+                :list-of-variants="this.arp_rates"
+                :command-object="commands_data.arp_rate"
+                @input-changed="this.sys_ex_changed"
+                description="Speeds up or slows down the arpeggiator's step rate relative to the tempo without changing the BPM"
+                class="m-3"
+            />
 
           </template>
         </GroupOfCommands>
@@ -255,7 +263,8 @@ export default {
       is_loading: false,
       commands_data: Object.fromEntries(CircleCommandsData),
       play_modes: ["Arpeggiator", "Chords", "Strum"],
-      arp_directions: ["Up", "Down", "Up-Down", "Down-Up", "Random"],
+      arp_directions: ["Up", "Down", "Up-Down", "Down-Up", "Random", "Thirds Up", "Thirds Down", "Batch"],
+      arp_rates: ["x1", "/2", "/4", "/8", "x2", "x4"],
     }
   },
   async created() {
