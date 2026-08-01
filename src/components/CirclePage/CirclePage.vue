@@ -28,6 +28,15 @@
                 @input-changed="this.sys_ex_changed"
                 class="m-3"
             />
+
+            <SwitchComponent
+                class="m-2"
+                commandLabel="Hold Mode"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.hold_mode"
+                description="Only one chord/note button is active at a time; pressing a new button immediately releases the previous one."
+                @input-changed="this.sys_ex_changed"
+            />
           </template>
         </GroupOfCommands>
       </template>
@@ -126,6 +135,114 @@
         </GroupOfCommands>
       </template>
     </BootstrapCollapse>
+
+    <BootstrapCollapse name_of_collapse="🎛️ Synth">
+      <template v-slot:objects>
+        <GroupOfCommands name-of-group="Factory Preset">
+          <template v-slot:objects>
+            <SelectCommand
+                :key="this.forceRerender"
+                :list-of-variants="this.synthFactoryPresetNames"
+                :command-object="this.synthPresetCommand"
+                @input-changed="this.loadFactoryPreset"
+                command-label="🎹 Factory Preset"
+                description="Loads a factory synth preset on the device and updates all synth parameters below to match."
+                class="m-2"/>
+          </template>
+        </GroupOfCommands>
+
+        <GroupOfCommands name-of-group="Output">
+          <template v-slot:objects>
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.commands_data.synth_volume"
+                           @input-changed="this.sys_ex_changed"
+                           command-label="🔊 Volume"
+                           description="Overall synth output volume (0–100%). 20% = unity gain (1.0×); values above amplify and may clip."
+                           class="m-2"/>
+          </template>
+        </GroupOfCommands>
+
+        <GroupOfCommands name-of-group="Oscillator">
+          <template v-slot:objects>
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.commands_data.synth_octave_shift"
+                           @input-changed="this.sys_ex_changed"
+                           command-label="🎚️ Octave Shift"
+                           class="m-2"/>
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.commands_data.synth_osc_waveform"
+                           @input-changed="this.sys_ex_changed"
+                           command-label="〰️ OSC Waveform"
+                           class="m-2"/>
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.commands_data.synth_osc_2_coarse_pitch"
+                           @input-changed="this.sys_ex_changed"
+                           command-label="🎼 OSC 2 Coarse Pitch"
+                           class="m-2"/>
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.commands_data.synth_osc_2_fine_pitch"
+                           @input-changed="this.sys_ex_changed"
+                           command-label="🎵 OSC 2 Fine Pitch"
+                           class="m-2"/>
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.commands_data.synth_osc_1_2_mix"
+                           @input-changed="this.sys_ex_changed"
+                           command-label="🎚️ OSC 1/2 Mix"
+                           class="m-2"/>
+          </template>
+        </GroupOfCommands>
+
+        <GroupOfCommands name-of-group="Envelope">
+          <template v-slot:objects>
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.commands_data.synth_eg_sustain_level"
+                           @input-changed="this.sys_ex_changed"
+                           command-label="📊 EG Sustain Level"
+                           class="m-2"/>
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.commands_data.synth_eg_decay_time"
+                           @input-changed="this.sys_ex_changed"
+                           command-label="⏱️ EG Decay Time"
+                           class="m-2"/>
+          </template>
+        </GroupOfCommands>
+
+        <GroupOfCommands name-of-group="Filter">
+          <template v-slot:objects>
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.commands_data.synth_filter_cutoff"
+                           @input-changed="this.sys_ex_changed"
+                           command-label="🎛️ Filter Cutoff"
+                           class="m-2"/>
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.commands_data.synth_filter_resonance"
+                           @input-changed="this.sys_ex_changed"
+                           command-label="🌀 Filter Resonance"
+                           class="m-2"/>
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.commands_data.synth_filter_mod_amount"
+                           @input-changed="this.sys_ex_changed"
+                           command-label="📈 Filter Mod Amount"
+                           class="m-2"/>
+          </template>
+        </GroupOfCommands>
+
+        <GroupOfCommands name-of-group="LFO">
+          <template v-slot:objects>
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.commands_data.synth_lfo_depth"
+                           @input-changed="this.sys_ex_changed"
+                           command-label="🌊 LFO Depth"
+                           class="m-2"/>
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.commands_data.synth_lfo_rate"
+                           @input-changed="this.sys_ex_changed"
+                           command-label="⚡ LFO Rate"
+                           class="m-2"/>
+          </template>
+        </GroupOfCommands>
+      </template>
+    </BootstrapCollapse>
   </div>
 </template>
 
@@ -138,7 +255,13 @@ import PatchSelector from "@/components/MidiComponents/PatchSelector.vue";
 import DeviceSelector from "@/components/MidiComponents/DeviceSelector.vue";
 import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
-import {CircleCommandsData, CircleDb} from "@/components/CirclePage/CircleIDB";
+import {
+  CircleCommandsData,
+  CircleDb,
+  makeSynthPresetCommand,
+  synthFactoryPresetNames,
+  synthFactoryPresets,
+} from "@/components/CirclePage/CircleIDB";
 import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
 import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
 import SwitchComponent from "@/components/MidiComponents/Switch.vue";
@@ -251,6 +374,25 @@ export default {
       this.forceRerender++;
       this.patchRerender++;
     },
+
+    async loadFactoryPreset(presetCommand) {
+      const preset = synthFactoryPresets[presetCommand.value];
+      if (!preset) return;
+
+      await this.patchChanged();
+
+      for (const [name, value] of Object.entries(preset)) {
+        this.commands_data[name].set_value(value);
+      }
+
+      if (this.device) {
+        presetCommand.sendToMidi(this.device);
+      }
+
+      this.saveData();
+      this.forceRerender++;
+      this.patchRerender++;
+    },
   },
   data() {
     return {
@@ -265,6 +407,8 @@ export default {
       play_modes: ["Arpeggiator", "Chords", "Strum"],
       arp_directions: ["Up", "Down", "Up-Down", "Down-Up", "Random", "Thirds Up", "Thirds Down", "Batch"],
       arp_rates: ["x1", "/2", "/4", "/8", "x2", "x4"],
+      synthFactoryPresetNames,
+      synthPresetCommand: makeSynthPresetCommand(),
     }
   },
   async created() {
