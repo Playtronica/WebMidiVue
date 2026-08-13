@@ -131,9 +131,8 @@
         this.connecting = false;
 
         if (failures.length) {
-          this.midiError = `Could not release: ${[...new Set(failures)].join(", ")}. Close this tab before opening your DAW.`;
-          this.selectedDevice = null;
-          this.released = true;
+          this.midiError = `Could not release: ${[...new Set(failures)].join(", ")}. Retry, or close this tab before opening your DAW.`;
+          this.released = false;
           this.$emit("device_changed", undefined);
           return;
         }
