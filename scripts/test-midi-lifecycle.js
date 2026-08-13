@@ -88,6 +88,22 @@ async function reconnectOpenFailure() {
   assert.strictEqual(target.events.at(-1)[1], undefined)
 }
 
+async function switchCloseFailureDoesNotClaimSuccess() {
+  const first = {
+    input: port('in-1'),
+    output: port('out-1', 'Biotron', { async close() { this.closeCalls++; throw new Error('still owned') } })
+  }
+  const second = { input: port('in-2'), output: port('out-2') }
+  const target = instance({ devices: [first, second], selectedDevice: first, currentMidiNum: 1 })
+  await target.deviceChanged()
+  assert.strictEqual(target.selectedDevice, first, 'selection moved despite previous output close failure')
+  assert.strictEqual(target.currentMidiNum, 0, 'selector displays the unopened next device')
+  assert.strictEqual(second.output.openCalls, 0, 'next output opened despite previous output close failure')
+  assert.strictEqual(second.input.openCalls, 0, 'next input opened despite previous output close failure')
+  assert.match(target.midiError, /Could not switch/)
+  assert.strictEqual(target.events.at(-1)[1], undefined)
+}
+
 async function unmountCancelsPendingOpen() {
   scheduled.clear()
   const opening = deferred()
@@ -129,9 +145,10 @@ async function duplicateDevicesStayDistinct() {
   await releaseFailureStaysVisible()
   await delayedQueryIsCancelled()
   await reconnectOpenFailure()
+  await switchCloseFailureDoesNotClaimSuccess()
   await unmountCancelsPendingOpen()
   await duplicateDevicesStayDistinct()
-  console.log('MIDI lifecycle verified: release failure, delayed cancellation, reconnect failure, unmount, duplicate-device separation.')
+  console.log('MIDI lifecycle verified: release failure, delayed cancellation, reconnect failure, switch close failure, unmount, duplicate-device separation.')
 })().catch(error => {
   console.error(error)
   process.exitCode = 1
