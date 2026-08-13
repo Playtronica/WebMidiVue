@@ -160,7 +160,16 @@
         const previousDevice = this.selectedDevice;
         const nextDevice = this.devices[this.currentMidiNum];
         if (previousDevice && (!nextDevice || previousDevice.output.id !== nextDevice.output.id)) {
-          await this.closeDevice(previousDevice);
+          const failures = await this.closeDevice(previousDevice);
+          if (operationId !== this.operationId || this.unmounted) return;
+          if (failures.length) {
+            const previousIndex = this.devices.findIndex((device) => device.output.id === previousDevice.output.id);
+            if (previousIndex >= 0) this.currentMidiNum = previousIndex;
+            this.connecting = false;
+            this.$emit("device_changed", undefined);
+            this.midiError = `Could not switch devices: ${[...new Set(failures)].join(", ")} did not close. Retry, or close this tab.`;
+            return;
+          }
         }
         if (operationId !== this.operationId || this.unmounted) return;
 
@@ -228,7 +237,9 @@
       ++this.operationId;
       this.clearUpdateTimeout();
       if (this.midiAccess) this.midiAccess.onstatechange = null;
-      this.closeDevice(this.selectedDevice);
+      // An in-flight lifecycle operation observes operationId and closes its
+      // device. Avoid racing it with a second close from the unmount hook.
+      if (!this.connecting) this.closeDevice(this.selectedDevice);
     }
   }
 </script>
