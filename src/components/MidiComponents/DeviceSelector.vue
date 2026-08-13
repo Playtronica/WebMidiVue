@@ -1,20 +1,22 @@
 <template>
   <div class="mb-3">
     <div class="form-floating">
-      <select v-model="currentMidiNum" class="form-control" @change="this.deviceChanged" :disabled="released">
-        <option v-for="(value, key) in midiOut" v-bind:key="key" :value="key" >{{value.name}} {{this.versions[key]}}</option>
+      <select v-model.number="currentMidiNum" class="form-control" @change="deviceChanged" :disabled="released || connecting">
+        <option v-for="(device, key) in devices" :key="device.output.id" :value="key">
+          {{ device.output.name }} {{ versions[device.output.id] }}
+        </option>
       </select>
-      <label for="device">{{ this.text_label }}</label>
+      <label for="device">{{ text_label }}</label>
     </div>
     <div class="d-flex gap-2 align-items-center mt-2">
-      <button v-if="!released" type="button" class="btn btn-outline-primary" @click="releaseMidi">
+      <button v-if="!released" type="button" class="btn btn-outline-primary" @click="releaseMidi" :disabled="connecting || !selectedDevice">
         Release device for DAW
       </button>
-      <button v-else type="button" class="btn btn-primary" @click="connectMidi">
+      <button v-else type="button" class="btn btn-primary" @click="connectMidi" :disabled="connecting">
         Reconnect settings
       </button>
       <small class="text-muted">
-        {{ released ? "The MIDI port is free for Reaper, Ableton, or another app." : "Windows may allow only one app to use a MIDI port. Release it before opening your DAW." }}
+        {{ released ? "The selected MIDI port is free for Reaper, Ableton, or another app." : "Windows may allow only one app to use a MIDI port. Release the selected device before opening your DAW." }}
       </small>
     </div>
     <div v-if="midiError" class="alert alert-warning mt-2 mb-0" role="alert">{{ midiError }}</div>
@@ -22,8 +24,7 @@
 </template>
 
 <script>
-// eslint-disable-next-line no-unused-vars
-  import {sleep} from "@/assets/js/SysExCommand";
+  const portIdentity = (port) => [port.manufacturer || "", port.name || ""].join("\u0000");
 
   export default {
     props: {
@@ -44,50 +45,70 @@
     name: "DeviceSelector",
     data() {
       return {
-        midiIn: {},
-        midiOut: {},
+        devices: [],
         versions: {},
         currentMidiNum: 0,
-        updateTimeouts: [],
+        updateTimeout: null,
         midiAccess: null,
+        selectedDevice: null,
         released: false,
-        midiError: ""
+        connecting: false,
+        midiError: "",
+        operationId: 0,
+        unmounted: false
       }
     },
     methods: {
+      matchingPorts(ports) {
+        return [...ports.values()].filter((port) => port.name && port.name.match(this.regexName));
+      },
+      pairDevices(midi) {
+        const inputsByIdentity = new Map();
+        for (const input of this.matchingPorts(midi.inputs)) {
+          const identity = portIdentity(input);
+          if (!inputsByIdentity.has(identity)) inputsByIdentity.set(identity, []);
+          inputsByIdentity.get(identity).push(input);
+        }
+
+        return this.matchingPorts(midi.outputs).map((output) => {
+          const matchingInputs = inputsByIdentity.get(portIdentity(output)) || [];
+          return {output, input: matchingInputs.shift()};
+        });
+      },
       midiReady(midi) {
-        this.clearUpdateTimeouts();
         this.midiAccess = midi;
-        this.released = false;
-        midi.onstatechange = (event) => {
-          this.initDevices(event.target)
+        midi.onstatechange = () => {
+          if (!this.released && !this.connecting) this.refreshDevices();
         };
-        this.initDevices(midi);
+        return this.refreshDevices();
       },
       async connectMidi() {
+        const operationId = ++this.operationId;
+        this.connecting = true;
+        this.midiError = "";
         try {
-          this.midiError = "";
           const midi = this.midiAccess || await navigator.requestMIDIAccess({sysex: true});
-          this.midiReady(midi);
+          if (operationId !== this.operationId || this.unmounted) return;
+          this.released = false;
+          await this.midiReady(midi);
         } catch (err) {
-          this.midiError = "Could not open the MIDI port. Close your DAW or other MIDI apps, then retry.";
+          if (operationId === this.operationId && !this.unmounted) {
+            this.midiError = "Could not open the MIDI port. Close your DAW or other MIDI apps, then retry.";
+          }
           console.log('Something went wrong', err);
+        } finally {
+          if (operationId === this.operationId && !this.unmounted) this.connecting = false;
         }
       },
-      clearUpdateTimeouts() {
-        for (const timeout of this.updateTimeouts) clearTimeout(timeout);
-        this.updateTimeouts = [];
+      clearUpdateTimeout() {
+        if (this.updateTimeout !== null) clearTimeout(this.updateTimeout);
+        this.updateTimeout = null;
       },
-      async releaseMidi() {
-        if (!this.midiAccess) return;
-
-        this.clearUpdateTimeouts();
-        this.midiError = "";
-        this.midiAccess.onstatechange = null;
-        const ports = [...Object.values(this.midiIn), ...Object.values(this.midiOut)];
+      async closeDevice(device) {
+        if (!device) return [];
         const failures = [];
-        for (const port of ports) {
-          if (port.type === "input") port.onmidimessage = null;
+        if (device.input) device.input.onmidimessage = null;
+        for (const port of [device.input, device.output].filter(Boolean)) {
           try {
             await port.close();
           } catch (err) {
@@ -95,83 +116,120 @@
             console.log('Could not close MIDI port', err);
           }
         }
+        return failures;
+      },
+      async releaseMidi() {
+        const operationId = ++this.operationId;
+        this.connecting = true;
+        this.clearUpdateTimeout();
+        this.midiError = "";
+        if (this.midiAccess) this.midiAccess.onstatechange = null;
 
-        const stillOpen = ports.filter((port) => port.connection !== "closed").map((port) => port.name);
-        failures.push(...stillOpen);
+        const device = this.selectedDevice;
+        const failures = await this.closeDevice(device);
+        if (operationId !== this.operationId) return;
+        this.connecting = false;
+
         if (failures.length) {
           this.midiError = `Could not release: ${[...new Set(failures)].join(", ")}. Close this tab before opening your DAW.`;
+          this.selectedDevice = null;
+          this.released = true;
+          this.$emit("device_changed", undefined);
           return;
         }
 
-        this.midiIn = {};
-        this.midiOut = {};
-        this.versions = {};
+        this.selectedDevice = null;
         this.released = true;
         this.$emit("device_changed", undefined);
       },
-      initDevices(midi) {
-        this.midiIn = {};
-        this.midiOut = {};
-        this.versions = {};
+      async refreshDevices() {
+        if (!this.midiAccess || this.released) return;
+        const previousOutputId = this.selectedDevice && this.selectedDevice.output.id;
+        this.devices = this.pairDevices(this.midiAccess);
+        const previousIndex = this.devices.findIndex((device) => device.output.id === previousOutputId);
+        if (previousIndex >= 0) this.currentMidiNum = previousIndex;
+        else if (!this.devices[this.currentMidiNum]) this.currentMidiNum = 0;
+        await this.deviceChanged();
+      },
+      async deviceChanged() {
+        if (this.released) return;
+        const operationId = ++this.operationId;
+        this.connecting = true;
+        this.clearUpdateTimeout();
+        this.midiError = "";
 
-        const inputs = midi.inputs.values();
-        for (let input = inputs.next(); input && !input.done; input = inputs.next()) {
-          if (input.value.name.match(this.regexName)) {
-            this.midiIn[input.id] = input.value;
-            input.value.onmidimessage = (event) => this.handleMidiMessage(event);
-          }
+        const previousDevice = this.selectedDevice;
+        const nextDevice = this.devices[this.currentMidiNum];
+        if (previousDevice && (!nextDevice || previousDevice.output.id !== nextDevice.output.id)) {
+          await this.closeDevice(previousDevice);
+        }
+        if (operationId !== this.operationId || this.unmounted) return;
+
+        this.selectedDevice = nextDevice || null;
+        if (!nextDevice) {
+          this.connecting = false;
+          this.$emit("device_changed", undefined);
+          return;
         }
 
-        let midi_output_id = 0;
-        const outputs = midi.outputs.values();
-        for (let output = outputs.next(); output && !output.done; output = outputs.next()) {
-          if (output.value.name.match(this.regexName)) {
-            this.midiOut[midi_output_id] = output.value
-            midi_output_id++;
-          }
-        }
-
-        this.deviceChanged()
-
-        if (!this.checkVersionsFlag) return;
-
-        for (const [key, midi_output] of Object.entries(this.midiOut)) {
-          const timeout = setTimeout(async () => {
-            if (this.released) return;
-            try {
-              await midi_output.open();
-              if (!this.released) midi_output.send([240, 20, 13, 126, key, 247]);
-            } catch (err) {
-              this.midiError = "Could not query the device. Another MIDI app may be using it.";
+        try {
+          await nextDevice.output.open();
+          if (nextDevice.input) {
+            await nextDevice.input.open();
+            if (operationId !== this.operationId || this.unmounted) {
+              await this.closeDevice(nextDevice);
+              return;
             }
-          }, 3000);
-          this.updateTimeouts.push(timeout);
+            nextDevice.input.onmidimessage = (event) => this.handleMidiMessage(event, operationId);
+          }
+          if (operationId !== this.operationId || this.unmounted) {
+            await this.closeDevice(nextDevice);
+            return;
+          }
+          this.$emit("device_changed", nextDevice.output);
+          this.scheduleVersionQuery(nextDevice, operationId);
+        } catch (err) {
+          await this.closeDevice(nextDevice);
+          if (operationId === this.operationId && !this.unmounted) {
+            this.selectedDevice = null;
+            this.$emit("device_changed", undefined);
+            this.midiError = "Could not open the selected device. Another MIDI app may be using it.";
+          }
+          console.log('Could not open MIDI port', err);
+        } finally {
+          if (operationId === this.operationId && !this.unmounted) this.connecting = false;
         }
-
-
-
       },
-      handleMidiMessage(event) {
+      scheduleVersionQuery(device, operationId) {
+        if (!this.checkVersionsFlag) return;
+        this.updateTimeout = setTimeout(() => {
+          this.updateTimeout = null;
+          if (operationId !== this.operationId || this.released || this.selectedDevice !== device) return;
+          try {
+            device.output.send([240, 20, 13, 126, this.currentMidiNum, 247]);
+          } catch (err) {
+            if (operationId === this.operationId) this.midiError = "Could not query the selected device.";
+          }
+        }, 3000);
+      },
+      handleMidiMessage(event, operationId) {
+        if (operationId !== this.operationId || this.released) return;
         const [start_sys_ex, flag_byte, num_com, id_of_output, x, y, z, end_sys_ex] = event.data;
-        if (start_sys_ex === 0xF0 &&
-            end_sys_ex === 0xF7 &&
-            flag_byte === 0x0B &&
-            num_com === 126 &&
-            event.data.length === 8
-        ) {
-          this.versions[id_of_output] = `v${x}.${y}.${z}`
+        if (start_sys_ex === 0xF0 && end_sys_ex === 0xF7 && flag_byte === 0x0B &&
+            num_com === 126 && event.data.length === 8 && id_of_output === this.currentMidiNum) {
+          this.versions[this.selectedDevice.output.id] = `v${x}.${y}.${z}`;
         }
-      },
-      deviceChanged() {
-        console.log(this.currentMidiNum)
-        this.$emit("device_changed", this.midiOut[this.currentMidiNum])
       }
     },
     mounted() {
       this.connectMidi();
     },
     beforeUnmount() {
-      this.releaseMidi();
+      this.unmounted = true;
+      ++this.operationId;
+      this.clearUpdateTimeout();
+      if (this.midiAccess) this.midiAccess.onstatechange = null;
+      this.closeDevice(this.selectedDevice);
     }
   }
 </script>
