@@ -25,7 +25,12 @@ Verify the generated service worker, revisioned app shell and manifest:
 npm run build
 npm run test:pwa
 npm run test:firmware
+npm run test:pwa:browser
 ```
+
+The browser lifecycle test uses an installed Chrome/Chromium (`CHROME_PATH` can
+override discovery) and covers service-worker install/control, offline direct
+navigation, the offline firmware guard, and a non-disruptive waiting update.
 
 ### Lints and fixes files
 ```
