@@ -50,10 +50,3 @@ const router = createRouter({
 var cors = require('cors');
 
 createApp(App).use(router).use(cors).mount('#app')
-
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register(`${process.env.BASE_URL}service-worker.js`)
-            .catch((error) => console.log('Offline support could not start', error));
-    });
-}
