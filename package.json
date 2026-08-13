@@ -7,7 +7,8 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "test:pwa": "node scripts/test-pwa-build.js",
-    "test:firmware": "node scripts/test-firmware-update.js"
+    "test:firmware": "node scripts/test-firmware-update.js",
+    "test:pwa:browser": "node scripts/test-pwa-browser.js"
   },
   "dependencies": {
     "@floating-ui/vue": "^1.1.6",
@@ -39,6 +40,7 @@
     "eslint": "^7.32.0",
     "eslint-plugin-vue": "^8.0.3",
     "expose-loader": "^5.0.0",
+    "playwright-core": "^1.62.1",
     "sass": "^1.77.0",
     "sass-loader": "^16.0.0",
     "ts-loader": "^9.5.1"
