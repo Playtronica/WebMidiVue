@@ -228,7 +228,9 @@
       ++this.operationId;
       this.clearUpdateTimeout();
       if (this.midiAccess) this.midiAccess.onstatechange = null;
-      this.closeDevice(this.selectedDevice);
+      // An in-flight lifecycle operation observes operationId and closes its
+      // device. Avoid racing it with a second close from the unmount hook.
+      if (!this.connecting) this.closeDevice(this.selectedDevice);
     }
   }
 </script>
