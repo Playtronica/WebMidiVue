@@ -30,4 +30,10 @@ for (const bundle of bundles) {
   assert(serviceWorker.includes(bundle), `${bundle} is not in the precache manifest`)
 }
 
-console.log(`PWA build verified: ${bundles.length} app bundles, revisioned app shell, 2 install icons.`)
+const javascript = bundles
+  .filter(bundle => bundle.endsWith('.js'))
+  .map(read)
+  .join('\n')
+assert(javascript.includes('Ready offline'), 'the production UI has no truthful offline-readiness status')
+
+console.log(`PWA build verified: ${bundles.length} app bundles, revisioned app shell, readiness UI, 2 install icons.`)

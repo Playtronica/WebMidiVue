@@ -21,6 +21,15 @@
       </li>
     </ul>
   </header>
+  <div
+      v-if="offlineMessage"
+      class="offline-status mx-auto mt-2 px-3 py-2"
+      :class="offlineStatusClass"
+      role="status"
+      aria-live="polite"
+  >
+    {{ offlineMessage }}
+  </div>
   <div class="wrapper">
     <div class="m-2 content ">
       <router-view></router-view>
@@ -35,6 +44,7 @@
 
 <script>
 import SocialLinks from "@/components/SocialLinks.vue";
+import {getOfflineStatus, OFFLINE_STATUS_EVENT} from "@/registerServiceWorker";
 
 
 export default {
@@ -43,28 +53,57 @@ export default {
   data() {
     return {
       url: String,
-      forceRerender: 0
+      forceRerender: 0,
+      offlineStatus: getOfflineStatus(),
+      online: navigator.onLine
     }
   },
-  async mounted() {
-    console.log("Hello! You`re curious, aren`t you?")
-
-    if (navigator.requestMIDIAccess) {
-      try {
-        await navigator.requestMIDIAccess();
-        console.log("MIDI is supported!");
-      } catch (error) {
-        console.error("Could not access MIDI devices:", error);
-        window.alert("You have denied access to MIDI devices.");
+  computed: {
+    offlineMessage() {
+      if (this.offlineStatus.ready && !this.online) {
+        return "Offline — Settings are available. Firmware updates still need internet."
       }
-    } else {
-      console.error("MIDI is not supported. Sending notification...");
-      window.alert("Only works on Chrome on desktop computer.");
+      if (this.offlineStatus.ready) {
+        return "Ready offline — Settings are installed for this browser profile."
+      }
+      if (this.offlineStatus.state === "installing") {
+        return "Preparing offline access… Keep this window open until it is ready."
+      }
+      if (this.offlineStatus.state === "error") {
+        return "Offline setup did not finish. Check the connection and reload this page."
+      }
+      if (this.offlineStatus.state === "unsupported") {
+        return "This browser cannot install Settings for offline use."
+      }
+      return ""
+    },
+    offlineStatusClass() {
+      if (this.offlineStatus.ready) return "offline-status--ready"
+      if (this.offlineStatus.state === "error" || this.offlineStatus.state === "unsupported") {
+        return "offline-status--error"
+      }
+      return "offline-status--preparing"
     }
-
+  },
+  mounted() {
+    console.log("Hello! You`re curious, aren`t you?")
+    window.addEventListener(OFFLINE_STATUS_EVENT, this.handleOfflineStatus)
+    window.addEventListener("online", this.handleConnectionChange)
+    window.addEventListener("offline", this.handleConnectionChange)
+  },
+  beforeUnmount() {
+    window.removeEventListener(OFFLINE_STATUS_EVENT, this.handleOfflineStatus)
+    window.removeEventListener("online", this.handleConnectionChange)
+    window.removeEventListener("offline", this.handleConnectionChange)
   },
   methods: {
-    update() { this.forceRerender++ }
+    update() { this.forceRerender++ },
+    handleOfflineStatus(event) {
+      this.offlineStatus = event.detail
+    },
+    handleConnectionChange() {
+      this.online = navigator.onLine
+    }
   }
 }
 </script>
@@ -78,6 +117,31 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin-top: 1%;
+}
+
+.offline-status {
+  width: min(720px, calc(100% - 2rem));
+  border: 1px solid;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.offline-status--ready {
+  color: #0f5132;
+  background: #d1e7dd;
+  border-color: #badbcc;
+}
+
+.offline-status--preparing {
+  color: #664d03;
+  background: #fff3cd;
+  border-color: #ffecb5;
+}
+
+.offline-status--error {
+  color: #842029;
+  background: #f8d7da;
+  border-color: #f5c2c7;
 }
 
 .switch {
