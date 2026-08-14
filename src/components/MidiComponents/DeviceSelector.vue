@@ -25,6 +25,20 @@
 
 <script>
   const portIdentity = (port) => [port.manufacturer || "", port.name || ""].join("\u0000");
+  let midiAccessPromise = null;
+
+  const requestMidiAccess = () => {
+    if (!navigator.requestMIDIAccess) {
+      return Promise.reject(new Error("Web MIDI is not supported by this browser."));
+    }
+    if (!midiAccessPromise) {
+      midiAccessPromise = navigator.requestMIDIAccess({sysex: true}).catch((error) => {
+        midiAccessPromise = null;
+        throw error;
+      });
+    }
+    return midiAccessPromise;
+  };
 
   export default {
     props: {
@@ -87,7 +101,7 @@
         this.connecting = true;
         this.midiError = "";
         try {
-          const midi = this.midiAccess || await navigator.requestMIDIAccess({sysex: true});
+          const midi = this.midiAccess || await requestMidiAccess();
           if (operationId !== this.operationId || this.unmounted) return;
           this.released = false;
           await this.midiReady(midi);

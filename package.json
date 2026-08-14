@@ -9,7 +9,8 @@
     "test:midi-lifecycle": "node scripts/test-midi-lifecycle.js",
     "test:pwa": "node scripts/test-pwa-build.js",
     "test:firmware": "node scripts/test-firmware-update.js",
-    "test:pwa:browser": "node scripts/test-pwa-browser.js"
+    "test:pwa:browser": "node scripts/test-pwa-browser.js",
+    "test:biotron": "npm run lint && npm run build && npm run test:midi-lifecycle && npm run test:pwa && npm run test:firmware && npm run test:pwa:browser"
   },
   "dependencies": {
     "@floating-ui/vue": "^1.1.6",
