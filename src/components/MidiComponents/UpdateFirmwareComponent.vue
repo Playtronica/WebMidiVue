@@ -2,34 +2,7 @@
 import {LoadFirmware} from "@/assets/js/LoadFirmware";
 
 export default {
-  data() {
-    return {
-      isOnline: navigator.onLine,
-      updateError: ''
-    }
-  },
-  mounted() {
-    window.addEventListener('online', this.syncOnlineStatus)
-    window.addEventListener('offline', this.syncOnlineStatus)
-  },
-  beforeUnmount() {
-    window.removeEventListener('online', this.syncOnlineStatus)
-    window.removeEventListener('offline', this.syncOnlineStatus)
-  },
-  methods: {
-    syncOnlineStatus() {
-      this.isOnline = navigator.onLine
-      if (this.isOnline) this.updateError = ''
-    },
-    async updateFirmware() {
-      this.updateError = ''
-      try {
-        await LoadFirmware(this.repo, this.device)
-      } catch (error) {
-        this.updateError = error.message
-      }
-    }
-  },
+  methods: {LoadFirmware},
 
   props: {
       repo: {
@@ -62,15 +35,11 @@ export default {
           </p>
           <h6 style="color: red">ATTENTION</h6>
           <p>The device won't work until you move the file.</p>
-          <p v-if="!isOnline" class="alert alert-warning mb-0" role="status">
-            Firmware updates require an internet connection. Device settings remain available offline.
-          </p>
-          <p v-if="updateError" class="alert alert-danger mb-0" role="alert">{{ updateError }}</p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" :disabled="!isOnline"
-                  @click="updateFirmware">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal"
+                  @click="LoadFirmware(this.repo, this.device)">
             Update</button>
         </div>
       </div>

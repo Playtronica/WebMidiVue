@@ -17,19 +17,8 @@ import PlaytronPageTest from "@/components/PlaytronPage/PlaytronPageTest.vue";
 import TouchMePageTest from "@/components/TouchMePage/TouchMePageTest.vue";
 import ScalesPageTest from "@/components/ScalesPage/ScalesPageTest.vue";
 import CirclePage from "@/components/CirclePage/CirclePage.vue";
-import './registerServiceWorker'
 
-const knownDirectRoutes = new Set([
-    '/biotron', '/biotron/update', '/touchme', '/touchme/test',
-    '/touchme/standalone', '/playtron', '/playtron/test', '/scales',
-    '/scales/test', '/scala', '/circle'
-])
 
-// A cached navigation such as /biotron is served the app shell by Workbox.
-// Normalize it to the hash URL used by this application before the router starts.
-if (!window.location.hash && knownDirectRoutes.has(window.location.pathname)) {
-    window.history.replaceState(null, '', `/#${window.location.pathname}${window.location.search}`)
-}
 
 const routes = [
     { path: '/', component: HomeComponent},
