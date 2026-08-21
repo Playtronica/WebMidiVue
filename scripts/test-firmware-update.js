@@ -6,6 +6,8 @@ const vm = require('vm')
 const source = fs.readFileSync('src/assets/js/LoadFirmware.js', 'utf8')
 const compiled = babel.transformSync(source, {
   filename: 'src/assets/js/LoadFirmware.js',
+  babelrc: false,
+  configFile: false,
   plugins: ['@babel/plugin-transform-modules-commonjs']
 }).code
 
