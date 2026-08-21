@@ -139,6 +139,34 @@ async function duplicateDevicesStayDistinct() {
   assert.strictEqual(pairs[1].output, output2)
   assert.strictEqual(pairs[1].input, input2)
   assert.notStrictEqual(pairs[0].input, pairs[1].input, 'duplicate outputs collapsed onto one input')
+
+  target.midiAccess = midi
+  await target.refreshDevices()
+  assert.strictEqual(output1.openCalls, 0)
+  assert.strictEqual(output2.openCalls, 0)
+  assert.strictEqual(target.selectedDevice, null)
+  assert.match(target.midiError, /More than one identical device/)
+  assert.strictEqual(target.events.at(-1)[1], undefined)
+}
+
+async function duplicateDetectionDoesNotHideCloseFailure() {
+  const input1 = port('in-1')
+  const input2 = port('in-2')
+  const output1 = port('out-1', 'Biotron', {
+    async close() { this.closeCalls++; throw new Error('still open') }
+  })
+  const output2 = port('out-2')
+  const selected = {input: input1, output: output1}
+  const midi = {
+    inputs: new Map([[input1.id, input1], [input2.id, input2]]),
+    outputs: new Map([[output1.id, output1], [output2.id, output2]])
+  }
+  const target = instance({midiAccess: midi, selectedDevice: selected})
+  await target.refreshDevices()
+  assert.strictEqual(target.selectedDevice, selected, 'failed close was reported as a released selection')
+  assert.strictEqual(output2.openCalls, 0)
+  assert.match(target.midiError, /did not close/)
+  assert.strictEqual(target.events.at(-1)[1], undefined)
 }
 
 ;(async () => {
@@ -148,7 +176,8 @@ async function duplicateDevicesStayDistinct() {
   await switchCloseFailureDoesNotClaimSuccess()
   await unmountCancelsPendingOpen()
   await duplicateDevicesStayDistinct()
-  console.log('MIDI lifecycle verified: release failure, delayed cancellation, reconnect failure, switch close failure, unmount, duplicate-device separation.')
+  await duplicateDetectionDoesNotHideCloseFailure()
+  console.log('MIDI lifecycle verified: release failure, delayed cancellation, reconnect failure, switch close failure, unmount, duplicate-device fail-closed handling, and truthful duplicate cleanup failure.')
 })().catch(error => {
   console.error(error)
   process.exitCode = 1

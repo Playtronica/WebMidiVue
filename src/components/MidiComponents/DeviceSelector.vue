@@ -8,7 +8,7 @@
       </select>
       <label for="device">{{ text_label }}</label>
     </div>
-    <div class="d-flex gap-2 align-items-center mt-2">
+    <div v-if="allowDawHandoff" class="d-flex gap-2 align-items-center mt-2">
       <button v-if="!released" type="button" class="btn btn-outline-primary" @click="releaseMidi" :disabled="connecting || !selectedDevice">
         Release device for DAW
       </button>
@@ -50,6 +50,10 @@
         default: false,
         type: Boolean
       },
+      allowDawHandoff: {
+        default: false,
+        type: Boolean
+      },
       text_label: {
         default: "Select device",
         type: String,
@@ -88,6 +92,14 @@
           const matchingInputs = inputsByIdentity.get(portIdentity(output)) || [];
           return {output, input: matchingInputs.shift()};
         });
+      },
+      hasAmbiguousIdentity(devices) {
+        const counts = new Map();
+        for (const device of devices) {
+          const identity = portIdentity(device.output);
+          counts.set(identity, (counts.get(identity) || 0) + 1);
+        }
+        return [...counts.values()].some((count) => count > 1);
       },
       midiReady(midi) {
         this.midiAccess = midi;
@@ -159,6 +171,21 @@
         if (!this.midiAccess || this.released) return;
         const previousOutputId = this.selectedDevice && this.selectedDevice.output.id;
         this.devices = this.pairDevices(this.midiAccess);
+        if (this.hasAmbiguousIdentity(this.devices)) {
+          this.clearUpdateTimeout();
+          const failures = await this.closeDevice(this.selectedDevice);
+          if (failures.length) {
+            this.$emit("device_changed", undefined);
+            this.midiError = `More than one identical device is connected, and ${[...new Set(failures)].join(", ")} did not close. Disconnect the extra device, then retry Release.`;
+            this.connecting = false;
+            return;
+          }
+          this.selectedDevice = null;
+          this.$emit("device_changed", undefined);
+          this.midiError = "More than one identical device is connected. Disconnect the others so Settings can match the correct MIDI input and output.";
+          this.connecting = false;
+          return;
+        }
         const previousIndex = this.devices.findIndex((device) => device.output.id === previousOutputId);
         if (previousIndex >= 0) this.currentMidiNum = previousIndex;
         else if (!this.devices[this.currentMidiNum]) this.currentMidiNum = 0;
