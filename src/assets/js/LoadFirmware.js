@@ -16,10 +16,15 @@ export async function LoadFirmware(repo_link, device) {
     }
 
     const data = await response.json()
-    const firmwareUrl = data.assets?.[0]?.browser_download_url
-    if (!firmwareUrl) {
-        throw new Error('The latest release does not contain a firmware file.')
+    const releasePrefix = `https://github.com/${repo_link}/releases/download/`
+    const firmwareAssets = (data.assets || []).filter((asset) =>
+        typeof asset.name === 'string' && asset.name.toLowerCase().endsWith('.uf2') &&
+        typeof asset.browser_download_url === 'string' && asset.browser_download_url.startsWith(releasePrefix)
+    )
+    if (firmwareAssets.length !== 1) {
+        throw new Error('The latest release must contain exactly one verified .uf2 firmware file.')
     }
+    const firmwareUrl = firmwareAssets[0].browser_download_url
 
     // Enter BOOT mode only after the online firmware file has been resolved.
     bootDevice(device)

@@ -43,20 +43,33 @@ async function run({ online, response }) {
   assert.deepStrictEqual(result.events, [])
 
   result = await run({ online: true, response: { ok: true, json: async () => ({ assets: [] }) } })
-  assert.match(result.error.message, /does not contain/)
+  assert.match(result.error.message, /exactly one verified/)
   assert.deepStrictEqual(result.events, [])
 
   result = await run({
     online: true,
-    response: { ok: true, json: async () => ({ assets: [{ browser_download_url: 'https://example.test/firmware.uf2' }] }) }
+    response: { ok: true, json: async () => ({ assets: [
+      { name: 'readme.txt', browser_download_url: 'https://github.com/Playtronica/biotron-firmware/releases/download/1.8.2/readme.txt' },
+      { name: 'firmware.uf2', browser_download_url: 'https://evil.example/firmware.uf2' }
+    ] }) }
+  })
+  assert.match(result.error.message, /exactly one verified/)
+  assert.deepStrictEqual(result.events, [])
+
+  result = await run({
+    online: true,
+    response: { ok: true, json: async () => ({ assets: [
+      { name: 'release-notes.txt', browser_download_url: 'https://github.com/Playtronica/biotron-firmware/releases/download/1.8.2/release-notes.txt' },
+      { name: 'biotron-firmware_1.8.2.uf2', browser_download_url: 'https://github.com/Playtronica/biotron-firmware/releases/download/1.8.2/biotron-firmware_1.8.2.uf2' }
+    ] }) }
   })
   assert.ifError(result.error)
   assert.deepStrictEqual(result.events, [
     ['boot', 'device'],
-    ['download', 'https://example.test/firmware.uf2']
+    ['download', 'https://github.com/Playtronica/biotron-firmware/releases/download/1.8.2/biotron-firmware_1.8.2.uf2']
   ])
 
-  console.log('Firmware update verified: 3 failure paths stay out of BOOT; success boots before download.')
+  console.log('Firmware update verified: offline/API/missing/untrusted failures stay out of BOOT; one repository-scoped UF2 boots before download.')
 })().catch(error => {
   console.error(error)
   process.exitCode = 1
