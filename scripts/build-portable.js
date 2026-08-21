@@ -18,13 +18,15 @@ function run(command, args, options = {}) {
   assert.strictEqual(result.status, 0, `${command} ${args.join(' ')} failed`)
 }
 
-function copyDirectory(source, destination) {
+function copyDirectory(source, destination, shouldCopy = () => true) {
   fs.mkdirSync(destination, {recursive: true})
-  for (const entry of fs.readdirSync(source, {withFileTypes: true})) {
+  const entries = fs.readdirSync(source, {withFileTypes: true})
+    .sort((left, right) => left.name.localeCompare(right.name))
+  for (const entry of entries) {
     const from = path.join(source, entry.name)
     const to = path.join(destination, entry.name)
-    if (entry.isDirectory()) copyDirectory(from, to)
-    else fs.copyFileSync(from, to)
+    if (entry.isDirectory()) copyDirectory(from, to, shouldCopy)
+    else if (shouldCopy(from)) fs.copyFileSync(from, to)
   }
 }
 
@@ -35,7 +37,11 @@ try {
   copyDirectory(portable, staging)
   const embeddedWeb = path.join(staging, 'cmd', 'biotron-offline', 'web')
   fs.rmSync(embeddedWeb, {recursive: true, force: true})
-  copyDirectory(dist, embeddedWeb)
+  // Source maps contain build-machine paths and webpack's service-worker map
+  // changes between otherwise identical production builds. They are not used
+  // by the offline runtime, so excluding them makes the customer artifact
+  // reproducible and avoids shipping local build metadata.
+  copyDirectory(dist, embeddedWeb, source => !source.endsWith('.map'))
 
   fs.mkdirSync(artifacts, {recursive: true})
   const output = path.join(artifacts, 'Biotron-Settings-Offline-Windows-x64.exe')

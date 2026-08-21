@@ -24,6 +24,12 @@ npm run build:portable:windows
 Output is written to `artifacts/portable/` and is intentionally ignored by
 Git. The build emits the `.exe` plus a SHA-256 sidecar.
 
+Run `npm run test:portable` before publishing an artifact. It performs the
+clean-offline browser contract, rebuilds the production UI twice and requires
+both resulting Windows executables to have the same SHA-256. Source maps are
+deliberately excluded from the executable: the runtime does not use them, and
+webpack service-worker maps contain non-reproducible build metadata.
+
 Safety rails:
 
 - The server listens only on `127.0.0.1`, never on the LAN.
