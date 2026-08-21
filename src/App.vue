@@ -60,6 +60,10 @@ export default {
   },
   computed: {
     offlineMessage() {
+      if (this.offlineStatus.portable) {
+        const version = this.offlineStatus.version ? ` ${this.offlineStatus.version}` : ''
+        return `Offline portable${version} — Settings are running from this computer. Firmware updates still need internet.`
+      }
       if (this.offlineStatus.ready && !this.online) {
         return "Offline — Settings are available. Firmware updates still need internet."
       }

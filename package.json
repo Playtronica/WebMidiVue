@@ -10,7 +10,10 @@
     "test:pwa": "node scripts/test-pwa-build.js",
     "test:firmware": "node scripts/test-firmware-update.js",
     "test:pwa:browser": "node scripts/test-pwa-browser.js",
-    "test:biotron": "npm run lint && npm run build && npm run test:midi-lifecycle && npm run test:pwa && npm run test:firmware && npm run test:pwa:browser"
+    "test:portable:browser": "node scripts/test-portable-browser.js",
+    "build:portable:windows": "npm run build && node scripts/build-portable.js",
+    "test:portable": "npm run test:portable:browser && node scripts/build-portable.js --test",
+    "test:biotron": "npm run lint && npm run build && npm run test:midi-lifecycle && npm run test:pwa && npm run test:firmware && npm run test:pwa:browser && npm run test:portable:browser"
   },
   "dependencies": {
     "@floating-ui/vue": "^1.1.6",

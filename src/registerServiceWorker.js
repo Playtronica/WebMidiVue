@@ -2,16 +2,35 @@ export const OFFLINE_STATUS_EVENT = 'playtronica-offline-status'
 
 let offlineStatus = {
   state: process.env.NODE_ENV === 'production' ? 'installing' : 'development',
-  ready: false
+  ready: false,
+  portable: false,
+  version: ''
 }
 
 export const getOfflineStatus = () => ({...offlineStatus})
 
-const publishOfflineStatus = (state, ready = false) => {
-  offlineStatus = {state, ready}
+const publishOfflineStatus = (state, ready = false, runtime = {}) => {
+  offlineStatus = {
+    state,
+    ready,
+    portable: Boolean(runtime.portable),
+    version: runtime.version || ''
+  }
   window.dispatchEvent(new CustomEvent(OFFLINE_STATUS_EVENT, {
     detail: getOfflineStatus()
   }))
+}
+
+const detectPortableRuntime = async () => {
+  try {
+    const response = await fetch('/__biotron/runtime.json', {cache: 'no-store'})
+    if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return null
+    const runtime = await response.json()
+    if (runtime.application !== 'playtronica-biotron-settings' || runtime.portable !== true) return null
+    return runtime
+  } catch (error) {
+    return null
+  }
 }
 
 const waitForController = () => new Promise((resolve, reject) => {
@@ -39,6 +58,14 @@ if (process.env.NODE_ENV === 'production') {
     window.addEventListener('load', async () => {
       publishOfflineStatus('installing')
       try {
+        const portableRuntime = await detectPortableRuntime()
+        if (portableRuntime) {
+          // The portable launcher embeds and serves the complete production
+          // build from loopback. It is ready on a clean offline machine and
+          // does not need a service worker or a first online installation.
+          publishOfflineStatus('portable-ready', true, portableRuntime)
+          return
+        }
         const existingRegistration = await navigator.serviceWorker.getRegistration()
         // On a later offline launch, use the already installed worker instead
         // of making readiness depend on a network update check.
@@ -59,6 +86,6 @@ if (process.env.NODE_ENV === 'production') {
       }
     })
   } else {
-    offlineStatus = {state: 'unsupported', ready: false}
+    offlineStatus = {state: 'unsupported', ready: false, portable: false, version: ''}
   }
 }
