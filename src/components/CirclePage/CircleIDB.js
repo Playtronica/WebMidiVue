@@ -162,6 +162,16 @@ export let CircleCommandsData = new Map(Object.entries({
         name: "hold_mode",
         number_command: 14,
     }),
+    "pitch": new SysExCommand({
+        name: "pitch",
+        number_command: 15,
+        min_value: 0,
+        max_value: 16383,
+        custom_fold: (arr, val) => {
+            arr.push(val & 0x7F);
+            arr.push((val >> 7) & 0x7F);
+        }
+    }),
 }))
 
 export const synthFactoryPresetNames = [
@@ -266,12 +276,13 @@ const default_preset = {
     "synth_lfo_rate": 58,
     "synth_volume": 50,
     "hold_mode": 0,
+    "pitch": 8192,
 }
 
 export class CircleDb extends Db {
     DB_NAME = "CircleDB"
     STORE_NAME = "Circle_Patches"
-    VERSION = 9
+    VERSION = 10
 
     constructor() {
         super(CircleCommandsData)

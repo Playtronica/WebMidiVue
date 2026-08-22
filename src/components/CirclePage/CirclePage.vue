@@ -162,6 +162,17 @@
           </template>
         </GroupOfCommands>
 
+        <GroupOfCommands name-of-group="Pitch Bend">
+          <template v-slot:objects>
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.commands_data.pitch"
+                           @input-changed="this.sys_ex_changed"
+                           command-label="🎯 Pitch Bend"
+                           description="14-bit pitch bend (0–16383), 8192 = center/no bend, ±8192 maps to ±2 semitones. Applied live to all sounding voices."
+                           class="m-2"/>
+          </template>
+        </GroupOfCommands>
+
         <GroupOfCommands name-of-group="Oscillator">
           <template v-slot:objects>
             <SliderCommand :key="this.forceRerender"
