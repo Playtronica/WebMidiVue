@@ -28,7 +28,15 @@
       role="status"
       aria-live="polite"
   >
-    {{ offlineMessage }}
+    <span>{{ offlineMessage }}</span>
+    <span v-if="offlineStatus.state === 'error'" class="offline-actions">
+      <button type="button" class="offline-action" @click="retryOfflineSetup" :disabled="offlineRetrying">
+        {{ offlineRetrying ? "Retrying…" : "Retry" }}
+      </button>
+      <button type="button" class="offline-action offline-action--secondary" @click="copyOfflineReport">
+        {{ diagnosticsFeedback || "Copy diagnostics" }}
+      </button>
+    </span>
   </div>
   <div class="wrapper">
     <div class="m-2 content ">
@@ -44,7 +52,12 @@
 
 <script>
 import SocialLinks from "@/components/SocialLinks.vue";
-import {getOfflineStatus, OFFLINE_STATUS_EVENT} from "@/registerServiceWorker";
+import {
+  collectOfflineDiagnostics,
+  getOfflineStatus,
+  OFFLINE_STATUS_EVENT,
+  prepareOfflineAccess
+} from "@/registerServiceWorker";
 
 
 export default {
@@ -55,7 +68,9 @@ export default {
       url: String,
       forceRerender: 0,
       offlineStatus: getOfflineStatus(),
-      online: navigator.onLine
+      online: navigator.onLine,
+      offlineRetrying: false,
+      diagnosticsFeedback: ""
     }
   },
   computed: {
@@ -74,7 +89,15 @@ export default {
         return "Preparing offline access… Keep this window open until it is ready."
       }
       if (this.offlineStatus.state === "error") {
-        return "Offline setup did not finish. Check the connection and reload this page."
+        const messages = {
+          SW_FIRST_INSTALL_OFFLINE: "Offline copy is missing in this browser profile. Connect once, then press Retry.",
+          SW_REGISTER_FAILED: "Chrome could not install the offline copy. Check the connection, then press Retry.",
+          SW_READY_TIMEOUT: "Offline installation did not finish in time. Press Retry or copy diagnostics for support.",
+          SW_NO_CONTROLLER: "Offline files are installed, but this page is not using them. Close every Settings window and reopen it.",
+          SW_UNSUPPORTED: "This browser cannot install Settings for offline use. Use current Chrome or Edge."
+        }
+        const message = messages[this.offlineStatus.code] || "Offline setup failed. Press Retry or copy diagnostics for support."
+        return `${message} Code: ${this.offlineStatus.code || "SW_SETUP_FAILED"}.`
       }
       if (this.offlineStatus.state === "unsupported") {
         return "This browser cannot install Settings for offline use."
@@ -107,6 +130,25 @@ export default {
     },
     handleConnectionChange() {
       this.online = navigator.onLine
+    },
+    async retryOfflineSetup() {
+      this.offlineRetrying = true
+      this.diagnosticsFeedback = ""
+      try {
+        this.offlineStatus = await prepareOfflineAccess()
+      } finally {
+        this.offlineRetrying = false
+      }
+    },
+    async copyOfflineReport() {
+      const report = JSON.stringify(await collectOfflineDiagnostics(), null, 2)
+      try {
+        await navigator.clipboard.writeText(report)
+        this.diagnosticsFeedback = "Copied"
+      } catch (error) {
+        console.error("Could not copy offline diagnostics:", error)
+        this.diagnosticsFeedback = "Copy failed"
+      }
     }
   }
 }
@@ -128,6 +170,47 @@ export default {
   border: 1px solid;
   border-radius: 0.5rem;
   font-size: 0.9rem;
+}
+
+.offline-actions {
+  display: inline-flex;
+  gap: 0.5rem;
+  margin-left: 0.75rem;
+}
+
+.offline-action {
+  min-height: 36px;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid currentColor;
+  border-radius: 0.35rem;
+  color: #fff;
+  background: #842029;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.offline-action--secondary {
+  color: #842029;
+  background: #fff;
+}
+
+.offline-action:focus-visible {
+  outline: 3px solid #0d6efd;
+  outline-offset: 2px;
+}
+
+.offline-action:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+@media (max-width: 640px) {
+  .offline-actions {
+    display: flex;
+    justify-content: center;
+    margin: 0.5rem 0 0;
+  }
 }
 
 .offline-status--ready {

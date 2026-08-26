@@ -32,6 +32,7 @@ module.exports = {
     },
     workboxPluginMode: 'GenerateSW',
     workboxOptions: {
+      cacheId: 'playtronica-settings',
       cleanupOutdatedCaches: true,
       clientsClaim: true,
       skipWaiting: false,
