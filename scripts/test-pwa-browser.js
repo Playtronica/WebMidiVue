@@ -143,7 +143,7 @@ async function controllerVersion(page) {
   assert.strictEqual(manifest.start_url, './#/')
   assert.strictEqual(manifest.scope, './')
   assert.strictEqual(manifest.display, 'standalone')
-  console.log('1/5 online install, active precache, manifest and one SysEx permission flow verified')
+  console.log('1/7 online install, active precache, manifest and one SysEx permission flow verified')
 
   await closeProfile()
   page = await openProfile(false)
@@ -152,7 +152,7 @@ async function controllerVersion(page) {
   await page.getByText(/Offline — Settings are available/i).waitFor({state: 'visible', timeout: 10000})
   assert.strictEqual(await controllerVersion(page), 1)
   assert.strictEqual(await page.evaluate(() => window.__midiRequestCount), 1, 'offline restart used more than one MIDI permission request')
-  console.log('2/5 full Chrome restart with the same profile and network disabled verified')
+  console.log('2/7 full Chrome restart with the same profile and network disabled verified')
 
   const sendButton = page.getByRole('button', {name: /Send to Device/i})
   await waitFor(() => sendButton.isEnabled(), 'fake Biotron did not connect offline')
@@ -163,13 +163,13 @@ async function controllerVersion(page) {
     'offline setting write did not reach the fake MIDI output'
   )
   assert(await page.evaluate(() => window.__midiSent.some(message => message[0] === 0xF0 && message.at(-1) === 0xF7)), 'no complete SysEx setting was sent offline')
-  console.log('3/5 offline Biotron detection and SysEx settings write verified')
+  console.log('3/7 offline Biotron detection and SysEx settings write verified')
 
   await page.getByRole('button', { name: /Update Firmware/i }).click()
   await page.getByText(/Firmware updates require an internet connection/i).waitFor({state: 'visible', timeout: 5000})
   const update = page.locator('.modal.show').getByRole('button', { name: 'Update', exact: true })
   assert(await update.isDisabled(), 'firmware Update remains enabled offline')
-  console.log('4/5 offline firmware guard verified')
+  console.log('4/7 offline firmware guard verified')
 
   await context.setOffline(false)
   await page.evaluate(() => {
@@ -194,9 +194,43 @@ async function controllerVersion(page) {
     false,
     'old waiting worker remains after deliberate restart'
   )
-  console.log('5/5 A→B update stayed non-disruptive, activated after restart and launched offline')
+  console.log('5/7 A→B update stayed non-disruptive, activated after restart and launched offline')
 
-  console.log('Browser PWA verified across persistent-profile restarts: offline app shell, one MIDI/SysEx flow, setting write, firmware guard and controlled update.')
+  await context.addInitScript(() => {
+    const getRegistration = navigator.serviceWorker.getRegistration.bind(navigator.serviceWorker)
+    window.__simulateMissingRegistration = true
+    navigator.serviceWorker.getRegistration = (...args) => window.__simulateMissingRegistration
+      ? Promise.resolve(undefined)
+      : getRegistration(...args)
+  })
+  await page.reload({waitUntil: 'load'})
+  await page.getByText(/Code: SW_FIRST_INSTALL_OFFLINE/i).waitFor({state: 'visible', timeout: 10000})
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'], {origin})
+  await page.getByRole('button', {name: /Copy diagnostics/i}).click()
+  await page.getByRole('button', {name: 'Copied'}).waitFor({state: 'visible', timeout: 5000})
+  const diagnostics = JSON.parse(await page.evaluate(() => navigator.clipboard.readText()))
+  assert.strictEqual(diagnostics.application, 'playtronica-biotron-settings')
+  assert.strictEqual(diagnostics.online, false)
+  assert.strictEqual(diagnostics.status.code, 'SW_FIRST_INSTALL_OFFLINE')
+  assert.strictEqual(new URL(diagnostics.page).search, '', 'diagnostics leaked page query data')
+  assert(Array.isArray(diagnostics.appCaches), 'diagnostics app cache list is missing')
+  console.log('6/7 missing registration reports a stable code and copies a privacy-bounded support snapshot')
+
+  await context.setOffline(false)
+  await page.evaluate(() => {
+    window.__testOnline = true
+    window.__simulateMissingRegistration = false
+    window.dispatchEvent(new Event('online'))
+  })
+  await page.getByRole('button', {name: 'Retry', exact: true}).click()
+  await page.getByText(/Ready offline —/i).waitFor({state: 'visible', timeout: 15000})
+  await closeProfile()
+  page = await openProfile(false)
+  await page.goto(`${origin}/biotron`, {waitUntil: 'load'})
+  await page.getByText(/Offline — Settings are available/i).waitFor({state: 'visible', timeout: 10000})
+  console.log('7/7 Retry repairs the registration online and the same profile launches offline again')
+
+  console.log('Browser PWA verified across persistent-profile restarts: offline app shell, diagnostics/retry, one MIDI/SysEx flow, setting write, firmware guard and controlled update.')
 })().catch(error => {
   console.error(error)
   process.exitCode = 1

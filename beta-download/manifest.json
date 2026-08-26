@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "application": "playtronica-biotron-settings",
+  "channel": "customer-beta",
+  "source_commit": "205a786381cc0d0d998c6bc3987332a13f4b9fa3",
+  "release_status": "unsigned-physical-acceptance-pending",
+  "files": [
+    {
+      "path": "downloads/Biotron-Settings-Offline-Windows-x64.exe",
+      "bytes": 7559168,
+      "sha256": "9d0e1025353db5ded4550b44cc2e0cd9e7c9355b1e2f0087147527b8a7ff3de0",
+      "platform": "windows-x64"
+    },
+    {
+      "path": "downloads/00-BIOTRON-20MIN.mid",
+      "bytes": 72,
+      "sha256": "f66da48f1b220dfb6917750b99c1215ab417e45e2b867fe10a0bb2a0f5ef0fed",
+      "platform": "standard-midi-file"
+    }
+  ],
+  "limits": [
+    "Unsigned beta: Windows may show a SmartScreen warning.",
+    "Run as a normal user, never as administrator.",
+    "Chrome or Edge must already be installed.",
+    "Firmware update still requires internet.",
+    "Rapid incoming MIDI CC remains under physical testing."
+  ]
+}

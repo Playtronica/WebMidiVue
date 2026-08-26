@@ -2,7 +2,7 @@
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
 
   <h1 class="text-center">Biotron change settings</h1>
-  <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x}" class="m-2"/>
+  <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x}" allow-daw-handoff class="m-2"/>
   <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" class="mb-2"/>
 
   <GroupOfCommands name-of-group="BPM">

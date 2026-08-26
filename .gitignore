@@ -1,6 +1,8 @@
 .DS_Store
 node_modules
 /dist
+/artifacts/portable
+/artifacts/beta-download
 
 
 # local env files

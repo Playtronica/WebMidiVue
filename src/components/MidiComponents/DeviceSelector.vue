@@ -8,11 +8,11 @@
       </select>
       <label for="device">{{ text_label }}</label>
     </div>
-    <div class="d-flex gap-2 align-items-center mt-2">
-      <button v-if="!released" type="button" class="btn btn-outline-primary" @click="releaseMidi" :disabled="connecting || !selectedDevice">
+    <div v-if="allowDawHandoff" class="daw-handoff d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center mt-2">
+      <button v-if="!released" type="button" class="btn btn-outline-primary daw-handoff__button" @click="releaseMidi" :disabled="connecting || !selectedDevice">
         Release device for DAW
       </button>
-      <button v-else type="button" class="btn btn-primary" @click="connectMidi" :disabled="connecting">
+      <button v-else type="button" class="btn btn-primary daw-handoff__button" @click="connectMidi" :disabled="connecting">
         Reconnect settings
       </button>
       <small class="text-muted">
@@ -47,6 +47,10 @@
         type: String
       },
       checkVersionsFlag: {
+        default: false,
+        type: Boolean
+      },
+      allowDawHandoff: {
         default: false,
         type: Boolean
       },
@@ -88,6 +92,14 @@
           const matchingInputs = inputsByIdentity.get(portIdentity(output)) || [];
           return {output, input: matchingInputs.shift()};
         });
+      },
+      hasAmbiguousIdentity(devices) {
+        const counts = new Map();
+        for (const device of devices) {
+          const identity = portIdentity(device.output);
+          counts.set(identity, (counts.get(identity) || 0) + 1);
+        }
+        return [...counts.values()].some((count) => count > 1);
       },
       midiReady(midi) {
         this.midiAccess = midi;
@@ -159,6 +171,21 @@
         if (!this.midiAccess || this.released) return;
         const previousOutputId = this.selectedDevice && this.selectedDevice.output.id;
         this.devices = this.pairDevices(this.midiAccess);
+        if (this.hasAmbiguousIdentity(this.devices)) {
+          this.clearUpdateTimeout();
+          const failures = await this.closeDevice(this.selectedDevice);
+          if (failures.length) {
+            this.$emit("device_changed", undefined);
+            this.midiError = `More than one identical device is connected, and ${[...new Set(failures)].join(", ")} did not close. Disconnect the extra device, then retry Release.`;
+            this.connecting = false;
+            return;
+          }
+          this.selectedDevice = null;
+          this.$emit("device_changed", undefined);
+          this.midiError = "More than one identical device is connected. Disconnect the others so Settings can match the correct MIDI input and output.";
+          this.connecting = false;
+          return;
+        }
         const previousIndex = this.devices.findIndex((device) => device.output.id === previousOutputId);
         if (previousIndex >= 0) this.currentMidiNum = previousIndex;
         else if (!this.devices[this.currentMidiNum]) this.currentMidiNum = 0;
@@ -259,5 +286,22 @@
 </script>
 
 <style scoped>
+
+.daw-handoff__button {
+  min-width: 12rem;
+  min-height: 44px;
+}
+
+.daw-handoff small {
+  line-height: 1.4;
+  text-align: left;
+}
+
+@media (max-width: 575.98px) {
+  .daw-handoff__button {
+    width: 100%;
+    min-width: 0;
+  }
+}
 
 </style>
