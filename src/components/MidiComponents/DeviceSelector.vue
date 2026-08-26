@@ -8,11 +8,11 @@
       </select>
       <label for="device">{{ text_label }}</label>
     </div>
-    <div v-if="allowDawHandoff" class="d-flex gap-2 align-items-center mt-2">
-      <button v-if="!released" type="button" class="btn btn-outline-primary" @click="releaseMidi" :disabled="connecting || !selectedDevice">
+    <div v-if="allowDawHandoff" class="daw-handoff d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center mt-2">
+      <button v-if="!released" type="button" class="btn btn-outline-primary daw-handoff__button" @click="releaseMidi" :disabled="connecting || !selectedDevice">
         Release device for DAW
       </button>
-      <button v-else type="button" class="btn btn-primary" @click="connectMidi" :disabled="connecting">
+      <button v-else type="button" class="btn btn-primary daw-handoff__button" @click="connectMidi" :disabled="connecting">
         Reconnect settings
       </button>
       <small class="text-muted">
@@ -286,5 +286,22 @@
 </script>
 
 <style scoped>
+
+.daw-handoff__button {
+  min-width: 12rem;
+  min-height: 44px;
+}
+
+.daw-handoff small {
+  line-height: 1.4;
+  text-align: left;
+}
+
+@media (max-width: 575.98px) {
+  .daw-handoff__button {
+    width: 100%;
+    min-width: 0;
+  }
+}
 
 </style>

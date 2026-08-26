@@ -77,11 +77,22 @@ const server = http.createServer((request, response) => {
   await send.click()
   assert(await page.evaluate(() => window.__midiSent.some(message => message[0] === 0xf0 && message.at(-1) === 0xf7)), 'portable setting did not reach fake SysEx output')
 
+  await page.setViewportSize({width: 375, height: 812})
+  const release = page.getByRole('button', {name: /Release device for DAW/i})
+  const releaseBox = await release.boundingBox()
+  assert(releaseBox && releaseBox.width >= 300, 'mobile DAW handoff button is squeezed beside its help text')
+  assert(releaseBox.height >= 44 && releaseBox.height <= 64, 'mobile DAW handoff button has an unusable wrapped height')
+  assert.strictEqual(
+    await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth),
+    false,
+    'portable Biotron route overflows a 375px viewport'
+  )
+
   await page.getByRole('button', {name: /Update Firmware/i}).click()
   await page.getByText(/Firmware updates require an internet connection/i).waitFor({state: 'visible'})
   assert(await page.locator('.modal.show').getByRole('button', {name: 'Update', exact: true}).isDisabled(), 'portable offline firmware update is enabled')
   await browser.close()
-  console.log('Portable browser runtime verified: clean-offline readiness, no service worker dependency, MIDI/SysEx write and firmware guard.')
+  console.log('Portable browser runtime verified: clean-offline readiness, responsive DAW handoff, no service worker dependency, MIDI/SysEx write and firmware guard.')
 })().catch(error => {
   console.error(error)
   process.exitCode = 1
