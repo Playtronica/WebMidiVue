@@ -11,6 +11,8 @@
     "test:firmware": "node scripts/test-firmware-update.js",
     "test:pwa:browser": "node scripts/test-pwa-browser.js",
     "test:portable:browser": "node scripts/test-portable-browser.js",
+    "build:beta-download": "node scripts/build-beta-download.js",
+    "test:beta-download": "node scripts/test-beta-download.js",
     "build:portable:windows": "npm run build && node scripts/build-portable.js",
     "test:portable": "npm run test:portable:browser && node scripts/test-portable-build.js",
     "test:biotron": "npm run lint && npm run build && npm run test:midi-lifecycle && npm run test:pwa && npm run test:firmware && npm run test:pwa:browser && npm run test:portable:browser"

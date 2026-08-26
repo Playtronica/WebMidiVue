@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Biotron Settings Offline Beta — Playtronica</title>
+  <style>
+    :root { --bg:#f7f8fb; --card:#fff; --text:#111; --muted:#444; --hint:#888; --accent:#3949ab; --danger:#c62828; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; line-height:1.5; }
+    .container { max-width:880px; margin:0 auto; padding:24px 16px 48px; }
+    .doc-header { background:linear-gradient(135deg,#5c6bc0 0%,#3949ab 100%); border-radius:12px; padding:32px; color:#fff; margin-bottom:24px; }
+    .tag { display:inline-block; padding:4px 8px; border-radius:100px; background:rgba(255,255,255,.2); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
+    h1 { margin:16px 0 8px; font-size:28px; line-height:1.2; }
+    .subtitle { margin:0; color:rgba(255,255,255,.88); font-size:14px; }
+    .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px; }
+    .stat,.card { background:var(--card); border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,.07); }
+    .stat { padding:16px; }
+    .stat strong { display:block; color:var(--accent); font-size:24px; line-height:1; }
+    .stat span { display:block; margin-top:8px; color:var(--hint); font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
+    .card { padding:24px; margin-bottom:16px; transition:box-shadow 200ms; }
+    .card:hover { box-shadow:0 4px 20px rgba(0,0,0,.12); }
+    h2 { margin:0 0 16px; font-size:20px; line-height:1.3; }
+    p { margin:0 0 16px; font-size:14px; }
+    .button { display:inline-block; min-height:48px; padding:12px 16px; border-radius:8px; background:var(--accent); color:#fff; font-weight:700; text-decoration:none; transition:background 200ms,transform 200ms; }
+    .button:hover,.button:focus-visible { background:#283593; transform:translateY(-1px); }
+    .button:focus-visible { outline:3px solid #ffca28; outline-offset:3px; }
+    .secondary { background:#455a64; margin-left:8px; }
+    .secondary:hover,.secondary:focus-visible { background:#263238; }
+    .warning-item { border-left:3px solid var(--danger); background:rgba(198,40,40,.06); padding:16px; margin-bottom:16px; }
+    .warning-item strong { display:block; margin-bottom:8px; }
+    code { font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; background:#f0f4ff; padding:2px 6px; border-radius:4px; font-size:12px; overflow-wrap:anywhere; }
+    ul { margin:0; padding-left:24px; }
+    li { margin:8px 0; }
+    footer { padding:16px 0; color:var(--hint); font-size:11px; text-align:center; }
+    @media (max-width:768px) {
+      .doc-header { padding:24px 16px; }
+      h1 { font-size:22px; }
+      .stats-grid { grid-template-columns:1fr; }
+      .button { display:block; width:100%; text-align:center; }
+      .secondary { margin:8px 0 0; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header class="doc-header">
+      <span class="tag">Unsigned beta · physical acceptance pending</span>
+      <h1>Biotron Settings Offline for Windows</h1>
+      <p class="subtitle">Download once. Configure Biotron without internet. Release it before opening your DAW.</p>
+    </header>
+
+    <section class="stats-grid" aria-label="Beta facts">
+      <div class="stat"><strong>7.56 MB</strong><span>Windows x64 file</span></div>
+      <div class="stat"><strong>0</strong><span>Admin rights required</span></div>
+      <div class="stat"><strong>Offline</strong><span>After download</span></div>
+    </section>
+
+    <section class="card">
+      <h2>Download the exact beta</h2>
+      <p>The executable is unsigned. Windows may show <strong>More info → Run anyway</strong>. Run it normally, never as administrator.</p>
+      <p>
+        <a class="button" href="downloads/Biotron-Settings-Offline-Windows-x64.exe" download>Download Windows beta</a>
+        <a class="button secondary" href="downloads/00-BIOTRON-20MIN.mid" download>Download REAPER MIDI test</a>
+      </p>
+      <p>SHA-256: <code>9d0e1025353db5ded4550b44cc2e0cd9e7c9355b1e2f0087147527b8a7ff3de0</code></p>
+    </section>
+
+    <section class="warning-item">
+      <strong>⚠️ Stop after the first failure.</strong>
+      This beta still uses an installed Chrome or Edge MIDI engine. Rapid MIDI CC and firmware update are not part of the customer test.
+    </section>
+
+    <section class="card">
+      <h2>What this beta proves</h2>
+      <ul>
+        <li>It starts from one downloaded file without Node, CMD, PowerShell, installation, or administrator access.</li>
+        <li>It embeds the Settings interface and does not need internet after download.</li>
+        <li>It can release the selected Biotron before REAPER opens the MIDI port.</li>
+        <li>It does not promise simultaneous Settings and DAW access.</li>
+        <li>It does not update firmware offline.</li>
+      </ul>
+    </section>
+
+    <footer>Playtronica · Biotron customer beta · 2026-08-26</footer>
+  </main>
+</body>
+</html>
