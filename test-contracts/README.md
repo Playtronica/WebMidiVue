@@ -22,6 +22,9 @@ update, Windows/DAW ownership or rollback. Those lanes live in
 `projects/firmware-engineering/devices/product-matrix.json` and remain manual or
 `BLOCKED` until real-device evidence exists.
 
+See `KNOWN-GAPS.md` for the exact updater, hardware, Orbita and UI-event
+boundaries that are intentionally not called green by this suite.
+
 When adding a device or function, update source and this matrix in the same PR.
 Do not reduce an expected command count to hide an accidentally removed UI
 control; explain the intentional compatibility change in the PR.
