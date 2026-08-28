@@ -17,7 +17,7 @@ import PlaytronPageTest from "@/components/PlaytronPage/PlaytronPageTest.vue";
 import TouchMePageTest from "@/components/TouchMePage/TouchMePageTest.vue";
 import ScalesPageTest from "@/components/ScalesPage/ScalesPageTest.vue";
 import CirclePage from "@/components/CirclePage/CirclePage.vue";
-import './registerServiceWorker'
+import '@pwa-entry'
 
 const knownDirectRoutes = new Set([
     '/biotron', '/biotron/update', '/touchme', '/touchme/test',

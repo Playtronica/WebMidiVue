@@ -2,13 +2,14 @@ const assert = require('assert')
 const fs = require('fs')
 const vm = require('vm')
 
-const source = fs.readFileSync('src/components/MidiComponents/DeviceSelector.vue', 'utf8')
+const source = fs.readFileSync('src/components/MidiComponents/BiotronDeviceSelector.vue', 'utf8')
 const script = source.match(/<script>([\s\S]*?)<\/script>/)[1]
 const scheduled = new Map()
 let timerId = 0
 const context = {
   module: { exports: {} },
   exports: {},
+  navigator: { requestMIDIAccess: async () => ({inputs: new Map(), outputs: new Map()}) },
   console: { log() {} },
   setTimeout(callback) { scheduled.set(++timerId, callback); return timerId },
   clearTimeout(id) { scheduled.delete(id) }
@@ -85,6 +86,27 @@ async function reconnectOpenFailure() {
   assert.strictEqual(target.selectedDevice, null)
   assert.match(target.midiError, /Could not open the selected device/)
   assert.strictEqual(target.events.at(-1)[0], 'device_changed')
+  assert.strictEqual(target.events.at(-1)[1], undefined)
+}
+
+async function permissionDenialIsActionableAndRetryable() {
+  context.navigator.requestMIDIAccess = async () => {
+    const error = new Error('blocked')
+    error.name = 'NotAllowedError'
+    throw error
+  }
+  const target = instance()
+  await target.connectMidi()
+  assert.strictEqual(target.selectedDevice, null)
+  assert.match(target.midiError, /MIDI access was blocked/)
+}
+
+async function missingDeviceIsActionable() {
+  const midi = {inputs: new Map(), outputs: new Map(), onstatechange: null}
+  const target = instance({midiAccess: midi})
+  await target.refreshDevices()
+  assert.strictEqual(target.selectedDevice, null)
+  assert.match(target.midiError, /No matching MIDI device found/)
   assert.strictEqual(target.events.at(-1)[1], undefined)
 }
 
@@ -173,11 +195,13 @@ async function duplicateDetectionDoesNotHideCloseFailure() {
   await releaseFailureStaysVisible()
   await delayedQueryIsCancelled()
   await reconnectOpenFailure()
+  await permissionDenialIsActionableAndRetryable()
+  await missingDeviceIsActionable()
   await switchCloseFailureDoesNotClaimSuccess()
   await unmountCancelsPendingOpen()
   await duplicateDevicesStayDistinct()
   await duplicateDetectionDoesNotHideCloseFailure()
-  console.log('MIDI lifecycle verified: release failure, delayed cancellation, reconnect failure, switch close failure, unmount, duplicate-device fail-closed handling, and truthful duplicate cleanup failure.')
+  console.log('MIDI lifecycle verified: permission/no-device recovery, release failure, delayed cancellation, reconnect failure, switch close failure, unmount, and duplicate-device fail-closed handling.')
 })().catch(error => {
   console.error(error)
   process.exitCode = 1

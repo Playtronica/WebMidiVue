@@ -296,7 +296,7 @@ import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
 import SliderRangeCommand from "@/components/MidiComponents/SliderRangeCommand.vue";
 import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
 import PatchSelector from "@/components/MidiComponents/PatchSelector.vue";
-import DeviceSelector from "@/components/MidiComponents/DeviceSelector.vue";
+import DeviceSelector from "@biotron-device-selector";
 import UpdateFirmwareComponent from "@/components/MidiComponents/UpdateFirmwareComponent.vue";
 import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
 

@@ -21,6 +21,7 @@
       </li>
     </ul>
   </header>
+  <small v-if="betaBuild" class="beta-build">Biotron offline beta · {{ buildId }}</small>
   <div
       v-if="offlineMessage"
       class="offline-status mx-auto mt-2 px-3 py-2"
@@ -28,7 +29,28 @@
       role="status"
       aria-live="polite"
   >
-    {{ offlineMessage }}
+    <span>{{ offlineMessage }}</span>
+    <span v-if="offlineStatus.ready && online && !installed" class="offline-actions">
+      <button
+          v-if="installPrompt"
+          type="button"
+          class="offline-action"
+          @click="installApp"
+      >
+        Install offline app
+      </button>
+      <small v-else>Install from the Chrome/Edge address bar to add it to your desktop.</small>
+    </span>
+    <span v-if="installed" class="offline-installed">Installed</span>
+    <button
+        v-if="offlineStatus.state === 'error'"
+        type="button"
+        class="offline-action offline-action--error"
+        @click="retryOfflineSetup"
+        :disabled="offlineRetrying"
+    >
+      {{ offlineRetrying ? "Retrying…" : "Retry" }}
+    </button>
   </div>
   <div class="wrapper">
     <div class="m-2 content ">
@@ -44,7 +66,14 @@
 
 <script>
 import SocialLinks from "@/components/SocialLinks.vue";
-import {getOfflineStatus, OFFLINE_STATUS_EVENT} from "@/registerServiceWorker";
+import {
+  getOfflineStatus,
+  OFFLINE_STATUS_EVENT,
+  prepareOfflineAccess
+} from "@pwa-entry";
+
+const runningStandalone = () => window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true
 
 
 export default {
@@ -55,7 +84,12 @@ export default {
       url: String,
       forceRerender: 0,
       offlineStatus: getOfflineStatus(),
-      online: navigator.onLine
+      online: navigator.onLine,
+      installPrompt: null,
+      installed: runningStandalone(),
+      offlineRetrying: false,
+      betaBuild: process.env.VUE_APP_BIOTRON_PWA_BETA === 'true',
+      buildId: process.env.VUE_APP_BUILD_ID || 'local-build'
     }
   },
   computed: {
@@ -70,7 +104,11 @@ export default {
         return "Preparing offline access… Keep this window open until it is ready."
       }
       if (this.offlineStatus.state === "error") {
-        return "Offline setup did not finish. Check the connection and reload this page."
+        const messages = {
+          SW_FIRST_INSTALL_OFFLINE: "Connect once to install the offline copy, then press Retry.",
+          SW_NO_CONTROLLER: "Close every Settings window, reopen this page, then press Retry."
+        }
+        return messages[this.offlineStatus.code] || "Offline setup did not finish. Check the connection, then press Retry."
       }
       if (this.offlineStatus.state === "unsupported") {
         return "This browser cannot install Settings for offline use."
@@ -90,11 +128,15 @@ export default {
     window.addEventListener(OFFLINE_STATUS_EVENT, this.handleOfflineStatus)
     window.addEventListener("online", this.handleConnectionChange)
     window.addEventListener("offline", this.handleConnectionChange)
+    window.addEventListener("beforeinstallprompt", this.handleInstallPrompt)
+    window.addEventListener("appinstalled", this.handleInstalled)
   },
   beforeUnmount() {
     window.removeEventListener(OFFLINE_STATUS_EVENT, this.handleOfflineStatus)
     window.removeEventListener("online", this.handleConnectionChange)
     window.removeEventListener("offline", this.handleConnectionChange)
+    window.removeEventListener("beforeinstallprompt", this.handleInstallPrompt)
+    window.removeEventListener("appinstalled", this.handleInstalled)
   },
   methods: {
     update() { this.forceRerender++ },
@@ -103,6 +145,29 @@ export default {
     },
     handleConnectionChange() {
       this.online = navigator.onLine
+    },
+    handleInstallPrompt(event) {
+      event.preventDefault()
+      this.installPrompt = event
+    },
+    handleInstalled() {
+      this.installPrompt = null
+      this.installed = true
+    },
+    async installApp() {
+      const prompt = this.installPrompt
+      if (!prompt) return
+      this.installPrompt = null
+      await prompt.prompt()
+      await prompt.userChoice
+    },
+    async retryOfflineSetup() {
+      this.offlineRetrying = true
+      try {
+        this.offlineStatus = await prepareOfflineAccess()
+      } finally {
+        this.offlineRetrying = false
+      }
     }
   }
 }
@@ -124,6 +189,49 @@ export default {
   border: 1px solid;
   border-radius: 0.5rem;
   font-size: 0.9rem;
+}
+
+.beta-build {
+  display: block;
+  margin-top: 0.25rem;
+  color: #6c757d;
+}
+
+.offline-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.75rem;
+}
+
+.offline-action {
+  min-height: 36px;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid currentColor;
+  border-radius: 0.35rem;
+  color: #0f5132;
+  background: #fff;
+  font: inherit;
+  font-weight: 600;
+}
+
+.offline-action--error {
+  margin-left: 0.75rem;
+  color: #842029;
+}
+
+.offline-installed {
+  display: inline-block;
+  margin-left: 0.75rem;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .offline-actions {
+    display: flex;
+    justify-content: center;
+    margin: 0.5rem 0 0;
+  }
 }
 
 .offline-status--ready {

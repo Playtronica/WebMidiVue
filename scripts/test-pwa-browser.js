@@ -58,18 +58,19 @@ async function waitFor(predicate, message, timeout = 10000) {
   }
 }
 
-async function openProfile(online) {
+async function openProfile(online, denyMidiOnce = false) {
   context = await chromium.launchPersistentContext(profile, {
     executablePath: chromePath(),
     headless: true,
     serviceWorkers: 'allow',
     args: ['--no-first-run']
   })
-  await context.addInitScript(({ initiallyOnline }) => {
+  await context.addInitScript(({ initiallyOnline, initiallyDenyMidi }) => {
     window.__testOnline = initiallyOnline
     window.__midiRequestCount = 0
     window.__midiRequestOptions = []
     window.__midiSent = []
+    window.__denyMidiOnce = initiallyDenyMidi
     Object.defineProperty(navigator, 'onLine', {
       configurable: true,
       get: () => window.__testOnline
@@ -98,10 +99,16 @@ async function openProfile(online) {
       value: async options => {
         window.__midiRequestCount += 1
         window.__midiRequestOptions.push(options)
+        if (window.__denyMidiOnce) {
+          window.__denyMidiOnce = false
+          const error = new Error('permission denied for test')
+          error.name = 'NotAllowedError'
+          throw error
+        }
         return access
       }
     })
-  }, { initiallyOnline: online })
+  }, { initiallyOnline: online, initiallyDenyMidi: denyMidiOnce })
   await context.setOffline(!online)
   return context.pages()[0] || await context.newPage()
 }
@@ -132,18 +139,40 @@ async function controllerVersion(page) {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
   origin = `http://127.0.0.1:${server.address().port}`
 
-  let page = await openProfile(true)
+  let page = await openProfile(true, true)
   await page.goto(`${origin}/biotron`, { waitUntil: 'load' })
   await page.getByText(/Ready offline —/i).waitFor({state: 'visible', timeout: 15000})
   assert.strictEqual(await controllerVersion(page), 1)
-  assert.strictEqual(await page.evaluate(() => window.__midiRequestCount), 1, 'MIDI permission was requested more than once')
+  await page.getByText(/MIDI access was blocked/i).waitFor({state: 'visible', timeout: 5000})
+  await page.getByRole('button', {name: /Retry connection/i}).click()
+  await waitFor(() => page.evaluate(() => window.__midiRequestCount === 2), 'MIDI permission retry did not run')
+  assert.strictEqual(await page.evaluate(() => window.__midiRequestCount), 2, 'MIDI denial did not recover with exactly one retry')
   assert.strictEqual(await page.evaluate(() => window.__midiRequestOptions[0].sysex), true, 'SysEx was not requested in the single MIDI permission flow')
 
+  await page.evaluate(() => {
+    window.__installPromptCalls = 0
+    const event = new Event('beforeinstallprompt', {cancelable: true})
+    event.prompt = async () => { window.__installPromptCalls += 1 }
+    event.userChoice = Promise.resolve({outcome: 'accepted'})
+    window.dispatchEvent(event)
+  })
+  await page.getByRole('button', {name: /Install offline app/i}).click()
+  assert.strictEqual(await page.evaluate(() => window.__installPromptCalls), 1, 'install prompt was not called exactly once')
+  await page.evaluate(() => window.dispatchEvent(new Event('appinstalled')))
+  await page.getByText('Installed', {exact: true}).waitFor({state: 'visible', timeout: 5000})
+
   const manifest = await page.evaluate(() => fetch('/manifest.json').then(response => response.json()))
-  assert.strictEqual(manifest.start_url, './#/')
+  assert.strictEqual(manifest.name, 'Biotron Settings Offline Beta')
+  assert.strictEqual(manifest.id, './biotron-settings-offline-beta')
+  assert.strictEqual(manifest.start_url, './#/biotron')
   assert.strictEqual(manifest.scope, './')
   assert.strictEqual(manifest.display, 'standalone')
-  console.log('1/5 online install, active precache, manifest and one SysEx permission flow verified')
+  const devtools = await context.newCDPSession(page)
+  const manifestReport = await devtools.send('Page.getAppManifest')
+  assert.deepStrictEqual(manifestReport.errors || [], [], 'Chrome rejected the generated PWA manifest')
+  const installability = await devtools.send('Page.getInstallabilityErrors')
+  assert.deepStrictEqual(installability.installabilityErrors || [], [], 'Chrome reports PWA installability errors')
+  console.log('1/7 online install action, Chrome installability, active precache, manifest and MIDI denial/retry verified')
 
   await closeProfile()
   page = await openProfile(false)
@@ -152,7 +181,7 @@ async function controllerVersion(page) {
   await page.getByText(/Offline — Settings are available/i).waitFor({state: 'visible', timeout: 10000})
   assert.strictEqual(await controllerVersion(page), 1)
   assert.strictEqual(await page.evaluate(() => window.__midiRequestCount), 1, 'offline restart used more than one MIDI permission request')
-  console.log('2/5 full Chrome restart with the same profile and network disabled verified')
+  console.log('2/7 full Chrome restart with the same profile and network disabled verified')
 
   const sendButton = page.getByRole('button', {name: /Send to Device/i})
   await waitFor(() => sendButton.isEnabled(), 'fake Biotron did not connect offline')
@@ -163,13 +192,13 @@ async function controllerVersion(page) {
     'offline setting write did not reach the fake MIDI output'
   )
   assert(await page.evaluate(() => window.__midiSent.some(message => message[0] === 0xF0 && message.at(-1) === 0xF7)), 'no complete SysEx setting was sent offline')
-  console.log('3/5 offline Biotron detection and SysEx settings write verified')
+  console.log('3/7 offline Biotron detection and SysEx settings write verified')
 
   await page.getByRole('button', { name: /Update Firmware/i }).click()
   await page.getByText(/Firmware updates require an internet connection/i).waitFor({state: 'visible', timeout: 5000})
   const update = page.locator('.modal.show').getByRole('button', { name: 'Update', exact: true })
   assert(await update.isDisabled(), 'firmware Update remains enabled offline')
-  console.log('4/5 offline firmware guard verified')
+  console.log('4/7 offline firmware guard verified')
 
   await context.setOffline(false)
   await page.evaluate(() => {
@@ -194,9 +223,34 @@ async function controllerVersion(page) {
     false,
     'old waiting worker remains after deliberate restart'
   )
-  console.log('5/5 A→B update stayed non-disruptive, activated after restart and launched offline')
+  console.log('5/7 A→B update stayed non-disruptive, activated after restart and launched offline')
 
-  console.log('Browser PWA verified across persistent-profile restarts: offline app shell, one MIDI/SysEx flow, setting write, firmware guard and controlled update.')
+  await context.addInitScript(() => {
+    const getRegistration = navigator.serviceWorker.getRegistration.bind(navigator.serviceWorker)
+    window.__simulateMissingRegistration = true
+    navigator.serviceWorker.getRegistration = (...args) => window.__simulateMissingRegistration
+      ? Promise.resolve(undefined)
+      : getRegistration(...args)
+  })
+  await page.reload({waitUntil: 'load'})
+  await page.getByText(/Connect once to install the offline copy/i).waitFor({state: 'visible', timeout: 10000})
+  console.log('6/7 clean-profile offline failure is truthful and actionable')
+
+  await context.setOffline(false)
+  await page.evaluate(() => {
+    window.__testOnline = true
+    window.__simulateMissingRegistration = false
+    window.dispatchEvent(new Event('online'))
+  })
+  await page.getByRole('button', {name: 'Retry', exact: true}).click()
+  await page.getByText(/Ready offline —/i).waitFor({state: 'visible', timeout: 15000})
+  await closeProfile()
+  page = await openProfile(false)
+  await page.goto(`${origin}/biotron`, {waitUntil: 'load'})
+  await page.getByText(/Offline — Settings are available/i).waitFor({state: 'visible', timeout: 10000})
+  console.log('7/7 Retry repairs offline setup and the same profile launches offline again')
+
+  console.log('Browser PWA verified across persistent-profile restarts: installability, offline app shell, permission/retry, MIDI setting write, firmware guard and controlled update.')
 })().catch(error => {
   console.error(error)
   process.exitCode = 1

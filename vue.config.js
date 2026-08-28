@@ -1,18 +1,49 @@
+const {execFileSync} = require('child_process')
+const path = require('path')
+
+const biotronBeta = process.env.VUE_APP_BIOTRON_PWA_BETA === 'true'
+let sourceRevision = process.env.CF_PAGES_COMMIT_SHA || process.env.GITHUB_SHA || ''
+if (!sourceRevision) {
+  try {
+    sourceRevision = execFileSync('git', ['rev-parse', '--short=12', 'HEAD'], {encoding: 'utf8'}).trim()
+  } catch (error) {
+    sourceRevision = 'local-build'
+  }
+}
+process.env.VUE_APP_BUILD_ID = sourceRevision.slice(0, 12)
+
 module.exports = {
   publicPath: process.env.NODE_ENV === 'production'
       ? '/'
       : '/',
   transpileDependencies: [],
+  chainWebpack: config => {
+    config.resolve.alias.set(
+      '@pwa-entry',
+      path.resolve(__dirname, biotronBeta ? 'src/registerServiceWorker.js' : 'src/noopServiceWorker.js')
+    )
+    config.resolve.alias.set(
+      '@biotron-device-selector',
+      path.resolve(__dirname, biotronBeta
+        ? 'src/components/MidiComponents/BiotronDeviceSelector.vue'
+        : 'src/components/MidiComponents/DeviceSelector.vue')
+    )
+    if (!biotronBeta) {
+      config.plugins.delete('pwa')
+      config.plugins.delete('workbox')
+    }
+  },
   pwa: {
-    name: 'Playtronica Settings',
+    name: biotronBeta ? 'Biotron Settings Offline Beta' : 'Playtronica Settings',
     themeColor: '#ffffff',
     msTileColor: '#ffffff',
     appleMobileWebAppCapable: 'yes',
     appleMobileWebAppStatusBarStyle: 'default',
     manifestOptions: {
-      short_name: 'Settings',
+      id: biotronBeta ? './biotron-settings-offline-beta' : './playtronica-settings',
+      short_name: biotronBeta ? 'Biotron Beta' : 'Settings',
       description: 'Configure Playtronica instruments over Web MIDI.',
-      start_url: './#/',
+      start_url: biotronBeta ? './#/biotron' : './#/',
       scope: './',
       display: 'standalone',
       background_color: '#ffffff',

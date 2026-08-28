@@ -10,7 +10,10 @@ for (const file of ['index.html', 'manifest.json', 'service-worker.js']) {
 }
 
 const manifest = JSON.parse(read('manifest.json'))
-assert.strictEqual(manifest.start_url, './#/')
+assert.strictEqual(manifest.name, 'Biotron Settings Offline Beta')
+assert.strictEqual(manifest.short_name, 'Biotron Beta')
+assert.strictEqual(manifest.id, './biotron-settings-offline-beta')
+assert.strictEqual(manifest.start_url, './#/biotron')
 assert.strictEqual(manifest.display, 'standalone')
 assert(manifest.icons.some(icon => icon.sizes === '192x192'))
 assert(manifest.icons.some(icon => icon.sizes === '512x512'))
@@ -35,5 +38,8 @@ const javascript = bundles
   .map(read)
   .join('\n')
 assert(javascript.includes('Ready offline'), 'the production UI has no truthful offline-readiness status')
+assert(javascript.includes('Install offline app'), 'the production UI has no explicit PWA install action')
+assert(javascript.includes('Biotron offline beta'), 'the production UI has no visible beta build identity')
+assert(javascript.includes('Release device for DAW'), 'the beta build does not include the Biotron DAW handoff')
 
 console.log(`PWA build verified: ${bundles.length} app bundles, revisioned app shell, readiness UI, 2 install icons.`)
