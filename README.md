@@ -15,9 +15,11 @@ npm run serve
 npm run build
 ```
 
-The production build is an installable PWA. After one successful online visit,
-the settings UI and hash routes are cached for offline use. Firmware updates are
-intentionally online-only because the latest `.uf2` file is fetched from GitHub.
+The ordinary production build keeps the current website behaviour and does not
+install a service worker. The dedicated Biotron beta below is an installable
+PWA: after one successful online visit, its settings UI and hash routes are
+cached for offline use. Firmware updates are intentionally online-only because
+the latest `.uf2` file is fetched from GitHub.
 
 Build the isolated Biotron beta (direct Biotron launch, visible source revision,
 and a separate PWA identity) with:
@@ -53,6 +55,9 @@ in this branch pushes, deploys, publishes firmware, or touches production.
 The browser lifecycle test uses an installed Chrome/Chromium (`CHROME_PATH` can
 override discovery) and covers service-worker install/control, offline direct
 navigation, the offline firmware guard, and a non-disruptive waiting update.
+
+The physical Windows release gate is in
+[`docs/BIOTRON-PWA-WINDOWS-12MIN.md`](docs/BIOTRON-PWA-WINDOWS-12MIN.md).
 
 ### Lints and fixes files
 ```
