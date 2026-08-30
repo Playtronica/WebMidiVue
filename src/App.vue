@@ -97,7 +97,7 @@ export default {
   },
   computed: {
     firstPlay() {
-      return this.betaBuild && this.$route.path === '/biotron/play'
+      return this.betaBuild && this.$route.meta.firstPlay === true
     },
     offlineMessage() {
       if (this.offlineStatus.ready && !this.online) {

@@ -74,6 +74,13 @@ const server = http.createServer((request, response) => {
         addEventListener(type, listener) { if (type === 'midimessage') midiListener = listener },
         removeEventListener(type, listener) { if (type === 'midimessage' && midiListener === listener) midiListener = null }
       }
+      const serviceInput = {
+        id: 'playtronica-in-2', name: 'Biotron Port 2', manufacturer: 'Playtronica',
+        state: 'connected', connection: 'closed',
+        async open() { this.connection = 'open'; return this },
+        async close() { this.connection = 'closed'; return this },
+        addEventListener() {}, removeEventListener() {}
+      }
       const access = {
         inputs: new Map([[input.id, input]]),
         addEventListener(type, listener) { if (type === 'statechange') stateListener = listener },
@@ -90,6 +97,8 @@ const server = http.createServer((request, response) => {
         stateListener?.({port: input})
       }
       window.__soundInput = input
+      window.__soundServiceInput = serviceInput
+      window.__addSoundServicePort = () => access.inputs.set(serviceInput.id, serviceInput)
     })
     const page = await context.newPage()
     const errors = []
@@ -272,6 +281,7 @@ const server = http.createServer((request, response) => {
     const cycleMilliseconds = Date.now() - cycleStarted
     assert.strictEqual(await page.getByRole('button', {name: 'Start sound'}).isEnabled(), true)
 
+    await page.evaluate(() => window.__addSoundServicePort())
     await page.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
     await page.getByRole('heading', {name: 'Meet Biotron'}).waitFor()
     await page.locator('.sound-lab[data-reveal-stage="intro"][data-quality="safe"]').waitFor()
@@ -281,9 +291,10 @@ const server = http.createServer((request, response) => {
     assert.strictEqual(await page.getByRole('heading', {name: 'Sounds'}).count(), 0)
     await page.getByRole('button', {name: 'Hear Biotron'}).click()
     await page.locator('.sound-lab[data-reveal-stage="ready"][data-audio-state="running"]').waitFor()
-    await page.getByText(/Biotron connected · Playtronica — Biotron Port 1/i).waitFor()
+    await page.getByText(/Biotron input · Playtronica — Biotron Port 1/i).waitFor()
     assert.deepStrictEqual((await page.evaluate(() => window.__soundMidiRequests)).at(-1), {sysex: false})
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'open')
+    assert.strictEqual(await page.evaluate(() => window.__soundServiceInput.connection), 'closed')
     await page.evaluate(() => window.__emitSoundMidi([0x91, 64, 100]))
     await page.locator('.sound-lab[data-reveal-stage="revealed"][data-active-voices="1"]').waitFor()
     await page.getByText(/measured sensor activity and sent a MIDI note/i).waitFor()

@@ -11,6 +11,12 @@ import {
 import {SOUND_VARIANTS, validatePreset} from '../src/audio/presets.mjs'
 import {MidiInputSession} from '../src/audio/midi.mjs'
 import {ExclusiveTabLease} from '../src/audio/tabLease.mjs'
+import {
+  getRevealProfile,
+  REVEAL_PROFILES,
+  selectRevealInput,
+  validateRevealProfile
+} from '../src/audio/revealProfiles.mjs'
 
 test('physical keyboard mapping is independent from typed character', () => {
   assert.equal(noteForKeyboardCode('KeyA'), 60)
@@ -59,6 +65,33 @@ test('sound designer ships exactly six bounded variants', () => {
     assert.ok(preset.release <= 3)
     assert.ok(preset.vibratoDepth <= 120)
   }
+})
+
+test('reveal profiles keep first-use copy plain and product-specific', () => {
+  const profile = getRevealProfile('biotron')
+  assert.equal(REVEAL_PROFILES.biotron, profile)
+  assert.equal(validateRevealProfile(profile), profile)
+  const beforeReveal = [
+    profile.promise, profile.introHeading, profile.introInstruction,
+    profile.startLabel, profile.readyHeading, profile.readyInstruction
+  ].join(' ')
+  assert.doesNotMatch(beforeReveal, /\b(?:MIDI|SysEx|firmware|channel)\b/i)
+  assert.match(profile.explanation, /MIDI note/i)
+  assert.throws(() => getRevealProfile('unknown'), /Unknown reveal profile/)
+})
+
+test('reveal input selection is stable for two cables and blocks two devices', () => {
+  const profile = getRevealProfile('biotron')
+  const port1 = {id: 'a-1', manufacturer: 'Playtronica', name: 'Biotron Port 1'}
+  const port2 = {id: 'a-2', manufacturer: 'Playtronica', name: 'Biotron Port 2'}
+  const unrelated = {id: 'keys', manufacturer: 'Other', name: 'Keyboard'}
+  assert.equal(selectRevealInput([unrelated, port2, port1], profile), port1)
+  assert.equal(selectRevealInput([{...port1, name: 'Biotron'}], profile).name, 'Biotron')
+  assert.throws(
+    () => selectRevealInput([port1, {...port1, id: 'b-1'}], profile),
+    /More than one Biotron music input/
+  )
+  assert.throws(() => selectRevealInput([unrelated], profile), /Biotron was not found/)
 })
 
 test('failed MIDI close stays retryable and never reports released', async () => {

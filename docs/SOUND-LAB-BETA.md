@@ -30,8 +30,11 @@ The engine caps active voices at 8 (4 in safe mode), caps retiring voices, suspe
 ## Files
 
 - `src/components/SoundLab/SoundLab.vue` — beta UI and lifecycle.
-- `src/components/BiotronPage/BiotronFirstPlay.vue` — isolated first-play route
+- `src/components/SoundLab/DeviceFirstPlay.vue` — profile-driven first-play route
   with awaited route teardown.
+- `src/audio/revealProfiles.mjs` — validated product meaning/copy and
+  deterministic music-input selection; future devices add a profile, not a
+  second MIDI/audio lifecycle.
 - `src/components/SoundLab/DisabledSoundLab.vue` — production-safe alias target.
 - `src/audio/core.mjs` — MIDI parsing, any-layout keyboard map, bounded voice ledger.
 - `src/audio/engine.mjs` — dependency-free Web Audio engine.
@@ -61,7 +64,7 @@ CHROME_PATH="/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" npm r
 ## Safety rails
 
 - Beta only: `@sound-lab` points to the real component only when `VUE_APP_BIOTRON_PWA_BETA=true`.
-- The Sound route is lazy. Its current beta chunk, including first-play, is under 9.5 KiB gzip, is precached for offline use and must remain below the enforced 25 KiB budget.
+- The Sound route is lazy. Its current beta chunk, including first-play profiles, is under 10 KiB gzip, is precached for offline use and must remain below the enforced 25 KiB budget.
 - A MIDI close failure must stay visible and retryable; Start remains blocked until the input closes.
 - In a background tab, active notes are stopped and incoming MIDI is ignored until the user returns and presses Start sound; this prevents invisible note accumulation.
 - Browser/driver AudioContext suspension is reflected in the UI. An unexpected context close blocks Start until Stop & release closes the still-selected MIDI input, preventing an orphaned port.

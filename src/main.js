@@ -21,7 +21,7 @@ import '@pwa-entry'
 
 const betaBuild = process.env.VUE_APP_BIOTRON_PWA_BETA === 'true'
 const SoundLab = () => import(/* webpackChunkName: "sound-lab" */ '@sound-lab')
-const BiotronFirstPlay = () => import(/* webpackChunkName: "sound-lab" */ '@/components/BiotronPage/BiotronFirstPlay.vue')
+const DeviceFirstPlay = () => import(/* webpackChunkName: "sound-lab" */ '@/components/SoundLab/DeviceFirstPlay.vue')
 
 const knownDirectRoutes = new Set([
     '/biotron', '/biotron/play', '/biotron/update', '/touchme', '/touchme/test',
@@ -59,7 +59,9 @@ const routes = [
 if (betaBuild) {
     routes.push({
         path: '/biotron/play',
-        component: BiotronFirstPlay
+        component: DeviceFirstPlay,
+        props: {profileId: 'biotron'},
+        meta: {firstPlay: true}
     })
     routes.push({path: '/sound', component: SoundLab})
 }

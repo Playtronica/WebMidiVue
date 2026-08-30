@@ -9,27 +9,27 @@
   >
     <template v-if="revealMode">
       <header class="sound-lab__intro sound-lab__intro--reveal">
-        <small>First play · beta</small>
-        <h1>Meet Biotron</h1>
-        <p>Make music with a plant.</p>
+        <small>{{ revealProfile.eyebrow }}</small>
+        <h1>{{ revealProfile.title }}</h1>
+        <p>{{ revealProfile.promise }}</p>
       </header>
 
-      <section class="sound-lab__reveal" aria-labelledby="biotron-reveal-title">
+      <section class="sound-lab__reveal" aria-labelledby="device-reveal-title">
         <div class="sound-lab__reveal-orb" :class="{'sound-lab__reveal-orb--active': voiceCount > 0}" aria-hidden="true"></div>
         <div class="sound-lab__reveal-copy">
           <template v-if="revealStage === 'intro'">
-            <h2 id="biotron-reveal-title">Hear what it does</h2>
-            <p>Connect Biotron to a plant and to this computer.</p>
+            <h2 id="device-reveal-title">{{ revealProfile.introHeading }}</h2>
+            <p>{{ revealProfile.introInstruction }}</p>
           </template>
           <template v-else-if="revealStage === 'ready'">
-            <small class="sound-lab__recognized">Biotron connected · {{ recognizedInput }}</small>
-            <h2 id="biotron-reveal-title">Touch the connected plant</h2>
-            <p>Listen for the next note and watch the circle respond.</p>
+            <small class="sound-lab__recognized">{{ revealProfile.productName }} input · {{ recognizedInput }}</small>
+            <h2 id="device-reveal-title">{{ revealProfile.readyHeading }}</h2>
+            <p>{{ revealProfile.readyInstruction }}</p>
           </template>
           <template v-else>
-            <small class="sound-lab__recognized">Biotron connected · {{ recognizedInput }}</small>
-            <h2 id="biotron-reveal-title">There it is</h2>
-            <p>Biotron measured sensor activity and sent a MIDI note. This page turned that note into sound.</p>
+            <small class="sound-lab__recognized">{{ revealProfile.productName }} input · {{ recognizedInput }}</small>
+            <h2 id="device-reveal-title">{{ revealProfile.revealedHeading }}</h2>
+            <p>{{ revealProfile.explanation }}</p>
           </template>
 
           <div class="sound-lab__reveal-actions">
@@ -39,7 +39,7 @@
               class="btn btn-dark"
               @click="startReveal"
               :disabled="starting || releaseBlocked"
-            >{{ revealStage === 'intro' ? 'Hear Biotron' : 'Resume sound' }}</button>
+            >{{ revealStage === 'intro' ? revealProfile.startLabel : 'Resume sound' }}</button>
             <button
               v-if="engine || midi"
               type="button"
@@ -58,11 +58,11 @@
         </div>
       </section>
 
-      <section v-if="revealStage === 'revealed'" class="sound-lab__after-reveal" aria-label="Continue with Biotron">
+      <section v-if="revealStage === 'revealed'" class="sound-lab__after-reveal" :aria-label="`Continue with ${revealProfile.productName}`">
         <button type="button" class="btn btn-primary" @click="revealExpanded = !revealExpanded">
           {{ revealExpanded ? 'Hide sound choices' : 'Tune the sound' }}
         </button>
-        <router-link class="btn btn-outline-primary" to="/biotron">Device settings</router-link>
+        <router-link class="btn btn-outline-primary" :to="revealProfile.settingsRoute">Device settings</router-link>
         <div v-if="revealExpanded" class="sound-lab__reveal-variants" aria-label="Sound choices">
           <button
             v-for="(preset, index) in variants"
@@ -169,6 +169,7 @@ import {createRealtimeSynth} from '@/audio/engine.mjs'
 import {MidiInputSession} from '@/audio/midi.mjs'
 import {SOUND_VARIANTS} from '@/audio/presets.mjs'
 import {createExclusiveTabLease} from '@/audio/tabLease.mjs'
+import {getRevealProfile, selectRevealInput} from '@/audio/revealProfiles.mjs'
 
 const keyboard = [
   ['KeyA', 60, 'A', 'C', false], ['KeyW', 61, 'W', 'C sharp', true],
@@ -184,10 +185,11 @@ export default {
   name: 'SoundLab',
   props: {
     mode: {type: String, default: 'lab'},
-    devicePattern: {type: String, default: ''}
+    profileId: {type: String, default: ''}
   },
   computed: {
-    revealMode() { return this.mode === 'reveal' }
+    revealMode() { return this.mode === 'reveal' },
+    revealProfile() { return getRevealProfile(this.profileId) }
   },
   data() {
     return {
@@ -396,35 +398,21 @@ export default {
       } catch (error) { this.status = error.message }
       finally { this.starting = false }
     },
-    revealCandidates(inputs) {
-      const pattern = this.devicePattern.trim().toLowerCase()
-      if (!pattern) return inputs
-      return inputs.filter(input =>
-        [input.manufacturer, input.name].filter(Boolean).join(' ').toLowerCase().includes(pattern))
-    },
-    selectRevealInput(inputs) {
-      const candidates = this.revealCandidates(inputs)
-      if (candidates.length === 1) return candidates[0]
-      const musicPorts = candidates.filter(input => /(?:port|midi)\s*1\b/i.test(input.name))
-      if (musicPorts.length === 1) return musicPorts[0]
-      if (!candidates.length) throw new Error('Biotron was not found. Check the USB data cable, then try again.')
-      throw new Error('More than one Biotron music input was found. Connect one Biotron, then try again.')
-    },
     async startReveal() {
       this.starting = true
       let failure = ''
       try {
         if (!await this.acquireTabLease()) return
         await this.ensureEngine()
-        const input = this.selectRevealInput(await this.midi.requestAccess())
+        const input = selectRevealInput(await this.midi.requestAccess(), this.revealProfile)
         this.midiInputs = [input]
         this.selectedInput = input.id
         await this.midi.connect(input.id)
         this.recognizedInput = [input.manufacturer, input.name].filter(Boolean).join(' — ')
         this.revealStage = 'ready'
-        this.status = 'Biotron ready — touch the plant'
+        this.status = this.revealProfile.readyStatus
       } catch (error) {
-        failure = error.message || 'Biotron could not start.'
+        failure = error.message || `${this.revealProfile.productName} could not start.`
         await this.stop()
         if (!this.releaseBlocked) this.status = failure
       } finally {

@@ -1,13 +1,16 @@
 <template>
-  <SoundLab ref="sound" mode="reveal" device-pattern="Biotron" />
+  <SoundLab ref="sound" mode="reveal" :profile-id="profileId" />
 </template>
 
 <script>
 import SoundLab from '@sound-lab'
 
 export default {
-  name: 'BiotronFirstPlay',
+  name: 'DeviceFirstPlay',
   components: {SoundLab},
+  props: {
+    profileId: {type: String, required: true}
+  },
   async beforeRouteLeave(to, from, next) {
     void to
     void from
