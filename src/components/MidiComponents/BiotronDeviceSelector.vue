@@ -34,7 +34,8 @@
 
 <script>
   const portIdentity = (port) => [port.manufacturer || "", port.name || ""].join("\u0000");
-  const RECALIBRATE_COMMAND = 123;
+  // 123 is reserved for persisted-settings readback in firmware protocol v1.
+  const RECALIBRATE_COMMAND = 125;
   const RECALIBRATE_WAITING = 1;
   const RECALIBRATE_MEASURING = 2;
   const RECALIBRATE_READY = 3;

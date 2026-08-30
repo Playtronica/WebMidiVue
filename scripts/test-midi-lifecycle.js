@@ -198,18 +198,18 @@ async function recalibrationRequiresExactNonceAndReportsProgress() {
   target.requestRecalibration()
   assert.strictEqual(selected.output.sent.length, 1)
   const request = selected.output.sent[0]
-  assert.strictEqual(JSON.stringify(request.slice(0, 4)), JSON.stringify([0xf0, 0x14, 0x0d, 123]))
+  assert.strictEqual(JSON.stringify(request.slice(0, 4)), JSON.stringify([0xf0, 0x14, 0x0d, 125]))
   assert.strictEqual(request.at(-1), 0xf7)
   const nonce = request[4]
   assert.strictEqual(target.events.at(-1)[1].state, 'starting')
 
-  target.handleMidiMessage({data: [0xf0, 0x0b, 123, (nonce + 1) & 0x7f, 1, 0xf7]}, target.operationId)
+  target.handleMidiMessage({data: [0xf0, 0x0b, 125, (nonce + 1) & 0x7f, 1, 0xf7]}, target.operationId)
   assert.strictEqual(target.events.at(-1)[1].state, 'starting', 'wrong nonce was accepted')
-  target.handleMidiMessage({data: [0xf0, 0x0b, 123, nonce, 1, 0xf7]}, target.operationId)
+  target.handleMidiMessage({data: [0xf0, 0x0b, 125, nonce, 1, 0xf7]}, target.operationId)
   assert.strictEqual(target.events.at(-1)[1].state, 'waiting')
-  target.handleMidiMessage({data: [0xf0, 0x0b, 123, nonce, 2, 0xf7]}, target.operationId)
+  target.handleMidiMessage({data: [0xf0, 0x0b, 125, nonce, 2, 0xf7]}, target.operationId)
   assert.strictEqual(target.events.at(-1)[1].state, 'measuring')
-  target.handleMidiMessage({data: [0xf0, 0x0b, 123, nonce, 3, 0xf7]}, target.operationId)
+  target.handleMidiMessage({data: [0xf0, 0x0b, 125, nonce, 3, 0xf7]}, target.operationId)
   assert.strictEqual(target.events.at(-1)[1].state, 'ready')
   assert.strictEqual(target.recalibrationRequest, null)
   assert.strictEqual(scheduled.size, 0)

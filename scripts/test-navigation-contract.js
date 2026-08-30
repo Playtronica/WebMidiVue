@@ -22,7 +22,8 @@ assert(taskNav.includes(':aria-current="task.id === activeTask ? \'page\' : null
 assert(biotron.includes('active-task="settings"'), 'Biotron settings must show Settings as current')
 assert(biotron.includes('play-route="/biotron/play"'), 'Biotron settings must link directly to Play')
 assert(biotron.includes('Calibrate plant again'), 'Biotron settings must expose explicit recalibration')
-assert(selector.includes('RECALIBRATE_COMMAND = 123'), 'Web and firmware recalibration command must stay aligned')
+assert(selector.includes('RECALIBRATE_COMMAND = 125'), 'Web and firmware recalibration command must stay aligned')
+assert(selector.includes('123 is reserved for persisted-settings readback'), 'Settings readback ID must remain reserved')
 assert(selector.includes('[0xf0, 0x14, 0x0d, RECALIBRATE_COMMAND, nonce, 0xf7]'),
   'recalibration must use the vendor SysEx command with a request nonce')
 assert(selector.includes('data[1] === 0x0b'),
