@@ -119,6 +119,7 @@ async function openProfile(online, denyMidiOnce = false) {
       }
     })
     window.__emitFirstPlayMidi = data => midiMessageListener?.({data: Uint8Array.from(data)})
+    window.__emitSettingsMidi = data => input.onmidimessage?.({data: Uint8Array.from(data)})
   }, { initiallyOnline: online, initiallyDenyMidi: denyMidiOnce })
   await context.setOffline(!online)
   return context.pages()[0] || await context.newPage()
@@ -224,6 +225,20 @@ async function controllerVersion(page) {
 
   const sendButton = page.getByRole('button', {name: /Send to Device/i})
   await waitFor(() => sendButton.isEnabled(), 'fake Biotron did not connect offline')
+  const calibrateButton = page.getByRole('button', {name: /Calibrate plant again/i})
+  await waitFor(() => calibrateButton.isEnabled(), 'recalibration control did not become available')
+  await calibrateButton.click()
+  const recalibrationRequest = await page.evaluate(() => window.__midiSent.find(message =>
+    JSON.stringify(message.slice(0, 4)) === JSON.stringify([0xf0, 0x14, 0x0d, 123])
+  ))
+  assert(recalibrationRequest, 'recalibration SysEx was not sent')
+  const calibrationNonce = recalibrationRequest[4]
+  await page.evaluate(nonce => window.__emitSettingsMidi([0xf0, 0x0b, 123, nonce, 1, 0xf7]), calibrationNonce)
+  await page.getByText('Step away and keep the plant still.').waitFor({state: 'visible'})
+  await page.evaluate(nonce => window.__emitSettingsMidi([0xf0, 0x0b, 123, nonce, 2, 0xf7]), calibrationNonce)
+  await page.getByText('Measuring… keep the plant and cables still.').waitFor({state: 'visible'})
+  await page.evaluate(nonce => window.__emitSettingsMidi([0xf0, 0x0b, 123, nonce, 3, 0xf7]), calibrationNonce)
+  await page.getByText('Calibration complete — touch the plant.').waitFor({state: 'visible'})
   const sentBefore = await page.evaluate(() => window.__midiSent.length)
   await sendButton.click()
   await waitFor(
@@ -231,7 +246,7 @@ async function controllerVersion(page) {
     'offline setting write did not reach the fake MIDI output'
   )
   assert(await page.evaluate(() => window.__midiSent.some(message => message[0] === 0xF0 && message.at(-1) === 0xF7)), 'no complete SysEx setting was sent offline')
-  console.log('3/7 offline Biotron detection and SysEx settings write verified')
+  console.log('3/7 offline Biotron detection, nonce-bound recalibration and SysEx settings write verified')
 
   await page.getByRole('button', { name: /Update Firmware/i }).click()
   await page.getByText(/Firmware updates require an internet connection/i).waitFor({state: 'visible', timeout: 5000})

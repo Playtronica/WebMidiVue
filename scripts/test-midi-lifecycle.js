@@ -191,6 +191,43 @@ async function duplicateDetectionDoesNotHideCloseFailure() {
   assert.strictEqual(target.events.at(-1)[1], undefined)
 }
 
+async function recalibrationRequiresExactNonceAndReportsProgress() {
+  scheduled.clear()
+  const selected = {input: port('in-1'), output: port('out-1')}
+  const target = instance({selectedDevice: selected})
+  target.requestRecalibration()
+  assert.strictEqual(selected.output.sent.length, 1)
+  const request = selected.output.sent[0]
+  assert.strictEqual(JSON.stringify(request.slice(0, 4)), JSON.stringify([0xf0, 0x14, 0x0d, 123]))
+  assert.strictEqual(request.at(-1), 0xf7)
+  const nonce = request[4]
+  assert.strictEqual(target.events.at(-1)[1].state, 'starting')
+
+  target.handleMidiMessage({data: [0xf0, 0x0b, 123, (nonce + 1) & 0x7f, 1, 0xf7]}, target.operationId)
+  assert.strictEqual(target.events.at(-1)[1].state, 'starting', 'wrong nonce was accepted')
+  target.handleMidiMessage({data: [0xf0, 0x0b, 123, nonce, 1, 0xf7]}, target.operationId)
+  assert.strictEqual(target.events.at(-1)[1].state, 'waiting')
+  target.handleMidiMessage({data: [0xf0, 0x0b, 123, nonce, 2, 0xf7]}, target.operationId)
+  assert.strictEqual(target.events.at(-1)[1].state, 'measuring')
+  target.handleMidiMessage({data: [0xf0, 0x0b, 123, nonce, 3, 0xf7]}, target.operationId)
+  assert.strictEqual(target.events.at(-1)[1].state, 'ready')
+  assert.strictEqual(target.recalibrationRequest, null)
+  assert.strictEqual(scheduled.size, 0)
+}
+
+async function oldFirmwareTimesOutWithoutClaimingCalibration() {
+  scheduled.clear()
+  const selected = {input: port('in-1'), output: port('out-1')}
+  const target = instance({selectedDevice: selected})
+  target.requestRecalibration()
+  assert.strictEqual(scheduled.size, 1)
+  const callback = [...scheduled.values()][0]
+  callback()
+  assert.strictEqual(target.events.at(-1)[1].state, 'unsupported')
+  assert.strictEqual(target.recalibrationRequest, null)
+  assert.strictEqual(scheduled.size, 0)
+}
+
 ;(async () => {
   await releaseFailureStaysVisible()
   await delayedQueryIsCancelled()
@@ -201,7 +238,9 @@ async function duplicateDetectionDoesNotHideCloseFailure() {
   await unmountCancelsPendingOpen()
   await duplicateDevicesStayDistinct()
   await duplicateDetectionDoesNotHideCloseFailure()
-  console.log('MIDI lifecycle verified: permission/no-device recovery, release failure, delayed cancellation, reconnect failure, switch close failure, unmount, and duplicate-device fail-closed handling.')
+  await recalibrationRequiresExactNonceAndReportsProgress()
+  await oldFirmwareTimesOutWithoutClaimingCalibration()
+  console.log('MIDI lifecycle verified: permission/no-device recovery, release failure, delayed cancellation, reconnect failure, switch close failure, unmount, duplicate-device handling, and nonce-bound recalibration progress.')
 })().catch(error => {
   console.error(error)
   process.exitCode = 1
