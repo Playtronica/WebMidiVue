@@ -6,6 +6,7 @@ export class MidiInputSession {
     this.onState = onState
     this.access = null
     this.input = null
+    this.enabled = true
     this.boundMessage = event => this.onMessage(event)
     this.boundState = event => this.onStateChange(event)
   }
@@ -59,7 +60,15 @@ export class MidiInputSession {
     this.access = null
   }
 
+  setEnabled(enabled) {
+    const next = Boolean(enabled)
+    if (this.enabled === next) return
+    this.enabled = next
+    if (!next) this.engine.panic()
+  }
+
   onMessage(event) {
+    if (!this.enabled) return
     const message = parseMidiMessage(event.data)
     const source = this.input?.id || 'midi'
     if (message.type === 'note-on') this.engine.noteOn(source, message.channel, message.note, message.velocity)

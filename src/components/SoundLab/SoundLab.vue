@@ -189,6 +189,7 @@ export default {
         this.midi = markRaw(new MidiInputSession(this.engine, event => this.handleMidiState(event)))
       }
       if (await this.engine.resume() !== 'running') throw new Error('Audio could not start.')
+      this.midi?.setEnabled(true)
       this.audioState = 'running'
       this.status = 'Sound ready'
       return this.engine
@@ -317,7 +318,13 @@ export default {
     },
     async handleVisibility() {
       if (!document.hidden || !this.engine) return
-      this.engine.panic()
+      if (this.midi) this.midi.setEnabled(false)
+      else this.engine.panic()
+      this.heldCodes.clear()
+      window.clearTimeout(this.voiceRefreshTimer)
+      window.cancelAnimationFrame(this.voiceFrame)
+      this.voiceFrame = null
+      this.pendingVoiceCount = 0
       this.voiceCount = 0
       try { await this.engine.context.suspend() } catch (error) { void error }
       this.audioState = 'suspended'

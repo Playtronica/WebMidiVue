@@ -78,6 +78,29 @@ test('failed MIDI close stays retryable and never reports released', async () =>
   }
 })
 
+test('background-disabled MIDI is silent until explicitly enabled', () => {
+  let noteOns = 0
+  let panics = 0
+  const engine = {
+    activeVoiceCount: 0,
+    noteOn() { noteOns += 1 },
+    noteOff() {},
+    panic() { panics += 1 }
+  }
+  const session = new MidiInputSession(engine)
+  session.input = {id: 'input-1'}
+
+  session.onMessage({data: [0x90, 60, 100]})
+  session.setEnabled(false)
+  session.onMessage({data: [0x90, 61, 100]})
+  assert.equal(noteOns, 1)
+  assert.equal(panics, 1)
+
+  session.setEnabled(true)
+  session.onMessage({data: [0x90, 62, 100]})
+  assert.equal(noteOns, 2)
+})
+
 test('only one tab lease can be held and release enables handoff', async () => {
   const locks = {
     held: false,
