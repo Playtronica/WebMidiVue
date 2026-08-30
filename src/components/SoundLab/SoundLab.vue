@@ -107,6 +107,8 @@ export default {
       starting: false,
       releaseBlocked: false,
       voiceRefreshTimer: null,
+      voiceFrame: null,
+      pendingVoiceCount: 0,
       keyDownHandler: null,
       keyUpHandler: null,
       visibilityHandler: null
@@ -126,6 +128,7 @@ export default {
     document.removeEventListener('visibilitychange', this.visibilityHandler)
     this.heldCodes.clear()
     window.clearTimeout(this.voiceRefreshTimer)
+    window.cancelAnimationFrame(this.voiceFrame)
     const midi = this.midi
     const engine = this.engine
     Promise.resolve().then(async () => {
@@ -172,6 +175,8 @@ export default {
       this.engine?.panic()
       this.heldCodes.clear()
       window.clearTimeout(this.voiceRefreshTimer)
+      window.cancelAnimationFrame(this.voiceFrame)
+      this.voiceFrame = null
       this.voiceCount = 0
       this.status = 'All notes stopped'
     },
@@ -231,7 +236,15 @@ export default {
       else if (event.type === 'released') this.status = 'MIDI released'
       else if (event.type === 'disconnected') this.status = 'MIDI disconnected — notes stopped'
       else if (event.type === 'release-error') this.status = 'MIDI release failed — retry Stop'
-      else if (event.type === 'voices') this.voiceCount = event.count
+      else if (event.type === 'voices') {
+        this.pendingVoiceCount = event.count
+        if (this.voiceFrame === null) {
+          this.voiceFrame = window.requestAnimationFrame(() => {
+            this.voiceCount = this.pendingVoiceCount
+            this.voiceFrame = null
+          })
+        }
+      }
     },
     async handleVisibility() {
       if (!document.hidden || !this.engine) return

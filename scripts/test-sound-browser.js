@@ -82,6 +82,18 @@ const server = http.createServer((request, response) => {
     await page.evaluate(() => window.__emitSoundMidi([0x90, 64, 0]))
     await page.getByRole('button', {name: 'Stop notes'}).click()
 
+    const burstMilliseconds = await page.evaluate(() => {
+      const started = performance.now()
+      for (let index = 0; index < 1000; index += 1) {
+        window.__emitSoundMidi([0x90, 36 + index % 48, 100])
+      }
+      return performance.now() - started
+    })
+    await page.locator('.sound-lab[data-active-voices="8"]').waitFor()
+    assert(burstMilliseconds < 1500, `1000-message burst blocked the page for ${burstMilliseconds} ms`)
+    await page.evaluate(() => window.__emitSoundMidi([0xb0, 123, 0]))
+    await page.locator('.sound-lab[data-active-voices="0"]').waitFor()
+
     await page.evaluate(() => { window.__failSoundCloseOnce = true })
     await page.getByRole('button', {name: 'Stop & release'}).click()
     await page.locator('.sound-lab[data-audio-state="closed"]').waitFor()
@@ -92,7 +104,7 @@ const server = http.createServer((request, response) => {
     await page.getByRole('button', {name: 'Stop & release'}).click()
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'closed')
     assert.deepStrictEqual(errors, [])
-    console.log('Sound browser verified: 6 variants, any-layout keyboard + MIDI together, panic and retryable release failure.')
+    console.log(`Sound browser verified: 6 variants, keyboard + MIDI together, 1000-message burst (${burstMilliseconds.toFixed(1)} ms), panic and retryable release.`)
   } finally {
     await browser.close()
     await new Promise(resolve => server.close(resolve))
