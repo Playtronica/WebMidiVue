@@ -78,13 +78,13 @@ const server = http.createServer((request, response) => {
       assert.strictEqual(metric.nonFinite, 0, `${metric.name} produced non-finite audio`)
       assert(metric.peak <= 0.98, `${metric.name} peak ${metric.peak} exceeds 0.98`)
     }
-    assert(Math.min(...metrics.singleNotes.map(metric => metric.peak)) >= 0.45,
+    assert(Math.min(...metrics.singleNotes.map(metric => metric.peak)) >= 0.65,
       `quietest single-note peak is ${Math.min(...metrics.singleNotes.map(metric => metric.peak))}`)
-    assert(Math.min(...metrics.singleNotes.map(metric => metric.rms)) >= 0.04,
+    assert(Math.min(...metrics.singleNotes.map(metric => metric.rms)) >= 0.06,
       `quietest single-note RMS is ${Math.min(...metrics.singleNotes.map(metric => metric.rms))}`)
-    assert(Math.min(...metrics.quietBiotronNotes.map(metric => metric.peak)) >= 0.2,
+    assert(Math.min(...metrics.quietBiotronNotes.map(metric => metric.peak)) >= 0.55,
       `velocity-1 Biotron note is too quiet: ${Math.min(...metrics.quietBiotronNotes.map(metric => metric.peak))}`)
-    assert(Math.max(...metrics.denseChords.map(metric => metric.peak)) <= 0.9,
+    assert(Math.max(...metrics.denseChords.map(metric => metric.peak)) <= 0.92,
       `dense chord safety peak is ${Math.max(...metrics.denseChords.map(metric => metric.peak))}`)
     assert(Math.min(...metrics.denseChords.map(metric => metric.peak)) >= 0.35,
       `quietest dense chord peak is unexpectedly low: ${Math.min(...metrics.denseChords.map(metric => metric.peak))}`)

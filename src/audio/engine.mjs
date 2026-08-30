@@ -3,8 +3,8 @@ import {SOUND_VARIANTS, validatePreset} from './presets.mjs'
 
 const SILENCE = 0.0001
 const VOICE_LEVEL = 0.22
-const VELOCITY_FLOOR = 0.42
-const MASTER_GAIN = 2
+const VELOCITY_FLOOR = 0.72
+const MASTER_GAIN = 6
 
 function makeImpulse(context, seconds = 0.45) {
   const length = Math.max(1, Math.round(context.sampleRate * seconds))
@@ -173,7 +173,7 @@ export class SynthEngine {
     // Biotron can emit very low velocities. Boost before the compressor so
     // quiet notes stay audible while dense chords remain safely contained.
     this.headroom.gain.value = 1
-    this.compressor.threshold.value = -10
+    this.compressor.threshold.value = -12
     this.compressor.knee.value = 6
     this.compressor.ratio.value = 12
     this.compressor.attack.value = 0.001
