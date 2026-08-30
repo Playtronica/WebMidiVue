@@ -77,6 +77,9 @@ test('reveal profiles keep first-use copy plain and product-specific', () => {
     profile.startLabel, profile.readyHeading, profile.readyInstruction
   ].join(' ')
   assert.doesNotMatch(beforeReveal, /\b(?:MIDI|SysEx|firmware|channel)\b/i)
+  assert.match(beforeReveal, /plant/i)
+  assert.match(beforeReveal, /music/i)
+  assert.match(profile.explanation, /electrical change/i)
   assert.match(profile.explanation, /MIDI note/i)
   assert.throws(() => getRevealProfile('unknown'), /Unknown reveal profile/)
 })

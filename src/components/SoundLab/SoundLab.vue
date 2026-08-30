@@ -24,12 +24,12 @@
             <p>{{ revealProfile.introInstruction }}</p>
           </template>
           <template v-else-if="revealStage === 'ready'">
-            <small class="sound-lab__recognized">{{ revealProfile.productName }} input · {{ recognizedInput }}</small>
+            <small class="sound-lab__recognized" :title="recognizedInput">{{ revealProfile.productName }} connected</small>
             <h2 id="device-reveal-title">{{ revealProfile.readyHeading }}</h2>
             <p>{{ revealProfile.readyInstruction }}</p>
           </template>
           <template v-else>
-            <small class="sound-lab__recognized">{{ revealProfile.productName }} input · {{ recognizedInput }}</small>
+            <small class="sound-lab__recognized" :title="recognizedInput">{{ revealProfile.productName }} connected</small>
             <h2 id="device-reveal-title">{{ revealProfile.revealedHeading }}</h2>
             <p>{{ revealProfile.explanation }}</p>
           </template>
