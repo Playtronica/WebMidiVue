@@ -5,7 +5,80 @@
     :data-active-voices="voiceCount"
     :data-quality="lowCpu ? 'safe' : 'standard'"
     :data-tab-lease="tabLeaseState"
+    :data-reveal-stage="revealMode ? revealStage : null"
   >
+    <template v-if="revealMode">
+      <header class="sound-lab__intro sound-lab__intro--reveal">
+        <small>First play · beta</small>
+        <h1>Meet Biotron</h1>
+        <p>Make music with a plant.</p>
+      </header>
+
+      <section class="sound-lab__reveal" aria-labelledby="biotron-reveal-title">
+        <div class="sound-lab__reveal-orb" :class="{'sound-lab__reveal-orb--active': voiceCount > 0}" aria-hidden="true"></div>
+        <div class="sound-lab__reveal-copy">
+          <template v-if="revealStage === 'intro'">
+            <h2 id="biotron-reveal-title">Hear what it does</h2>
+            <p>Connect Biotron to a plant and to this computer.</p>
+          </template>
+          <template v-else-if="revealStage === 'ready'">
+            <small class="sound-lab__recognized">Biotron connected · {{ recognizedInput }}</small>
+            <h2 id="biotron-reveal-title">Touch the connected plant</h2>
+            <p>Listen for the next note and watch the circle respond.</p>
+          </template>
+          <template v-else>
+            <small class="sound-lab__recognized">Biotron connected · {{ recognizedInput }}</small>
+            <h2 id="biotron-reveal-title">There it is</h2>
+            <p>Biotron measured sensor activity and sent a MIDI note. This page turned that note into sound.</p>
+          </template>
+
+          <div class="sound-lab__reveal-actions">
+            <button
+              v-if="revealStage === 'intro' || (engine && audioState !== 'running' && !releaseBlocked)"
+              type="button"
+              class="btn btn-dark"
+              @click="startReveal"
+              :disabled="starting || releaseBlocked"
+            >{{ revealStage === 'intro' ? 'Hear Biotron' : 'Resume sound' }}</button>
+            <button
+              v-if="engine || midi"
+              type="button"
+              class="btn btn-outline-dark"
+              @click="stop"
+              :disabled="starting"
+            >Stop &amp; release</button>
+            <button
+              v-if="engine"
+              type="button"
+              class="btn btn-outline-danger"
+              @click="panic"
+            >Stop notes</button>
+          </div>
+          <span class="sound-lab__status sound-lab__status--reveal" role="status" aria-live="polite">{{ status }}</span>
+        </div>
+      </section>
+
+      <section v-if="revealStage === 'revealed'" class="sound-lab__after-reveal" aria-label="Continue with Biotron">
+        <button type="button" class="btn btn-primary" @click="revealExpanded = !revealExpanded">
+          {{ revealExpanded ? 'Hide sound choices' : 'Tune the sound' }}
+        </button>
+        <router-link class="btn btn-outline-primary" to="/biotron">Device settings</router-link>
+        <div v-if="revealExpanded" class="sound-lab__reveal-variants" aria-label="Sound choices">
+          <button
+            v-for="(preset, index) in variants"
+            :key="preset.name"
+            type="button"
+            class="sound-lab__variant"
+            :class="{'sound-lab__variant--active': index === currentVariant}"
+            :aria-pressed="index === currentVariant"
+            :aria-label="`Sound ${index + 1}`"
+            @click="chooseVariant(index)"
+          ><span>{{ index + 1 }}</span></button>
+        </div>
+      </section>
+    </template>
+
+    <template v-else>
     <header class="sound-lab__intro">
       <small>Beta sound lab</small>
       <h1>Play your device</h1>
@@ -85,6 +158,7 @@
         </button>
       </div>
     </section>
+    </template>
   </main>
 </template>
 
@@ -108,6 +182,13 @@ const keyboard = [
 
 export default {
   name: 'SoundLab',
+  props: {
+    mode: {type: String, default: 'lab'},
+    devicePattern: {type: String, default: ''}
+  },
+  computed: {
+    revealMode() { return this.mode === 'reveal' }
+  },
   data() {
     return {
       engine: null,
@@ -118,10 +199,10 @@ export default {
       heldCodes: markRaw(new Set()),
       midiInputs: [],
       selectedInput: '',
-      status: 'Press Start sound',
+      status: this.mode === 'reveal' ? 'Ready when you are' : 'Press Start sound',
       audioState: 'closed',
       voiceCount: 0,
-      lowCpu: false,
+      lowCpu: this.mode === 'reveal',
       starting: false,
       releaseBlocked: false,
       voiceRefreshTimer: null,
@@ -132,7 +213,10 @@ export default {
       blurHandler: null,
       visibilityHandler: null,
       tabLease: null,
-      tabLeaseState: 'free'
+      tabLeaseState: 'free',
+      revealStage: 'intro',
+      revealExpanded: false,
+      recognizedInput: ''
     }
   },
   mounted() {
@@ -234,6 +318,9 @@ export default {
       else {
         this.midiInputs = []
         this.selectedInput = ''
+        this.revealStage = 'intro'
+        this.revealExpanded = false
+        this.recognizedInput = ''
         this.tabLease.release()
         this.tabLeaseState = 'free'
         this.status = 'Stopped — MIDI released'
@@ -309,6 +396,41 @@ export default {
       } catch (error) { this.status = error.message }
       finally { this.starting = false }
     },
+    revealCandidates(inputs) {
+      const pattern = this.devicePattern.trim().toLowerCase()
+      if (!pattern) return inputs
+      return inputs.filter(input =>
+        [input.manufacturer, input.name].filter(Boolean).join(' ').toLowerCase().includes(pattern))
+    },
+    selectRevealInput(inputs) {
+      const candidates = this.revealCandidates(inputs)
+      if (candidates.length === 1) return candidates[0]
+      const musicPorts = candidates.filter(input => /(?:port|midi)\s*1\b/i.test(input.name))
+      if (musicPorts.length === 1) return musicPorts[0]
+      if (!candidates.length) throw new Error('Biotron was not found. Check the USB data cable, then try again.')
+      throw new Error('More than one Biotron music input was found. Connect one Biotron, then try again.')
+    },
+    async startReveal() {
+      this.starting = true
+      let failure = ''
+      try {
+        if (!await this.acquireTabLease()) return
+        await this.ensureEngine()
+        const input = this.selectRevealInput(await this.midi.requestAccess())
+        this.midiInputs = [input]
+        this.selectedInput = input.id
+        await this.midi.connect(input.id)
+        this.recognizedInput = [input.manufacturer, input.name].filter(Boolean).join(' — ')
+        this.revealStage = 'ready'
+        this.status = 'Biotron ready — touch the plant'
+      } catch (error) {
+        failure = error.message || 'Biotron could not start.'
+        await this.stop()
+        if (!this.releaseBlocked) this.status = failure
+      } finally {
+        this.starting = false
+      }
+    },
     handleMidiState(event) {
       if (event.type === 'ports') {
         this.midiInputs = event.inputs
@@ -316,16 +438,30 @@ export default {
           this.selectedInput = event.inputs[0]?.id || ''
         }
       }
-      else if (event.type === 'connected') this.status = `${event.input} connected`
+      else if (event.type === 'connected') {
+        this.status = `${event.input} connected`
+        if (this.revealMode) {
+          this.recognizedInput = event.input
+          this.revealStage = 'ready'
+        }
+      }
       else if (event.type === 'released') this.status = 'MIDI released'
       else if (event.type === 'disconnected') {
         window.cancelAnimationFrame(this.voiceFrame)
         this.voiceFrame = null
         this.voiceCount = 0
+        if (this.revealMode) {
+          this.revealStage = 'intro'
+          this.recognizedInput = ''
+        }
         this.status = 'MIDI disconnected — notes stopped'
       }
       else if (event.type === 'release-error') this.status = 'MIDI release failed — retry Stop'
       else if (event.type === 'voices') {
+        if (this.revealMode && event.message?.type === 'note-on' && event.count > 0) {
+          this.revealStage = 'revealed'
+          this.status = 'Biotron is making sound'
+        }
         this.pendingVoiceCount = event.count
         if (this.voiceFrame === null) {
           this.voiceFrame = window.requestAnimationFrame(() => {
@@ -372,6 +508,7 @@ export default {
 <style scoped>
 .sound-lab { width: min(900px, 100%); margin: 0 auto; padding: 1.5rem 0 4rem; text-align: left; color: #17171a; }
 .sound-lab__intro { max-width: 650px; margin-bottom: 2rem; }
+.sound-lab__intro--reveal { margin: 2.25rem auto 1.5rem; text-align: center; }
 .sound-lab__intro small { color: #6b6761; text-transform: uppercase; letter-spacing: .08em; }
 .sound-lab__intro h1 { margin: .35rem 0; font-size: clamp(2.25rem, 7vw, 4.5rem); line-height: 1; letter-spacing: -.045em; }
 .sound-lab__intro p, .sound-lab__midi p { color: #625e58; line-height: 1.5; }
@@ -386,12 +523,22 @@ export default {
 .sound-lab__variant { min-height: 44px; border: 1px solid #cbc6be; border-radius: 999px; background: #fff; padding: 0 1rem; }
 .sound-lab__variant span { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: #eeeae2; }
 .sound-lab__variant--active { border-color: #6a5acd; background: #e9e3ff; }
+.sound-lab__reveal { display: grid; grid-template-columns: minmax(150px, 240px) minmax(0, 1fr); gap: clamp(1.5rem, 5vw, 4rem); align-items: center; max-width: 760px; margin: 0 auto; padding: clamp(1.25rem, 4vw, 2.5rem); border: 1px solid #ded9d1; border-radius: 1.5rem; background: #fbfaf7; }
+.sound-lab__reveal-orb { width: min(48vw, 220px); aspect-ratio: 1; justify-self: center; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff 0 8%, #dcd4ff 24%, #7c69d8 65%, #302763 100%); box-shadow: 0 0 0 0 rgba(106, 90, 205, .24); transform: scale(.9); transition: transform 180ms ease, box-shadow 180ms ease; }
+.sound-lab__reveal-orb--active { transform: scale(1); box-shadow: 0 0 0 18px rgba(106, 90, 205, .16), 0 18px 50px rgba(69, 49, 150, .22); }
+.sound-lab__reveal-copy h2 { margin: .25rem 0 .5rem; font-size: clamp(1.5rem, 4vw, 2.4rem); }
+.sound-lab__reveal-copy p { max-width: 34rem; color: #625e58; line-height: 1.5; }
+.sound-lab__recognized { color: #4d427e; font-weight: 700; }
+.sound-lab__reveal-actions, .sound-lab__after-reveal { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+.sound-lab__status--reveal { display: block; margin-top: .75rem; padding-left: 0; }
+.sound-lab__after-reveal { max-width: 760px; margin: 1rem auto 0; }
+.sound-lab__reveal-variants { display: flex; flex-basis: 100%; flex-wrap: wrap; gap: .5rem; padding-top: .5rem; }
 .sound-lab__keyboard { display: grid; grid-template-columns: repeat(13, minmax(44px, 1fr)); gap: 4px; overflow-x: auto; padding-bottom: .5rem; }
 .sound-lab__keyboard button { min-width: 44px; height: 120px; border: 1px solid #cbc6be; border-radius: .6rem; background: #fff; align-content: end; padding-bottom: .7rem; }
 .sound-lab__keyboard .sound-lab__black-key { height: 82px; background: #2b2b30; color: #fff; }
 .sound-lab__midi { display: flex; justify-content: space-between; gap: 1.5rem; align-items: center; border-top: 1px solid #d6d1c8; padding-top: 1.5rem; }
 .sound-lab__midi p { margin: .3rem 0 0; }
 .sound-lab__midi-actions .form-select { min-width: min(340px, 80vw); }
-@media (max-width: 640px) { .sound-lab__midi { align-items: flex-start; flex-direction: column; } .sound-lab__keyboard { grid-template-columns: repeat(13, 48px); } }
-@media (prefers-reduced-motion: reduce) { .sound-lab button { transition: none; } }
+@media (max-width: 640px) { .sound-lab__midi { align-items: flex-start; flex-direction: column; } .sound-lab__keyboard { grid-template-columns: repeat(13, 48px); } .sound-lab__reveal { grid-template-columns: 1fr; text-align: center; } .sound-lab__reveal-actions, .sound-lab__after-reveal { justify-content: center; } }
+@media (prefers-reduced-motion: reduce) { .sound-lab button, .sound-lab__reveal-orb { transition: none; } }
 </style>

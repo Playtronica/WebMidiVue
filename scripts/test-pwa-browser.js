@@ -76,11 +76,17 @@ async function openProfile(online, denyMidiOnce = false) {
       get: () => window.__testOnline
     })
 
+    let midiMessageListener = null
+    let midiStateListener = null
     const input = {
       id: 'biotron-input-1', manufacturer: 'Playtronica', name: 'Biotron',
       connection: 'closed', onmidimessage: null,
       async open() { this.connection = 'open'; return this },
-      async close() { this.connection = 'closed'; return this }
+      async close() { this.connection = 'closed'; return this },
+      addEventListener(type, listener) { if (type === 'midimessage') midiMessageListener = listener },
+      removeEventListener(type, listener) {
+        if (type === 'midimessage' && midiMessageListener === listener) midiMessageListener = null
+      }
     }
     const output = {
       id: 'biotron-output-1', manufacturer: 'Playtronica', name: 'Biotron',
@@ -92,7 +98,11 @@ async function openProfile(online, denyMidiOnce = false) {
     const access = {
       inputs: new Map([[input.id, input]]),
       outputs: new Map([[output.id, output]]),
-      onstatechange: null
+      onstatechange: null,
+      addEventListener(type, listener) { if (type === 'statechange') midiStateListener = listener },
+      removeEventListener(type, listener) {
+        if (type === 'statechange' && midiStateListener === listener) midiStateListener = null
+      }
     }
     Object.defineProperty(navigator, 'requestMIDIAccess', {
       configurable: true,
@@ -108,6 +118,7 @@ async function openProfile(online, denyMidiOnce = false) {
         return access
       }
     })
+    window.__emitFirstPlayMidi = data => midiMessageListener?.({data: Uint8Array.from(data)})
   }, { initiallyOnline: online, initiallyDenyMidi: denyMidiOnce })
   await context.setOffline(!online)
   return context.pages()[0] || await context.newPage()
@@ -164,7 +175,7 @@ async function controllerVersion(page) {
   const manifest = await page.evaluate(() => fetch('/manifest.json').then(response => response.json()))
   assert.strictEqual(manifest.name, 'Biotron Settings Offline Beta')
   assert.strictEqual(manifest.id, './biotron-settings-offline-beta')
-  assert.strictEqual(manifest.start_url, './#/biotron')
+  assert.strictEqual(manifest.start_url, './#/biotron/play')
   assert.strictEqual(manifest.scope, './')
   assert.strictEqual(manifest.display, 'standalone')
   const devtools = await context.newCDPSession(page)
@@ -176,11 +187,20 @@ async function controllerVersion(page) {
 
   await closeProfile()
   page = await openProfile(false)
-  await page.goto(`${origin}/biotron`, { waitUntil: 'load' })
-  await waitFor(() => page.url().includes('/#/biotron'), 'direct route was not normalized to the cached hash route')
-  await page.getByText(/Offline — Settings are available/i).waitFor({state: 'visible', timeout: 10000})
+  await page.goto(`${origin}/biotron/play`, { waitUntil: 'load' })
+  await waitFor(() => page.url().includes('/#/biotron/play'), 'first-play route was not normalized to the cached hash route')
+  await page.getByRole('heading', {name: 'Meet Biotron'}).waitFor({state: 'visible', timeout: 10000})
+  assert.strictEqual(await page.locator('.offline-status').count(), 0, 'first-play was crowded by the global offline banner')
   assert.strictEqual(await controllerVersion(page), 1)
-  assert.strictEqual(await page.evaluate(() => window.__midiRequestCount), 1, 'offline restart used more than one MIDI permission request')
+  assert.strictEqual(await page.evaluate(() => window.__midiRequestCount), 0, 'first-play requested MIDI before a user gesture')
+  await page.getByRole('button', {name: 'Hear Biotron'}).click()
+  await page.locator('.sound-lab[data-reveal-stage="ready"][data-audio-state="running"]').waitFor()
+  assert.strictEqual(await page.evaluate(() => window.__midiRequestCount), 1, 'first-play did not use exactly one MIDI permission request')
+  assert.strictEqual(await page.evaluate(() => window.__midiRequestOptions[0].sysex), false, 'first-play requested unnecessary SysEx access')
+  await page.evaluate(() => window.__emitFirstPlayMidi([0x91, 64, 100]))
+  await page.locator('.sound-lab[data-reveal-stage="revealed"]').waitFor()
+  await page.getByRole('button', {name: 'Stop notes'}).click()
+  await page.getByRole('button', {name: 'Stop & release'}).click()
   await page.goto(`${origin}/#/sound`, {waitUntil: 'load'})
   await page.getByRole('heading', {name: 'Play your device'}).waitFor({state: 'visible'})
   await page.getByRole('button', {name: 'Start sound'}).click()
@@ -190,7 +210,10 @@ async function controllerVersion(page) {
   await page.dispatchEvent('body', 'keyup', {code: 'KeyA', key: 'ф'})
   await page.getByRole('button', {name: 'Stop & release'}).click()
   await page.goto(`${origin}/#/biotron`, {waitUntil: 'load'})
-  console.log('2/7 full Chrome restart, cached Sound route and any-layout keyboard with network disabled verified')
+  await page.getByText(/Offline — Settings are available/i).waitFor({state: 'visible', timeout: 10000})
+  await waitFor(() => page.evaluate(() => window.__midiRequestCount === 2), 'Settings did not request its separate SysEx permission')
+  assert.strictEqual(await page.evaluate(() => window.__midiRequestOptions[1].sysex), true, 'Settings did not request SysEx after first-play released input-only MIDI')
+  console.log('2/7 full Chrome restart, first-play reveal, cached Sound route and any-layout keyboard with network disabled verified')
 
   const sendButton = page.getByRole('button', {name: /Send to Device/i})
   await waitFor(() => sendButton.isEnabled(), 'fake Biotron did not connect offline')

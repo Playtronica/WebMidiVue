@@ -1,11 +1,11 @@
 <template>
   <img src="/Logo-Black.png" alt="Playtronica logo" width="140" loading="eager" class="small--hide image-element" itemprop="logo">
 
-  <header class="d-flex justify-content-center">
+  <header v-if="!firstPlay" class="d-flex justify-content-center">
 
       <ul class="nav nav-pills">
       <li class="nav-item">
-        <router-link  to="/biotron" @click="this.update" class="nav-link">Biotron</router-link>
+        <router-link :to="betaBuild ? '/biotron/play' : '/biotron'" @click="this.update" class="nav-link">Biotron</router-link>
       </li>
       <li class="nav-item">
         <router-link  to="/touchme" @click="this.update" class="nav-link">TouchMe</router-link>
@@ -24,9 +24,9 @@
       </li>
     </ul>
   </header>
-  <small v-if="betaBuild" class="beta-build">Biotron offline beta · {{ buildId }}</small>
+  <small v-if="betaBuild && !firstPlay" class="beta-build">Biotron offline beta · {{ buildId }}</small>
   <div
-      v-if="offlineMessage"
+      v-if="offlineMessage && !firstPlay"
       class="offline-status mx-auto mt-2 px-3 py-2"
       :class="offlineStatusClass"
       role="status"
@@ -60,7 +60,7 @@
       <router-view></router-view>
 
     </div>
-    <footer class="bottom-panel">
+    <footer v-if="!firstPlay" class="bottom-panel">
       <SocialLinks/>
     </footer>
   </div>
@@ -96,6 +96,9 @@ export default {
     }
   },
   computed: {
+    firstPlay() {
+      return this.betaBuild && this.$route.path === '/biotron/play'
+    },
     offlineMessage() {
       if (this.offlineStatus.ready && !this.online) {
         return "Offline — Settings are available. Firmware updates still need internet."

@@ -49,7 +49,7 @@ module.exports = {
       id: biotronBeta ? './biotron-settings-offline-beta' : './playtronica-settings',
       short_name: biotronBeta ? 'Biotron Beta' : 'Settings',
       description: 'Configure Playtronica instruments over Web MIDI.',
-      start_url: biotronBeta ? './#/biotron' : './#/',
+      start_url: biotronBeta ? './#/biotron/play' : './#/',
       scope: './',
       display: 'standalone',
       background_color: '#ffffff',

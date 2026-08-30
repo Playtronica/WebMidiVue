@@ -17,6 +17,7 @@ const javascript = fs.readdirSync(path.join(root, 'js'))
 assert(!javascript.includes('service-worker.js'), 'service-worker registration leaked into the normal production bundle')
 assert(!javascript.includes('Release device for DAW'), 'beta MIDI lifecycle leaked into the normal production bundle')
 assert(!javascript.includes('Play your device'), 'beta sound lab leaked into the normal production bundle')
+assert(!javascript.includes('Meet Biotron'), 'beta first-play experience leaked into the normal production bundle')
 assert(!javascript.includes('Clear Glass'), 'beta synth presets leaked into the normal production bundle')
 
 console.log('Production isolation verified: normal build has no PWA, beta MIDI lifecycle, or sound lab.')

@@ -26,6 +26,24 @@ test('MIDI note-on, velocity-zero note-off and panic are accepted', () => {
   assert.deepEqual(parseMidiMessage([0xb0, 123, 0]), {type: 'panic', channel: 0})
 })
 
+test('MIDI state exposes the parsed event without exposing SysEx access', () => {
+  const states = []
+  const engine = {
+    activeVoiceCount: 1,
+    noteOn() {},
+    noteOff() {},
+    panic() {}
+  }
+  const session = new MidiInputSession(engine, state => states.push(state))
+  session.input = {id: 'biotron-music'}
+  session.onMessage({data: [0x91, 64, 100]})
+  assert.deepEqual(states, [{
+    type: 'voices',
+    count: 1,
+    message: {type: 'note-on', channel: 1, note: 64, velocity: 100}
+  }])
+})
+
 test('voice ledger never exceeds its cap', () => {
   const ledger = new VoiceLedger(4)
   for (let note = 0; note < 40; note += 1) ledger.claim(String(note), note)
