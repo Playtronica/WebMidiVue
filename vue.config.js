@@ -13,10 +13,7 @@ if (!sourceRevision) {
 process.env.VUE_APP_BUILD_ID = sourceRevision.slice(0, 12)
 
 module.exports = {
-  publicPath: process.env.NODE_ENV === 'production'
-      ? '/'
-      : '/',
-  transpileDependencies: [],
+  publicPath: '/',
   chainWebpack: config => {
     config.resolve.alias.set(
       '@pwa-entry',

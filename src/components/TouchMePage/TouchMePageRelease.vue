@@ -164,6 +164,7 @@ import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
 import {TouchMeCommandsData, TouchMeDb} from "@/components/TouchMePage/TouchMeIDB";
 import {sleep} from "@/assets/js/SysExCommand";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
+import {createListenerScope} from "@/assets/js/ListenerScope.mjs";
 
 
 export default  {
@@ -317,22 +318,26 @@ export default  {
     this.forceRerender++;
   },
   async mounted() {
-    document.addEventListener( 'PatchChanged', async () => {
+    this.listenerScope = createListenerScope()
+    this.listenerScope.on(document, 'PatchChanged', async () => {
       await this.loadData();
       this.forceRerender++;
     })
-    document.addEventListener("PatchSave",  async (ev) => {
+    this.listenerScope.on(document, "PatchSave", async (ev) => {
       this.db.savePatch(localStorage.getItem(this.id), ev.detail)
       this.patches = await this.db.getPatch()
       this.patchRerender++;
     })
-    document.addEventListener( 'PatchDelete', async () => {
+    this.listenerScope.on(document, 'PatchDelete', async () => {
       this.db.deletePatch(parseInt(localStorage.getItem(this.id)))
       localStorage.setItem(this.id, "1")
       this.patches = await this.db.getPatch()
       await this.loadData();
       this.forceRerender++;
     })
+  },
+  beforeUnmount() {
+    this.listenerScope?.clear()
   }
 }
 </script>

@@ -1,6 +1,7 @@
 const assert = require('assert')
 const fs = require('fs')
 const path = require('path')
+const zlib = require('zlib')
 
 const root = path.resolve(__dirname, '..', 'dist')
 for (const file of ['service-worker.js', 'manifest.json']) {
@@ -9,6 +10,10 @@ for (const file of ['service-worker.js', 'manifest.json']) {
 
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8')
 assert(!/rel=["']manifest["']/i.test(html), 'PWA manifest link leaked into the normal production build')
+const entryAssets = [...html.matchAll(/(?:src|href)=["']([^"']+\.(?:js|css))["']/g)]
+  .map(match => path.join(root, match[1].replace(/^\//, '')))
+const entryGzipBytes = entryAssets.reduce((sum, file) => sum + zlib.gzipSync(fs.readFileSync(file)).length, 0)
+assert(entryGzipBytes <= 95 * 1024, `normal entry exceeds its 95 KiB gzip budget: ${entryGzipBytes} bytes`)
 
 const javascript = fs.readdirSync(path.join(root, 'js'))
   .filter(file => file.endsWith('.js'))
@@ -23,4 +28,8 @@ assert(!javascript.includes('Compatibility check'), 'beta compatibility UI leake
 assert(!javascript.includes('needs a computer'), 'beta device advice leaked into the normal production bundle')
 assert(!javascript.includes('Step back and keep still'), 'beta calibration UX leaked into the normal production bundle')
 
-console.log('Production isolation verified: normal build has no PWA, beta MIDI lifecycle, or sound lab.')
+const fontDirectory = path.join(root, 'fonts')
+const fontFiles = fs.existsSync(fontDirectory) ? fs.readdirSync(fontDirectory) : []
+assert(!fontFiles.some(file => file.startsWith('fa-')), 'complete Font Awesome fonts leaked into the production build')
+
+console.log(`Production isolation verified: no beta/PWA leak, no icon fonts, entry ${entryGzipBytes} gzip bytes.`)

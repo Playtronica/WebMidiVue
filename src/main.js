@@ -1,25 +1,24 @@
 import { createApp } from 'vue'
 import {createRouter, createWebHashHistory} from 'vue-router'
 import App from './App.vue'
-import "bootstrap"
+import "bootstrap/js/dist/collapse"
+import "bootstrap/js/dist/modal"
 import "bootstrap/dist/css/bootstrap.min.css"
-import ScalaPage from "@/components/ExtraPage/ScalaPage.vue";
-import BiotronUpdatePage from "@/components/BiotronPage/BiotronUpdatePage.vue";
-
-import ScalesPage from "@/components/ScalesPage/ScalesPage.vue";
-
-import BiotronPageUpdated from "@/components/BiotronPage/BiotronPageUpdated.vue";
-import TouchMePageRelease from "@/components/TouchMePage/TouchMePageRelease.vue";
-import TouchMePageStandalone from "@/components/TouchMePage/TouchMePageStandalone.vue";
-import PlaytronPageRelease from "@/components/PlaytronPage/PlaytronPageRelease.vue";
 import HomeComponent from "@/components/HomeComponent.vue";
-import PlaytronPageTest from "@/components/PlaytronPage/PlaytronPageTest.vue";
-import TouchMePageTest from "@/components/TouchMePage/TouchMePageTest.vue";
-import ScalesPageTest from "@/components/ScalesPage/ScalesPageTest.vue";
-import CirclePage from "@/components/CirclePage/CirclePage.vue";
 import '@pwa-entry'
 
 const betaBuild = process.env.VUE_APP_BIOTRON_PWA_BETA === 'true'
+const ScalaPage = () => import(/* webpackChunkName: "scala" */ '@/components/ExtraPage/ScalaPage.vue')
+const BiotronUpdatePage = () => import(/* webpackChunkName: "biotron" */ '@/components/BiotronPage/BiotronUpdatePage.vue')
+const ScalesPage = () => import(/* webpackChunkName: "scales" */ '@/components/ScalesPage/ScalesPage.vue')
+const BiotronPageUpdated = () => import(/* webpackChunkName: "biotron" */ '@/components/BiotronPage/BiotronPageUpdated.vue')
+const TouchMePageRelease = () => import(/* webpackChunkName: "touchme" */ '@/components/TouchMePage/TouchMePageRelease.vue')
+const TouchMePageStandalone = () => import(/* webpackChunkName: "touchme" */ '@/components/TouchMePage/TouchMePageStandalone.vue')
+const PlaytronPageRelease = () => import(/* webpackChunkName: "playtron" */ '@/components/PlaytronPage/PlaytronPageRelease.vue')
+const PlaytronPageTest = () => import(/* webpackChunkName: "playtron" */ '@/components/PlaytronPage/PlaytronPageTest.vue')
+const TouchMePageTest = () => import(/* webpackChunkName: "touchme" */ '@/components/TouchMePage/TouchMePageTest.vue')
+const ScalesPageTest = () => import(/* webpackChunkName: "scales" */ '@/components/ScalesPage/ScalesPageTest.vue')
+const CirclePage = () => import(/* webpackChunkName: "circle" */ '@/components/CirclePage/CirclePage.vue')
 const SoundLab = () => import(/* webpackChunkName: "sound-lab" */ '@sound-lab')
 const DeviceFirstPlay = () => import(/* webpackChunkName: "sound-lab" */ '@/components/SoundLab/DeviceFirstPlay.vue')
 const deviceMeta = productName => ({
@@ -79,6 +78,4 @@ const router = createRouter({
     routes
 })
 
-var cors = require('cors');
-
-createApp(App).use(router).use(cors).mount('#app')
+createApp(App).use(router).mount('#app')

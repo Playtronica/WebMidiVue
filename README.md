@@ -75,6 +75,13 @@ and the local browser test before asking for human review; reserve model review
 for architecture, customer claims and release decisions. No test or automation
 in this branch pushes, deploys, publishes firmware, or touches production.
 
+`npm run audit:web` prints the current architectural debt and largest files.
+`npm run test:architecture` is a ratchet inside the full gate: eager routes and
+unmanaged component listeners cannot return, while the remaining blocking MIDI
+wait debt can only decrease. The staged simplification plan and rejected rewrite
+options are recorded in
+[`docs/WEB-SIMPLIFICATION-REVIEW.md`](docs/WEB-SIMPLIFICATION-REVIEW.md).
+
 The browser lifecycle test uses an installed Chrome/Chromium (`CHROME_PATH` can
 override discovery) and covers service-worker install/control, offline direct
 navigation, the offline firmware guard, and a non-disruptive waiting update.

@@ -377,6 +377,7 @@ import UpdateFirmwareComponent from "@/components/MidiComponents/UpdateFirmwareC
 import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
 import DeviceTaskNav from "@/components/DeviceTaskNav.vue";
+import {createListenerScope} from "@/assets/js/ListenerScope.mjs";
 
 
 
@@ -596,26 +597,29 @@ export default  {
 
   },
   mounted() {
-    document.addEventListener( 'keyup', event => {
+    this.listenerScope = createListenerScope()
+    this.listenerScope.on(document, 'keyup', event => {
       if (event.code === 'Enter' && !this.is_loading) this.change_data_loader();
     })
-    document.addEventListener( 'PatchChanged', async () => {
+    this.listenerScope.on(document, 'PatchChanged', async () => {
       await this.loadData();
       this.forceRerender++;
     })
-    document.addEventListener("PatchSave",  async (ev) => {
+    this.listenerScope.on(document, "PatchSave", async (ev) => {
       this.db.savePatch(localStorage.getItem(this.id), ev.detail)
       this.patches = await this.db.getPatch()
       this.patchRerender++;
     })
-    document.addEventListener( 'PatchDelete', async () => {
+    this.listenerScope.on(document, 'PatchDelete', async () => {
       this.db.deletePatch(parseInt(localStorage.getItem(this.id)))
       localStorage.setItem(this.id, "1")
       this.patches = await this.db.getPatch()
       await this.loadData();
       this.forceRerender++;
     })
-
+  },
+  beforeUnmount() {
+    this.listenerScope?.clear()
   }
 
 }

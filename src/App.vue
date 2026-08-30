@@ -6,16 +6,16 @@
     <nav :aria-label="betaBuild ? 'Choose a device' : 'Devices'" :class="{'device-header__scroll': betaBuild}">
       <ul class="nav nav-pills" :class="{'device-header__list': betaBuild}">
       <li class="nav-item">
-        <router-link to="/biotron" @click="this.update" class="nav-link">Biotron</router-link>
+        <router-link to="/biotron" class="nav-link">Biotron</router-link>
       </li>
       <li class="nav-item">
-        <router-link  to="/touchme" @click="this.update" class="nav-link">TouchMe</router-link>
+        <router-link to="/touchme" class="nav-link">TouchMe</router-link>
       </li>
       <li class="nav-item">
-        <router-link to="/playtron" @click="this.update" class="nav-link">Playtron</router-link>
+        <router-link to="/playtron" class="nav-link">Playtron</router-link>
       </li>
         <li class="nav-item">
-          <router-link to="/scales" @click="this.update" class="nav-link">Scales</router-link>
+          <router-link to="/scales" class="nav-link">Scales</router-link>
         </li>
       <li class="nav-item">
         <a href="https://playtronica.github.io/WebMidiOrbita/?nomidi=true" class="nav-link">Orbita<span v-if="betaBuild" aria-hidden="true"> ↗</span></a>
@@ -86,8 +86,6 @@ export default {
   components: {CompatibilityGate, SocialLinks},
   data() {
     return {
-      url: String,
-      forceRerender: 0,
       offlineStatus: getOfflineStatus(),
       online: navigator.onLine,
       installPrompt: null,
@@ -147,7 +145,6 @@ export default {
     window.removeEventListener("appinstalled", this.handleInstalled)
   },
   methods: {
-    update() { this.forceRerender++ },
     handleOfflineStatus(event) {
       this.offlineStatus = event.detail
     },
