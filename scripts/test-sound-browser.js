@@ -414,6 +414,19 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     await page.evaluate(() => window.__emitSoundMidi([0x90, 64, 0]))
     await page.getByRole('button', {name: 'Stop notes'}).click()
 
+    for (let index = 0; index < 6; index += 1) {
+      const variant = page.getByRole('button', {name: `Sound ${index + 1}`, exact: true})
+      await variant.click()
+      assert.strictEqual(await variant.getAttribute('aria-pressed'), 'true')
+      await page.dispatchEvent('body', 'keydown', {code: 'KeyA', key: 'ф'})
+      await page.evaluate(note => window.__emitSoundMidi([0x90, note, 96]), 72 + index)
+      await page.locator('.sound-lab[data-active-voices="2"]').waitFor()
+      await page.dispatchEvent('body', 'keyup', {code: 'KeyA', key: 'ф'})
+      await page.evaluate(note => window.__emitSoundMidi([0x80, note, 0]), 72 + index)
+      await page.getByRole('button', {name: 'Stop notes'}).click()
+      await page.locator('.sound-lab[data-active-voices="0"]').waitFor()
+    }
+
     const burstMilliseconds = await page.evaluate(() => {
       const started = performance.now()
       for (let index = 0; index < 1000; index += 1) {
