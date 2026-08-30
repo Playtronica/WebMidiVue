@@ -1,5 +1,15 @@
 import {parseMidiMessage} from './core.mjs'
 
+export function describeMidiAccessError(error) {
+  if (error?.name === 'NotAllowedError') {
+    return 'MIDI permission was not allowed. Allow device access, then try again.'
+  }
+  if (error?.name === 'SecurityError') {
+    return 'MIDI is blocked on this page. Open the secure Playtronica Settings address in current Chrome or Edge.'
+  }
+  return error?.message || 'MIDI could not start. Reconnect the device, then try again.'
+}
+
 export class MidiInputSession {
   constructor(engine, onState = () => {}) {
     this.engine = engine
@@ -14,7 +24,11 @@ export class MidiInputSession {
   async requestAccess() {
     if (!navigator.requestMIDIAccess) throw new Error('Web MIDI needs current Chrome or Edge on desktop.')
     if (!this.access) {
-      this.access = await navigator.requestMIDIAccess({sysex: false})
+      try {
+        this.access = await navigator.requestMIDIAccess({sysex: false})
+      } catch (error) {
+        throw new Error(describeMidiAccessError(error))
+      }
       this.access.addEventListener('statechange', this.boundState)
     }
     return this.listInputs()

@@ -21,6 +21,14 @@ The engine accepts MIDI Note On/Off on every channel and CC 120/123 panic. It re
 
 When the Web Locks API is available, Sound Lab holds an exclusive lock while active. A second Settings window stays silent and does not open MIDI until the first window presses **Stop & release**. Browsers without Web Locks can still play, but show an explicit reminder to keep only one Settings window open.
 
+Capabilities are checked before opening resources. Without Web MIDI, the
+general Sound page remains usable from the computer keyboard and explains that
+USB input needs current desktop Chrome or Edge; the device-specific first-play
+button stays blocked rather than pretending it can hear the device. Without Web
+Audio, Start stays disabled and the same page gives one supported alternative.
+Denied MIDI permission and insecure-page failures are translated into one
+specific recovery action instead of exposing a browser exception.
+
 ## Pipeline
 
 `Playtronica MIDI input / physical keyboard / screen keys → bounded voice allocator → oscillators + pitch gesture + vibrato → shared filter/delay/reverb → headroom + compressor → browser audio output`
@@ -35,6 +43,8 @@ The engine caps active voices at 8 (4 in safe mode), caps retiring voices, suspe
 - `src/audio/revealProfiles.mjs` — validated product meaning/copy and
   deterministic music-input selection; future devices add a profile, not a
   second MIDI/audio lifecycle.
+- `src/audio/capabilities.mjs` — browser capability detection and plain-language
+  audio-only/unsupported fallbacks.
 - `src/components/SoundLab/DisabledSoundLab.vue` — production-safe alias target.
 - `src/audio/core.mjs` — MIDI parsing, any-layout keyboard map, bounded voice ledger.
 - `src/audio/engine.mjs` — dependency-free Web Audio engine.
@@ -64,7 +74,7 @@ CHROME_PATH="/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" npm r
 ## Safety rails
 
 - Beta only: `@sound-lab` points to the real component only when `VUE_APP_BIOTRON_PWA_BETA=true`.
-- The Sound route is lazy. Its current beta chunk, including first-play profiles, is under 10 KiB gzip, is precached for offline use and must remain below the enforced 25 KiB budget.
+- The Sound route is lazy. Its current beta chunk, including first-play profiles and capability fallbacks, is under 10.5 KiB gzip, is precached for offline use and must remain below the enforced 25 KiB budget.
 - A MIDI close failure must stay visible and retryable; Start remains blocked until the input closes.
 - In a background tab, active notes are stopped and incoming MIDI is ignored until the user returns and presses Start sound; this prevents invisible note accumulation.
 - Browser/driver AudioContext suspension is reflected in the UI. An unexpected context close blocks Start until Stop & release closes the still-selected MIDI input, preventing an orphaned port.
@@ -78,4 +88,7 @@ CHROME_PATH="/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" npm r
 - After injected MIDI-close and AudioContext-close failures with successful retries, the browser test completes 100/100 Start → Stop & release cycles with no page error or stale tab lease.
 - Automated rendering proves bounds and stability, not whether a timbre is beautiful. Human listening is a release gate.
 - Chrome/Edge/Brave support MIDI. Safari can run Web Audio but does not provide Web MIDI, so device input is not promised there.
+- Real-browser negative-path tests remove Web MIDI and Web Audio separately:
+  audio-only keyboard play remains available, while impossible device/audio
+  actions are disabled with a specific alternative.
 - Never merge/deploy this beta branch to production without maintainer review and physical device listening.

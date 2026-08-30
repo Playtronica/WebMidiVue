@@ -6,6 +6,8 @@
     :data-quality="lowCpu ? 'safe' : 'standard'"
     :data-tab-lease="tabLeaseState"
     :data-reveal-stage="revealMode ? revealStage : null"
+    :data-audio-capability="capabilities.audio ? 'available' : 'unavailable'"
+    :data-midi-capability="capabilities.midi ? 'available' : 'unavailable'"
   >
     <template v-if="revealMode">
       <header class="sound-lab__intro sound-lab__intro--reveal">
@@ -38,7 +40,7 @@
               type="button"
               class="btn btn-dark"
               @click="startReveal"
-              :disabled="starting || releaseBlocked"
+              :disabled="starting || releaseBlocked || !canStartReveal"
             >{{ revealStage === 'intro' ? revealProfile.startLabel : 'Resume sound' }}</button>
             <button
               v-if="engine || midi"
@@ -86,7 +88,7 @@
     </header>
 
     <section class="sound-lab__controls" aria-label="Sound controls">
-      <button type="button" class="btn btn-dark" @click="start" :disabled="starting || releaseBlocked">Start sound</button>
+      <button type="button" class="btn btn-dark" @click="start" :disabled="starting || releaseBlocked || !capabilities.audio">Start sound</button>
       <button type="button" class="btn btn-outline-dark" @click="stop" :disabled="!engine && !midi">Stop &amp; release</button>
       <button type="button" class="btn btn-outline-danger" @click="panic" :disabled="!engine">Stop notes</button>
       <label class="sound-lab__quality">
@@ -145,7 +147,8 @@
     <section class="sound-lab__midi" aria-labelledby="sound-device">
       <div>
         <h2 id="sound-device">Playtronica device</h2>
-        <p>Only the selected MIDI input is opened. Stop &amp; release closes it.</p>
+        <p v-if="capabilities.audio && capabilities.midi">Only the selected MIDI input is opened. Stop &amp; release closes it.</p>
+        <p v-else>{{ deviceFallbackMessage }}</p>
       </div>
       <div class="sound-lab__midi-actions">
         <select v-if="midiInputs.length" v-model="selectedInput" class="form-select" aria-label="MIDI input">
@@ -153,7 +156,7 @@
             {{ [input.manufacturer, input.name].filter(Boolean).join(' — ') }}
           </option>
         </select>
-        <button type="button" class="btn btn-primary" @click="connectMidi" :disabled="starting || releaseBlocked">
+        <button type="button" class="btn btn-primary" @click="connectMidi" :disabled="starting || releaseBlocked || !capabilities.audio || !capabilities.midi">
           {{ midiInputs.length ? 'Connect selected' : 'Find MIDI device' }}
         </button>
       </div>
@@ -170,6 +173,7 @@ import {MidiInputSession} from '@/audio/midi.mjs'
 import {SOUND_VARIANTS} from '@/audio/presets.mjs'
 import {createExclusiveTabLease} from '@/audio/tabLease.mjs'
 import {getRevealProfile, selectRevealInput} from '@/audio/revealProfiles.mjs'
+import {detectSoundCapabilities, soundCapabilityMessage} from '@/audio/capabilities.mjs'
 
 const keyboard = [
   ['KeyA', 60, 'A', 'C', false], ['KeyW', 61, 'W', 'C sharp', true],
@@ -189,9 +193,16 @@ export default {
   },
   computed: {
     revealMode() { return this.mode === 'reveal' },
-    revealProfile() { return getRevealProfile(this.profileId) }
+    revealProfile() { return getRevealProfile(this.profileId) },
+    canStartReveal() { return this.capabilities.audio && this.capabilities.midi },
+    deviceFallbackMessage() {
+      return this.capabilities.audio
+        ? soundCapabilityMessage(this.capabilities)
+        : 'USB input is unavailable because sound cannot start in this browser.'
+    }
   },
   data() {
+    const capabilities = detectSoundCapabilities()
     return {
       engine: null,
       midi: null,
@@ -201,7 +212,10 @@ export default {
       heldCodes: markRaw(new Set()),
       midiInputs: [],
       selectedInput: '',
-      status: this.mode === 'reveal' ? 'Ready when you are' : 'Press Start sound',
+      capabilities: markRaw(capabilities),
+      status: this.mode === 'reveal'
+        ? soundCapabilityMessage(capabilities, {requiresMidi: true}) || 'Ready when you are'
+        : capabilities.audio ? 'Press Start sound' : soundCapabilityMessage(capabilities),
       audioState: 'closed',
       voiceCount: 0,
       lowCpu: this.mode === 'reveal',
@@ -286,6 +300,10 @@ export default {
       return this.engine
     },
     async start() {
+      if (!this.capabilities.audio) {
+        this.status = soundCapabilityMessage(this.capabilities)
+        return
+      }
       this.starting = true
       try {
         if (!await this.acquireTabLease()) return
@@ -385,6 +403,10 @@ export default {
       }
     },
     async connectMidi() {
+      if (!this.capabilities.audio || !this.capabilities.midi) {
+        this.status = soundCapabilityMessage(this.capabilities, {requiresMidi: true})
+        return
+      }
       this.starting = true
       try {
         if (!await this.acquireTabLease()) return
@@ -399,6 +421,10 @@ export default {
       finally { this.starting = false }
     },
     async startReveal() {
+      if (!this.canStartReveal) {
+        this.status = soundCapabilityMessage(this.capabilities, {requiresMidi: true})
+        return
+      }
       this.starting = true
       let failure = ''
       try {

@@ -9,7 +9,7 @@ import {
   VoiceLedger
 } from '../src/audio/core.mjs'
 import {SOUND_VARIANTS, validatePreset} from '../src/audio/presets.mjs'
-import {MidiInputSession} from '../src/audio/midi.mjs'
+import {describeMidiAccessError, MidiInputSession} from '../src/audio/midi.mjs'
 import {ExclusiveTabLease} from '../src/audio/tabLease.mjs'
 import {
   getRevealProfile,
@@ -17,6 +17,7 @@ import {
   selectRevealInput,
   validateRevealProfile
 } from '../src/audio/revealProfiles.mjs'
+import {detectSoundCapabilities, soundCapabilityMessage} from '../src/audio/capabilities.mjs'
 
 test('physical keyboard mapping is independent from typed character', () => {
   assert.equal(noteForKeyboardCode('KeyA'), 60)
@@ -92,6 +93,31 @@ test('reveal input selection is stable for two cables and blocks two devices', (
     /More than one Biotron music input/
   )
   assert.throws(() => selectRevealInput([unrelated], profile), /Biotron was not found/)
+})
+
+test('sound capabilities fail closed without hiding the audio-only fallback', () => {
+  const AudioContext = class {}
+  const full = detectSoundCapabilities({
+    AudioContext,
+    navigator: {requestMIDIAccess() {}, locks: {request() {}}}
+  })
+  assert.deepEqual(full, {audio: true, midi: true, tabIsolation: true})
+  assert.equal(soundCapabilityMessage(full), '')
+
+  const audioOnly = detectSoundCapabilities({AudioContext, navigator: {}})
+  assert.deepEqual(audioOnly, {audio: true, midi: false, tabIsolation: false})
+  assert.match(soundCapabilityMessage(audioOnly), /Computer-keyboard sound works/i)
+  assert.match(soundCapabilityMessage(audioOnly, {requiresMidi: true}), /cannot hear your device/i)
+
+  const unsupported = detectSoundCapabilities({navigator: {requestMIDIAccess() {}}})
+  assert.deepEqual(unsupported, {audio: false, midi: true, tabIsolation: false})
+  assert.match(soundCapabilityMessage(unsupported), /Sound is not available/i)
+})
+
+test('MIDI permission and security failures use actionable language', () => {
+  assert.match(describeMidiAccessError({name: 'NotAllowedError'}), /Allow device access, then try again/i)
+  assert.match(describeMidiAccessError({name: 'SecurityError'}), /secure Playtronica Settings address/i)
+  assert.equal(describeMidiAccessError(new Error('driver unavailable')), 'driver unavailable')
 })
 
 test('failed MIDI close stays retryable and never reports released', async () => {

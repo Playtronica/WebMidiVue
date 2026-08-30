@@ -23,6 +23,74 @@ const server = http.createServer((request, response) => {
   response.end(fs.readFileSync(file))
 })
 
+async function verifyCapabilityFallbacks(browser, origin) {
+  const audioOnlyContext = await browser.newContext()
+  await audioOnlyContext.addInitScript(() => {
+    Object.defineProperty(navigator, 'requestMIDIAccess', {configurable: true, value: undefined})
+  })
+  const audioOnly = await audioOnlyContext.newPage()
+  const audioOnlyErrors = []
+  audioOnly.on('pageerror', error => audioOnlyErrors.push(error.message))
+  await audioOnly.goto(`${origin}/#/sound`, {waitUntil: 'networkidle'})
+  await audioOnly.locator('.sound-lab[data-audio-capability="available"][data-midi-capability="unavailable"]').waitFor()
+  await audioOnly.locator('.sound-lab__midi').getByText(/Computer-keyboard sound works here/i).waitFor()
+  assert.strictEqual(await audioOnly.getByRole('button', {name: 'Find MIDI device'}).isDisabled(), true)
+  await audioOnly.getByRole('button', {name: 'Start sound'}).click()
+  await audioOnly.locator('.sound-lab[data-audio-state="running"]').waitFor()
+  await audioOnly.dispatchEvent('body', 'keydown', {code: 'KeyA', key: 'a'})
+  await audioOnly.locator('.sound-lab[data-active-voices="1"]').waitFor()
+  await audioOnly.dispatchEvent('body', 'keyup', {code: 'KeyA', key: 'a'})
+  await audioOnly.getByRole('button', {name: 'Stop & release'}).click()
+  await audioOnly.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
+  await audioOnly.getByText(/cannot hear your device/i).waitFor()
+  assert.strictEqual(await audioOnly.getByRole('button', {name: 'Hear Biotron'}).isDisabled(), true)
+  assert.deepStrictEqual(audioOnlyErrors, [])
+  await audioOnlyContext.close()
+
+  const deniedContext = await browser.newContext()
+  await deniedContext.addInitScript(() => {
+    Object.defineProperty(navigator, 'requestMIDIAccess', {
+      configurable: true,
+      value: async () => { throw new DOMException('Permission denied', 'NotAllowedError') }
+    })
+  })
+  const denied = await deniedContext.newPage()
+  const deniedErrors = []
+  denied.on('pageerror', error => deniedErrors.push(error.message))
+  await denied.goto(`${origin}/#/sound`, {waitUntil: 'networkidle'})
+  await denied.getByRole('button', {name: 'Start sound'}).click()
+  await denied.locator('.sound-lab[data-audio-state="running"]').waitFor()
+  await denied.getByRole('button', {name: 'Find MIDI device'}).click()
+  await denied.getByText(/Allow device access, then try again/i).waitFor()
+  await denied.getByRole('button', {name: 'Stop & release'}).click()
+  await denied.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
+  await denied.getByRole('button', {name: 'Hear Biotron'}).click()
+  await denied.getByText(/Allow device access, then try again/i).waitFor()
+  await denied.locator('.sound-lab[data-audio-state="closed"][data-tab-lease="free"]').waitFor()
+  assert.deepStrictEqual(deniedErrors, [])
+  await deniedContext.close()
+
+  const noAudioContext = await browser.newContext()
+  await noAudioContext.addInitScript(() => {
+    Object.defineProperty(window, 'AudioContext', {configurable: true, value: undefined})
+    Object.defineProperty(window, 'webkitAudioContext', {configurable: true, value: undefined})
+    Object.defineProperty(navigator, 'requestMIDIAccess', {configurable: true, value: async () => ({inputs: new Map()})})
+  })
+  const noAudio = await noAudioContext.newPage()
+  const noAudioErrors = []
+  noAudio.on('pageerror', error => noAudioErrors.push(error.message))
+  await noAudio.goto(`${origin}/#/sound`, {waitUntil: 'networkidle'})
+  await noAudio.locator('.sound-lab[data-audio-capability="unavailable"]').waitFor()
+  await noAudio.getByText(/Sound is not available in this browser/i).waitFor()
+  assert.strictEqual(await noAudio.getByRole('button', {name: 'Start sound'}).isDisabled(), true)
+  assert.strictEqual(await noAudio.getByRole('button', {name: 'Find MIDI device'}).isDisabled(), true)
+  await noAudio.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
+  await noAudio.getByText(/Sound is not available in this browser/i).waitFor()
+  assert.strictEqual(await noAudio.getByRole('button', {name: 'Hear Biotron'}).isDisabled(), true)
+  assert.deepStrictEqual(noAudioErrors, [])
+  await noAudioContext.close()
+}
+
 ;(async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
   const origin = `http://127.0.0.1:${server.address().port}`
@@ -310,8 +378,9 @@ const server = http.createServer((request, response) => {
     await page.getByRole('button', {name: 'Stop & release'}).click()
     await page.locator('.sound-lab[data-reveal-stage="intro"][data-audio-state="closed"][data-tab-lease="free"]').waitFor()
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'closed')
+    await verifyCapabilityFallbacks(browser, origin)
     assert.deepStrictEqual(errors, [])
-    console.log(`Sound browser verified: first-play Biotron reveal, 6 variants, 4-voice Low CPU mode, exclusive two-tab handoff, 100/100 lifecycle cycles in ${cycleMilliseconds} ms, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)
+    console.log(`Sound browser verified: first-play Biotron reveal, permission/audio-only/no-audio fallbacks, 6 variants, 4-voice Low CPU mode, exclusive two-tab handoff, 100/100 lifecycle cycles in ${cycleMilliseconds} ms, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)
   } finally {
     await browser.close()
     await new Promise(resolve => server.close(resolve))
