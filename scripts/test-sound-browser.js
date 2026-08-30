@@ -7,6 +7,11 @@ const {chromium} = require('playwright-core')
 const root = path.resolve(__dirname, '..', 'dist')
 const mime = {'.css':'text/css','.html':'text/html','.js':'text/javascript','.json':'application/json','.png':'image/png','.woff2':'font/woff2'}
 
+const soakArgument = process.argv.find(argument => argument.startsWith('--soak-seconds='))
+const realtimeSoakSeconds = soakArgument ? Number(soakArgument.split('=')[1]) : 0
+assert(Number.isInteger(realtimeSoakSeconds) && realtimeSoakSeconds >= 0 && realtimeSoakSeconds <= 28800,
+  '--soak-seconds must be a whole number from 0 to 28800')
+
 const chromePath = () => {
   const candidates = [process.env.CHROME_PATH, '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/usr/bin/google-chrome', '/usr/bin/chromium'].filter(Boolean)
   const executable = candidates.find(fs.existsSync)
@@ -89,6 +94,49 @@ async function verifyCapabilityFallbacks(browser, origin) {
   assert.strictEqual(await noAudio.getByRole('button', {name: 'Hear Biotron'}).isDisabled(), true)
   assert.deepStrictEqual(noAudioErrors, [])
   await noAudioContext.close()
+}
+
+async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
+  if (!seconds) return null
+  const metric = (list, name) => list.find(item => item.name === name)?.value || 0
+  await devtools.send('Performance.enable')
+  await devtools.send('HeapProfiler.collectGarbage')
+  const startHeap = metric((await devtools.send('Performance.getMetrics')).metrics, 'JSHeapUsedSize')
+  const startedAt = Date.now()
+  let cycles = 0
+  let maxCycleMilliseconds = 0
+  while (Date.now() - startedAt < seconds * 1000) {
+    const cycleStarted = performance.now()
+    await page.evaluate(() => {
+      for (let note = 48; note < 56; note += 1) window.__emitSoundMidi([0x90, note, 88])
+      for (let note = 48; note < 56; note += 1) window.__emitSoundMidi([0x80, note, 0])
+      window.__emitSoundMidi([0xb0, 123, 0])
+    })
+    await page.locator('.sound-lab[data-active-voices="0"]').waitFor()
+    maxCycleMilliseconds = Math.max(maxCycleMilliseconds, performance.now() - cycleStarted)
+    cycles += 1
+    await page.waitForTimeout(200)
+  }
+  await devtools.send('HeapProfiler.collectGarbage')
+  const endHeap = metric((await devtools.send('Performance.getMetrics')).metrics, 'JSHeapUsedSize')
+  const report = {
+    schemaVersion: 1,
+    browser: browserVersion,
+    requestedSeconds: seconds,
+    elapsedMilliseconds: Date.now() - startedAt,
+    cycles,
+    maxCycleMilliseconds: Math.round(maxCycleMilliseconds * 10) / 10,
+    heapGrowthBytes: endHeap - startHeap,
+    finalVoices: Number(await page.locator('.sound-lab').getAttribute('data-active-voices')),
+    midiConnection: await page.evaluate(() => window.__soundInput.connection)
+  }
+  assert(report.cycles > 0, 'real-time soak completed no cycles')
+  assert(report.maxCycleMilliseconds < 2000, `real-time soak cycle blocked for ${report.maxCycleMilliseconds} ms`)
+  assert(report.heapGrowthBytes < 20 * 1024 * 1024, `real-time soak heap grew by ${report.heapGrowthBytes} bytes`)
+  assert.strictEqual(report.finalVoices, 0)
+  assert.strictEqual(report.midiConnection, 'open')
+  console.log(`SOUND_SOAK_REPORT ${JSON.stringify(report)}`)
+  return report
 }
 
 ;(async () => {
@@ -288,6 +336,7 @@ async function verifyCapabilityFallbacks(browser, origin) {
     const heapGrowth = metric(afterMetrics, 'JSHeapUsedSize') - metric(beforeMetrics, 'JSHeapUsedSize')
     assert(soakMilliseconds < 15000, `20000-message soak blocked the page for ${soakMilliseconds} ms`)
     assert(heapGrowth < 20 * 1024 * 1024, `JS heap grew by ${heapGrowth} bytes`)
+    const realtimeSoak = await runRealtimeSoak(page, devtools, realtimeSoakSeconds, await browser.version())
 
     await page.evaluate(() => window.__setSoundInputState('disconnected'))
     await page.getByText(/MIDI disconnected/i).waitFor()
@@ -399,7 +448,7 @@ async function verifyCapabilityFallbacks(browser, origin) {
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'closed')
     await verifyCapabilityFallbacks(browser, origin)
     assert.deepStrictEqual(errors, [])
-    console.log(`Sound browser verified: first-play Biotron reveal, permission/audio-only/no-audio fallbacks, 6 variants, 6x-throttled Low CPU start ${constrainedStartMilliseconds} ms and burst ${constrainedBurstMilliseconds.toFixed(1)} ms, exclusive two-tab handoff, 100/100 lifecycle cycles in ${cycleMilliseconds} ms, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)
+    console.log(`Sound browser verified: first-play Biotron reveal, permission/audio-only/no-audio fallbacks, 6 variants, 6x-throttled Low CPU start ${constrainedStartMilliseconds} ms and burst ${constrainedBurstMilliseconds.toFixed(1)} ms, exclusive two-tab handoff, 100/100 lifecycle cycles in ${cycleMilliseconds} ms, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, optional real-time soak ${realtimeSoak ? `${realtimeSoak.elapsedMilliseconds} ms` : 'not requested'}, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)
   } finally {
     await browser.close()
     await new Promise(resolve => server.close(resolve))

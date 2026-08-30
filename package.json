@@ -15,6 +15,8 @@
     "test:pwa:browser": "node scripts/test-pwa-browser.js",
     "test:sound": "node --test scripts/test-sound-core.mjs",
     "test:sound:browser": "node scripts/test-sound-browser.js",
+    "test:sound:soak:smoke": "node scripts/test-sound-browser.js --soak-seconds=60",
+    "test:sound:soak": "node scripts/test-sound-browser.js --soak-seconds=600",
     "test:biotron": "npm run lint && npm run test:sound && npm run test:production-isolation && npm run build:biotron-beta && npm run test:device-scope && npm run test:midi-lifecycle && npm run test:pwa && npm run test:firmware && npm run test:sound:browser && npm run test:pwa:browser"
   },
   "dependencies": {

@@ -71,6 +71,14 @@ Open `/#/sound`. For Brave:
 CHROME_PATH="/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" npm run test:sound:browser
 ```
 
+Elapsed-time lifecycle soak uses the same real-browser flow and emits one
+privacy-safe `SOUND_SOAK_REPORT` JSON line:
+
+```bash
+npm run test:sound:soak:smoke  # 60 s harness check
+npm run test:sound:soak        # 10 min before a review candidate
+```
+
 ## Safety rails
 
 - Beta only: `@sound-lab` points to the real component only when `VUE_APP_BIOTRON_PWA_BETA=true`.
@@ -83,6 +91,10 @@ CHROME_PATH="/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" npm r
 - Navigating away runs the same awaited teardown. If audio or MIDI cannot close, routing is cancelled and the visible Stop button remains available for retry.
 - MIDI voice-count diagnostics are coalesced to one Vue update per animation frame; the browser test injects a 1000-message burst and verifies the 8-voice cap and Panic recovery.
 - The same browser test runs a 20,000-message soak with garbage collection/heap comparison, then verifies disconnect, reconnect and background suspend/resume.
+- Optional elapsed-time soak repeatedly exercises Note On/Off/Panic while the
+  AudioContext and selected MIDI input remain open, then checks bounded cycle
+  time, post-GC heap growth, zero voices and successful final Release. The
+  machine-readable report contains no MIDI performance or private device data.
 - The browser test opens two Settings tabs and proves exclusive handoff: tab B cannot start until tab A releases the lease.
 - The same real-browser test enables Low CPU, holds eight keyboard notes and proves the active graph remains capped at four voices before returning to Standard mode.
 - Chrome and Brave also run Low CPU with 6× DevTools CPU throttling: Start must
