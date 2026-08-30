@@ -1,6 +1,9 @@
 const assert = require('assert')
+const crypto = require('crypto')
+const {execFileSync} = require('child_process')
 const fs = require('fs')
 const http = require('http')
+const os = require('os')
 const path = require('path')
 const {chromium} = require('playwright-core')
 
@@ -11,12 +14,70 @@ const soakArgument = process.argv.find(argument => argument.startsWith('--soak-s
 const realtimeSoakSeconds = soakArgument ? Number(soakArgument.split('=')[1]) : 0
 assert(Number.isInteger(realtimeSoakSeconds) && realtimeSoakSeconds >= 0 && realtimeSoakSeconds <= 28800,
   '--soak-seconds must be a whole number from 0 to 28800')
+const soakReportArgument = process.argv.find(argument => argument.startsWith('--soak-report='))
+const soakReportPath = soakReportArgument
+  ? path.resolve(process.cwd(), soakReportArgument.slice('--soak-report='.length))
+  : ''
+assert(!soakReportArgument || soakReportPath !== process.cwd(), '--soak-report requires a file path')
+assert(!soakReportPath || realtimeSoakSeconds > 0, '--soak-report requires --soak-seconds greater than 0')
+assert(!soakReportPath || fs.existsSync(path.dirname(soakReportPath)),
+  '--soak-report parent directory must already exist')
+
+function hashDirectory(directory) {
+  const hash = crypto.createHash('sha256')
+  const visit = current => {
+    for (const entry of fs.readdirSync(current, {withFileTypes: true}).sort((left, right) => left.name.localeCompare(right.name))) {
+      const absolute = path.join(current, entry.name)
+      const relative = path.relative(directory, absolute)
+      if (entry.isDirectory()) visit(absolute)
+      else if (entry.isFile()) {
+        hash.update(relative)
+        hash.update('\0')
+        hash.update(fs.readFileSync(absolute))
+        hash.update('\0')
+      }
+    }
+  }
+  visit(directory)
+  return hash.digest('hex')
+}
 
 const chromePath = () => {
   const candidates = [process.env.CHROME_PATH, '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/usr/bin/google-chrome', '/usr/bin/chromium'].filter(Boolean)
   const executable = candidates.find(fs.existsSync)
   assert(executable, 'Chrome/Chromium not found; set CHROME_PATH')
   return executable
+}
+
+const evidenceContext = soakReportPath ? {
+  sourceCommit: execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim(),
+  sourceDirty: Boolean(execFileSync('/usr/bin/git', ['status', '--porcelain'], {encoding: 'utf8'}).trim()),
+  distTreeSha256: hashDirectory(root),
+  browserExecutable: path.basename(chromePath()),
+  platform: process.platform,
+  platformRelease: os.release(),
+  architecture: process.arch
+} : null
+let latestRealtimeSoak = null
+
+function writeSoakEvidence(status, phase, report = latestRealtimeSoak, error = null) {
+  if (!soakReportPath) return
+  const payload = {
+    schemaVersion: 1,
+    status,
+    phase,
+    recordedAt: new Date().toISOString(),
+    ...evidenceContext,
+    report,
+    error: error ? {name: error.name || 'Error', message: error.message || String(error)} : null
+  }
+  const temporary = `${soakReportPath}.${process.pid}.tmp`
+  try {
+    fs.writeFileSync(temporary, `${JSON.stringify(payload, null, 2)}\n`, {mode: 0o600})
+    fs.renameSync(temporary, soakReportPath)
+  } finally {
+    if (fs.existsSync(temporary)) fs.unlinkSync(temporary)
+  }
 }
 
 const server = http.createServer((request, response) => {
@@ -120,6 +181,8 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
   const heapSamples = [{elapsedMilliseconds: 0, heapBytes: startHeap}]
   let cycles = 0
   let maxCycleMilliseconds = 0
+  latestRealtimeSoak = {browser: browserVersion, requestedSeconds: seconds, elapsedMilliseconds: 0, cycles: 0}
+  writeSoakEvidence('RUNNING', 'realtime-soak')
   while (Date.now() - startedAt < seconds * 1000) {
     const cycleStarted = performance.now()
     await page.evaluate(() => {
@@ -136,6 +199,14 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
         elapsedMilliseconds: Date.now() - startedAt,
         heapBytes: metric((await devtools.send('Performance.getMetrics')).metrics, 'JSHeapUsedSize')
       })
+      latestRealtimeSoak = {
+        browser: browserVersion,
+        requestedSeconds: seconds,
+        elapsedMilliseconds: Date.now() - startedAt,
+        cycles,
+        heapSampleCount: heapSamples.length
+      }
+      writeSoakEvidence('RUNNING', 'realtime-soak')
       nextSampleAt += sampleIntervalMilliseconds
     }
     await page.waitForTimeout(200)
@@ -164,6 +235,7 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     finalVoices: Number(await page.locator('.sound-lab').getAttribute('data-active-voices')),
     midiConnection: await page.evaluate(() => window.__soundInput.connection)
   }
+  latestRealtimeSoak = report
   assert(report.cycles > 0, 'real-time soak completed no cycles')
   assert(report.maxCycleMilliseconds < 2000, `real-time soak cycle blocked for ${report.maxCycleMilliseconds} ms`)
   assert(report.heapGrowthBytes < 20 * 1024 * 1024, `real-time soak heap grew by ${report.heapGrowthBytes} bytes`)
@@ -489,6 +561,7 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'closed')
     await verifyCapabilityFallbacks(browser, origin)
     assert.deepStrictEqual(errors, [])
+    if (realtimeSoak) writeSoakEvidence('PASS', 'suite-complete', realtimeSoak)
     console.log(`Sound browser verified: first-play Biotron reveal, permission/audio-only/no-audio fallbacks, 6 variants, 6x-throttled Low CPU start ${constrainedStartMilliseconds} ms and burst ${constrainedBurstMilliseconds.toFixed(1)} ms, exclusive two-tab handoff, 100/100 lifecycle cycles in ${cycleMilliseconds} ms, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, optional real-time soak ${realtimeSoak ? `${realtimeSoak.elapsedMilliseconds} ms` : 'not requested'}, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)
   } finally {
     await browser.close()
@@ -496,5 +569,7 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
   }
 })().catch(error => {
   console.error(error)
+  try { writeSoakEvidence('FAIL', 'suite-failed', latestRealtimeSoak, error) }
+  catch (reportError) { console.error(`Could not write soak report: ${reportError.message}`) }
   server.close(() => process.exit(1))
 })
