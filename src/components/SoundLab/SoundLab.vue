@@ -129,6 +129,7 @@ export default {
       pendingVoiceCount: 0,
       keyDownHandler: null,
       keyUpHandler: null,
+      blurHandler: null,
       visibilityHandler: null,
       tabLease: null,
       tabLeaseState: 'free'
@@ -138,14 +139,17 @@ export default {
     this.tabLease = markRaw(createExclusiveTabLease('playtronica-settings-sound-lab'))
     this.keyDownHandler = event => this.handleKeyDown(event)
     this.keyUpHandler = event => this.handleKeyUp(event)
+    this.blurHandler = () => this.releaseHeldKeyboard()
     this.visibilityHandler = () => this.handleVisibility()
     window.addEventListener('keydown', this.keyDownHandler)
     window.addEventListener('keyup', this.keyUpHandler)
+    window.addEventListener('blur', this.blurHandler)
     document.addEventListener('visibilitychange', this.visibilityHandler)
   },
   beforeUnmount() {
     window.removeEventListener('keydown', this.keyDownHandler)
     window.removeEventListener('keyup', this.keyUpHandler)
+    window.removeEventListener('blur', this.blurHandler)
     document.removeEventListener('visibilitychange', this.visibilityHandler)
     this.heldCodes.clear()
     window.clearTimeout(this.voiceRefreshTimer)
@@ -282,6 +286,14 @@ export default {
       event.preventDefault()
       this.heldCodes.delete(event.code)
       this.release(note, 'keyboard')
+    },
+    releaseHeldKeyboard() {
+      const codes = [...this.heldCodes]
+      this.heldCodes.clear()
+      for (const code of codes) {
+        const note = noteForKeyboardCode(code)
+        if (note !== null) this.release(note, 'keyboard')
+      }
     },
     async connectMidi() {
       this.starting = true

@@ -53,11 +53,12 @@ CHROME_PATH="/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" npm r
 ## Safety rails
 
 - Beta only: `@sound-lab` points to the real component only when `VUE_APP_BIOTRON_PWA_BETA=true`.
-- The Sound route is lazy. Its current beta chunk is under 8 KiB gzip, is precached for offline use and must remain below the enforced 25 KiB budget.
+- The Sound route is lazy. Its current beta chunk is under 8.1 KiB gzip, is precached for offline use and must remain below the enforced 25 KiB budget.
 - A MIDI close failure must stay visible and retryable; Start remains blocked until the input closes.
 - In a background tab, active notes are stopped and incoming MIDI is ignored until the user returns and presses Start sound; this prevents invisible note accumulation.
 - Browser/driver AudioContext suspension is reflected in the UI. An unexpected context close blocks Start until Stop & release closes the still-selected MIDI input, preventing an orphaned port.
 - The MIDI input list follows Web MIDI state changes and excludes disconnected ports; reconnecting or adding a device refreshes the selector without opening it automatically.
+- Losing window focus releases held computer-keyboard notes so a missed `keyup` cannot leave them sounding; hardware MIDI remains connected.
 - Navigating away runs the same awaited teardown. If audio or MIDI cannot close, routing is cancelled and the visible Stop button remains available for retry.
 - MIDI voice-count diagnostics are coalesced to one Vue update per animation frame; the browser test injects a 1000-message burst and verifies the 8-voice cap and Panic recovery.
 - The same browser test runs a 20,000-message soak with garbage collection/heap comparison, then verifies disconnect, reconnect and background suspend/resume.

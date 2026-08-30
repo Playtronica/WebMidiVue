@@ -137,6 +137,15 @@ const server = http.createServer((request, response) => {
     await page.getByRole('button', {name: 'Stop notes'}).click()
     await page.locator('.sound-lab[data-active-voices="0"]').waitFor()
 
+    await page.dispatchEvent('body', 'keydown', {code: 'KeyA', key: 'a'})
+    await page.locator('.sound-lab[data-active-voices="1"]').waitFor()
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')))
+    await page.locator('.sound-lab[data-active-voices="0"]').waitFor({timeout: 5000})
+    await page.dispatchEvent('body', 'keydown', {code: 'KeyA', key: 'a'})
+    await page.locator('.sound-lab[data-active-voices="1"]').waitFor()
+    await page.dispatchEvent('body', 'keyup', {code: 'KeyA', key: 'a'})
+    await page.getByRole('button', {name: 'Stop notes'}).click()
+
     await page.getByRole('button', {name: 'Find MIDI device'}).click()
     await page.getByRole('button', {name: 'Connect selected'}).click()
     assert.deepStrictEqual(await page.evaluate(() => window.__soundMidiRequests), [{sysex: false}])
