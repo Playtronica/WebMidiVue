@@ -17,19 +17,34 @@ export class MidiInputSession {
     this.access = null
     this.input = null
     this.enabled = true
+    this.closed = false
+    // Late permission/open completions must never reacquire a released port.
+    this.operationId = 0
+    this.pendingConnect = null
     this.boundMessage = event => this.onMessage(event)
     this.boundState = event => this.onStateChange(event)
   }
 
-  async requestAccess() {
-    if (!navigator.requestMIDIAccess) throw new Error('Web MIDI needs current Chrome or Edge on desktop.')
+  assertActive(operationId) {
+    if (this.closed || operationId !== this.operationId) {
+      throw new Error('MIDI connection was cancelled.')
+    }
+  }
+
+  async requestAccess(operationId = this.operationId) {
+    this.assertActive(operationId)
     if (!this.access) {
+      if (!globalThis.navigator?.requestMIDIAccess) throw new Error('Web MIDI needs current Chrome or Edge on desktop.')
+      let access
       try {
-        this.access = await navigator.requestMIDIAccess({sysex: false})
+        access = await globalThis.navigator.requestMIDIAccess({sysex: false})
       } catch (error) {
+        this.assertActive(operationId)
         throw new Error(describeMidiAccessError(error))
       }
-      this.access.addEventListener('statechange', this.boundState)
+      this.assertActive(operationId)
+      this.access = access
+      access.addEventListener('statechange', this.boundState)
     }
     return this.listInputs()
   }
@@ -45,17 +60,50 @@ export class MidiInputSession {
   }
 
   async connect(inputId) {
-    if (!this.access) await this.requestAccess()
+    if (this.pendingConnect) throw new Error('MIDI connection is already starting.')
+    const operationId = ++this.operationId
+    const task = this.connectAt(inputId, operationId)
+    this.pendingConnect = task
+    try { return await task }
+    finally {
+      if (this.pendingConnect === task) this.pendingConnect = null
+    }
+  }
+
+  async connectAt(inputId, operationId) {
+    await this.requestAccess(operationId)
+    this.assertActive(operationId)
     const input = this.access.inputs.get(inputId)
     if (!input) throw new Error('That MIDI input is no longer available.')
-    await this.release()
+    await this.releaseCurrent()
+    this.assertActive(operationId)
     await input.open()
+    if (this.closed || operationId !== this.operationId) {
+      try { await input.close() }
+      catch (error) {
+        this.input = input
+        this.onState({type: 'release-error', input: input.name || 'MIDI input', error})
+        throw error
+      }
+      throw new Error('MIDI connection was cancelled.')
+    }
     input.addEventListener('midimessage', this.boundMessage)
     this.input = input
     this.onState({type: 'connected', input: input.name || 'MIDI input'})
   }
 
   async release() {
+    await this.invalidatePendingConnect()
+    await this.releaseCurrent()
+  }
+
+  async invalidatePendingConnect() {
+    this.operationId += 1
+    const pending = this.pendingConnect
+    if (pending) try { await pending } catch (error) { void error }
+  }
+
+  async releaseCurrent() {
     if (!this.input) return
     const input = this.input
     input.removeEventListener('midimessage', this.boundMessage)
@@ -66,12 +114,14 @@ export class MidiInputSession {
       this.onState({type: 'release-error', input: input.name || 'MIDI input', error})
       throw error
     }
-    this.input = null
+    if (this.input === input) this.input = null
     this.onState({type: 'released', input: input.name || 'MIDI input'})
   }
 
   async close() {
-    await this.release()
+    this.closed = true
+    await this.invalidatePendingConnect()
+    await this.releaseCurrent()
     this.access?.removeEventListener('statechange', this.boundState)
     this.access = null
   }

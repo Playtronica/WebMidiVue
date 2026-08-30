@@ -260,6 +260,8 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
       window.__soundMidiRequests = []
       window.__failSoundCloseOnce = false
       window.__failSoundAudioCloseOnce = false
+      let deferSoundOpenOnce = false
+      let finishDeferredOpen = null
       const AudioContextClass = window.AudioContext || window.webkitAudioContext
       const nativeAudioClose = AudioContextClass?.prototype.close
       if (nativeAudioClose) {
@@ -289,7 +291,16 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
       const input = {
         id: 'playtronica-in-1', name: 'Biotron Port 1', manufacturer: 'Playtronica',
         state: 'connected', connection: 'closed',
-        async open() { this.connection = 'open'; return this },
+        async open() {
+          if (deferSoundOpenOnce) {
+            deferSoundOpenOnce = false
+            this.connection = 'opening'
+            await new Promise(resolve => {
+              finishDeferredOpen = () => { this.connection = 'open'; finishDeferredOpen = null; resolve() }
+            })
+          } else this.connection = 'open'
+          return this
+        },
         async close() {
           if (window.__failSoundCloseOnce) {
             window.__failSoundCloseOnce = false
@@ -319,6 +330,8 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
       })
       window.__emitSoundMidi = data => midiListener?.({data: Uint8Array.from(data)})
       window.__hasSoundMidiListener = () => Boolean(midiListener)
+      window.__deferSoundOpen = () => { deferSoundOpenOnce = true }
+      window.__finishSoundOpen = () => finishDeferredOpen?.()
       window.__setSoundInputState = state => {
         input.state = state
         if (state === 'disconnected') input.connection = 'closed'
@@ -513,6 +526,22 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     await page.getByRole('button', {name: 'Connect selected'}).click()
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'open')
 
+    await page.evaluate(() => {
+      window.__emitSoundMidi([0x90, 76, 100])
+      const stopButton = [...document.querySelectorAll('button')]
+        .find(button => button.textContent.includes('Stop & release'))
+      stopButton?.click()
+    })
+    await page.locator('.sound-lab[data-audio-state="closed"][data-active-voices="0"][data-tab-lease="free"]').waitFor()
+    await page.waitForTimeout(100)
+    assert.strictEqual(await page.locator('.sound-lab').getAttribute('data-active-voices'), '0')
+    assert.strictEqual(await page.evaluate(() => window.__hasSoundMidiListener()), false)
+
+    await page.getByRole('button', {name: 'Start sound'}).click()
+    await page.getByRole('button', {name: 'Find MIDI device'}).click()
+    await page.getByRole('button', {name: 'Connect selected'}).click()
+    assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'open')
+
     await page.evaluate(() => { window.__failSoundCloseOnce = true })
     await page.evaluate(() => { window.location.hash = '#/biotron' })
     await page.locator('.sound-lab[data-audio-state="closed"]').waitFor()
@@ -544,9 +573,18 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     const cycleMilliseconds = Date.now() - cycleStarted
     assert.strictEqual(await page.getByRole('button', {name: 'Start sound'}).isEnabled(), true)
 
-    await page.evaluate(() => window.__addSoundServicePort())
-    await page.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
+    await page.getByRole('button', {name: 'Start sound'}).click()
+    await page.evaluate(() => window.__deferSoundOpen())
+    await page.getByRole('button', {name: 'Find MIDI device'}).click()
+    await page.waitForFunction(() => window.__soundInput.connection === 'opening')
+    await page.evaluate(() => { window.location.hash = '#/biotron/play' })
+    await page.waitForTimeout(100)
+    assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'opening')
+    await page.evaluate(() => window.__finishSoundOpen())
     await page.getByRole('heading', {name: 'Meet Biotron'}).waitFor()
+    assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'closed')
+    assert.strictEqual(await page.evaluate(() => window.__hasSoundMidiListener()), false)
+    await page.evaluate(() => window.__addSoundServicePort())
     await page.locator('.sound-lab[data-reveal-stage="intro"][data-quality="safe"]').waitFor()
     assert.strictEqual(await page.getByRole('link', {name: 'TouchMe'}).count(), 0)
     assert.strictEqual(await page.locator('.offline-status').count(), 0)

@@ -89,7 +89,7 @@
 
     <section class="sound-lab__controls" aria-label="Sound controls">
       <button type="button" class="btn btn-dark" @click="start" :disabled="starting || releaseBlocked || !capabilities.audio">Start sound</button>
-      <button type="button" class="btn btn-outline-dark" @click="stop" :disabled="!engine && !midi">Stop &amp; release</button>
+      <button type="button" class="btn btn-outline-dark" @click="stop" :disabled="starting || (!engine && !midi)">Stop &amp; release</button>
       <button type="button" class="btn btn-outline-danger" @click="panic" :disabled="!engine">Stop notes</button>
       <label class="sound-lab__quality">
         <input
@@ -251,9 +251,7 @@ export default {
     window.removeEventListener('keyup', this.keyUpHandler)
     window.removeEventListener('blur', this.blurHandler)
     document.removeEventListener('visibilitychange', this.visibilityHandler)
-    this.heldCodes.clear()
-    window.clearTimeout(this.voiceRefreshTimer)
-    window.cancelAnimationFrame(this.voiceFrame)
+    this.resetVoiceUi()
     const midi = this.midi
     const engine = this.engine
     const tabLease = this.tabLease
@@ -329,8 +327,7 @@ export default {
       if (!midiFailed) this.midi = null
       if (!audioFailed) this.engine = null
       this.audioState = audioFailed ? 'error' : 'closed'
-      this.voiceCount = 0
-      this.heldCodes.clear()
+      this.resetVoiceUi()
       this.releaseBlocked = midiFailed || audioFailed
       if (midiFailed && audioFailed) this.status = 'Audio and MIDI did not release. Press Stop again.'
       else if (midiFailed) this.status = 'Sound stopped, but MIDI did not release. Press Stop again.'
@@ -347,13 +344,17 @@ export default {
       }
       this.starting = false
     },
-    panic() {
-      this.engine?.panic()
+    resetVoiceUi() {
       this.heldCodes.clear()
       window.clearTimeout(this.voiceRefreshTimer)
       window.cancelAnimationFrame(this.voiceFrame)
       this.voiceFrame = null
+      this.pendingVoiceCount = 0
       this.voiceCount = 0
+    },
+    panic() {
+      this.engine?.panic()
+      this.resetVoiceUi()
       this.status = 'All notes stopped'
     },
     chooseVariant(index) {
@@ -488,12 +489,7 @@ export default {
     pauseInputs(status) {
       if (this.midi) this.midi.setEnabled(false)
       else this.engine?.panic()
-      this.heldCodes.clear()
-      window.clearTimeout(this.voiceRefreshTimer)
-      window.cancelAnimationFrame(this.voiceFrame)
-      this.voiceFrame = null
-      this.pendingVoiceCount = 0
-      this.voiceCount = 0
+      this.resetVoiceUi()
       this.status = status
     },
     handleAudioContextState(state) {

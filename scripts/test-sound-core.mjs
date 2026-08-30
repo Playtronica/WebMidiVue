@@ -151,7 +151,71 @@ test('failed MIDI close stays retryable and never reports released', async () =>
     assert.deepEqual(states, ['connected', 'release-error'])
     await session.release()
     assert.equal(session.input, null)
+    assert.equal(session.closed, false)
     assert.deepEqual(states, ['connected', 'release-error', 'released'])
+  } finally {
+    if (originalNavigator) Object.defineProperty(globalThis, 'navigator', originalNavigator)
+    else delete globalThis.navigator
+  }
+})
+
+test('closing during a pending MIDI open cancels and closes the late port', async () => {
+  let finishOpen
+  let markOpenStarted
+  let messageListeners = 0
+  let closeCalls = 0
+  let stateListeners = 1
+  const openStarted = new Promise(resolve => { markOpenStarted = resolve })
+  const openGate = new Promise(resolve => { finishOpen = resolve })
+  const input = {
+    id: 'late-input', name: 'Late input', state: 'connected',
+    async open() { markOpenStarted(); await openGate },
+    async close() { closeCalls += 1 },
+    addEventListener(type) { if (type === 'midimessage') messageListeners += 1 },
+    removeEventListener(type) { if (type === 'midimessage') messageListeners -= 1 }
+  }
+  const access = {
+    inputs: new Map([[input.id, input]]),
+    addEventListener(type) { if (type === 'statechange') stateListeners += 1 },
+    removeEventListener(type) { if (type === 'statechange') stateListeners -= 1 }
+  }
+  const session = new MidiInputSession({activeVoiceCount: 0, panic() {}})
+  session.access = access
+  const connecting = session.connect(input.id)
+  await openStarted
+  const closing = session.close()
+  finishOpen()
+  await assert.rejects(connecting, /cancelled/i)
+  await closing
+  assert.equal(closeCalls, 1)
+  assert.equal(messageListeners, 0)
+  assert.equal(stateListeners, 0)
+  assert.equal(session.input, null)
+  assert.equal(session.access, null)
+})
+
+test('closing during MIDI permission discards late access without listeners', async () => {
+  const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+  let finishAccess
+  let stateListeners = 0
+  const accessGate = new Promise(resolve => { finishAccess = resolve })
+  const access = {
+    inputs: new Map(),
+    addEventListener(type) { if (type === 'statechange') stateListeners += 1 },
+    removeEventListener(type) { if (type === 'statechange') stateListeners -= 1 }
+  }
+  Object.defineProperty(globalThis, 'navigator', {
+    configurable: true,
+    value: {requestMIDIAccess: async () => accessGate}
+  })
+  try {
+    const session = new MidiInputSession({activeVoiceCount: 0, panic() {}})
+    const requesting = session.requestAccess()
+    await session.close()
+    finishAccess(access)
+    await assert.rejects(requesting, /cancelled/i)
+    assert.equal(stateListeners, 0)
+    assert.equal(session.access, null)
   } finally {
     if (originalNavigator) Object.defineProperty(globalThis, 'navigator', originalNavigator)
     else delete globalThis.navigator
