@@ -1,6 +1,7 @@
 const assert = require('assert')
 const fs = require('fs')
 const path = require('path')
+const zlib = require('zlib')
 
 const root = path.resolve(__dirname, '..', 'dist')
 const read = file => fs.readFileSync(path.join(root, file), 'utf8')
@@ -47,5 +48,7 @@ assert(javascript.includes('Release device for DAW'), 'the beta build does not i
 assert(soundBundle, 'the beta build does not include the lazy sound lab')
 assert(read(path.join('js', soundBundle)).includes('Clear Glass'), 'the sound lab does not include six sound variants')
 assert(serviceWorker.includes(`js/${soundBundle}`), 'the sound lab chunk is not available offline')
+const soundGzipBytes = zlib.gzipSync(fs.readFileSync(path.join(root, 'js', soundBundle))).length
+assert(soundGzipBytes <= 25 * 1024, `sound lab exceeds its 25 KiB gzip budget: ${soundGzipBytes} bytes`)
 
-console.log(`PWA build verified: ${bundles.length} app bundles, revisioned app shell, readiness UI, 2 install icons.`)
+console.log(`PWA build verified: ${bundles.length} app bundles, revisioned app shell, readiness UI, 2 install icons, sound lab ${soundGzipBytes} gzip bytes.`)

@@ -90,8 +90,20 @@ const server = http.createServer((request, response) => {
     await secondPage.locator('.sound-lab[data-tab-lease="free"]').waitFor()
     await secondPage.close()
 
+    await page.getByLabel('Low CPU').check()
     await page.getByRole('button', {name: 'Start sound'}).click()
-    await page.locator('.sound-lab[data-audio-state="running"][data-tab-lease="held"]').waitFor()
+    await page.locator('.sound-lab[data-audio-state="running"][data-quality="safe"][data-tab-lease="held"]').waitFor()
+    assert.strictEqual(await page.getByLabel('Low CPU').isDisabled(), true)
+    for (const code of ['KeyA', 'KeyW', 'KeyS', 'KeyE', 'KeyD', 'KeyF', 'KeyT', 'KeyG']) {
+      await page.dispatchEvent('body', 'keydown', {code, key: code})
+    }
+    await page.locator('.sound-lab[data-active-voices="4"]').waitFor()
+    await page.getByRole('button', {name: 'Stop notes'}).click()
+    await page.getByRole('button', {name: 'Stop & release'}).click()
+    await page.getByLabel('Low CPU').uncheck()
+
+    await page.getByRole('button', {name: 'Start sound'}).click()
+    await page.locator('.sound-lab[data-audio-state="running"][data-quality="standard"][data-tab-lease="held"]').waitFor()
 
     await page.dispatchEvent('body', 'keydown', {code: 'KeyA', key: 'ф'})
     await page.locator('.sound-lab[data-active-voices="1"]').waitFor()
@@ -171,7 +183,7 @@ const server = http.createServer((request, response) => {
     await page.getByRole('button', {name: 'Stop & release'}).click()
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'closed')
     assert.deepStrictEqual(errors, [])
-    console.log(`Sound browser verified: 6 variants, exclusive two-tab handoff, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)
+    console.log(`Sound browser verified: 6 variants, 4-voice Low CPU mode, exclusive two-tab handoff, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)
   } finally {
     await browser.close()
     await new Promise(resolve => server.close(resolve))

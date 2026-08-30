@@ -8,7 +8,8 @@ Sound Lab is a small browser synthesizer inside the **Biotron offline beta** bui
 2. Press **Start sound** once (browser audio requires a user gesture).
 3. Choose one of six sound variants.
 4. Play with the on-screen keys, physical A–K positions in any keyboard layout, or one selected MIDI input.
-5. Press **Stop & release** before another application needs that MIDI input.
+5. On a slow computer, enable **Low CPU** before Start: it uses four voices, one oscillator per voice and no reverb.
+6. Press **Stop & release** before another application needs that MIDI input.
 
 The engine accepts MIDI Note On/Off on every channel and CC 120/123 panic. It requests MIDI input only with `sysex: false`; it never opens an output, changes device settings, sends firmware commands, or writes to the device.
 
@@ -52,11 +53,12 @@ CHROME_PATH="/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" npm r
 ## Safety rails
 
 - Beta only: `@sound-lab` points to the real component only when `VUE_APP_BIOTRON_PWA_BETA=true`.
-- The Sound route is lazy. Its current beta chunk is about 6.6 KB gzip and is precached for offline use.
+- The Sound route is lazy. Its current beta chunk is about 7.4 KiB gzip, is precached for offline use and must remain below the enforced 25 KiB budget.
 - A MIDI close failure must stay visible and retryable; Start remains blocked until the input closes.
 - MIDI voice-count diagnostics are coalesced to one Vue update per animation frame; the browser test injects a 1000-message burst and verifies the 8-voice cap and Panic recovery.
 - The same browser test runs a 20,000-message soak with garbage collection/heap comparison, then verifies disconnect, reconnect and background suspend/resume.
 - The browser test opens two Settings tabs and proves exclusive handoff: tab B cannot start until tab A releases the lease.
+- The same real-browser test enables Low CPU, holds eight keyboard notes and proves the active graph remains capped at four voices before returning to Standard mode.
 - Automated rendering proves bounds and stability, not whether a timbre is beautiful. Human listening is a release gate.
 - Chrome/Edge/Brave support MIDI. Safari can run Web Audio but does not provide Web MIDI, so device input is not promised there.
 - Never merge/deploy this beta branch to production without maintainer review and physical device listening.

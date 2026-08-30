@@ -3,6 +3,7 @@
     class="sound-lab"
     :data-audio-state="audioState"
     :data-active-voices="voiceCount"
+    :data-quality="lowCpu ? 'safe' : 'standard'"
     :data-tab-lease="tabLeaseState"
   >
     <header class="sound-lab__intro">
@@ -15,6 +16,15 @@
       <button type="button" class="btn btn-dark" @click="start" :disabled="starting || releaseBlocked">Start sound</button>
       <button type="button" class="btn btn-outline-dark" @click="stop" :disabled="!engine && !midi">Stop &amp; release</button>
       <button type="button" class="btn btn-outline-danger" @click="panic" :disabled="!engine">Stop notes</button>
+      <label class="sound-lab__quality">
+        <input
+          type="checkbox"
+          v-model="lowCpu"
+          :disabled="Boolean(engine) || releaseBlocked"
+          aria-label="Low CPU — use if sound crackles"
+        >
+        Low CPU
+      </label>
       <span class="sound-lab__status" role="status" aria-live="polite">{{ status }}</span>
     </section>
 
@@ -110,6 +120,7 @@ export default {
       status: 'Press Start sound',
       audioState: 'closed',
       voiceCount: 0,
+      lowCpu: false,
       starting: false,
       releaseBlocked: false,
       voiceRefreshTimer: null,
@@ -159,7 +170,10 @@ export default {
     },
     async ensureEngine() {
       if (!this.engine || this.engine.state === 'closed') {
-        this.engine = markRaw(createRealtimeSynth({preset: this.variants[this.currentVariant]}))
+        this.engine = markRaw(createRealtimeSynth({
+          preset: this.variants[this.currentVariant],
+          quality: this.lowCpu ? 'safe' : 'standard'
+        }))
         this.midi = markRaw(new MidiInputSession(this.engine, event => this.handleMidiState(event)))
       }
       if (await this.engine.resume() !== 'running') throw new Error('Audio could not start.')
@@ -307,6 +321,8 @@ export default {
 .sound-lab section { margin-top: 2rem; }
 .sound-lab__controls, .sound-lab__variants, .sound-lab__midi-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .sound-lab__status { min-height: 1.5rem; padding-left: .5rem; color: #625e58; }
+.sound-lab__quality { display: inline-flex; min-height: 44px; align-items: center; gap: .4rem; margin: 0; padding: 0 .35rem; white-space: nowrap; }
+.sound-lab__quality input { width: 1.1rem; height: 1.1rem; }
 .sound-lab__heading { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .75rem; }
 .sound-lab__heading h2, .sound-lab__midi h2 { margin: 0; font-size: 1rem; font-weight: 700; }
 .sound-lab__heading small { color: #6b6761; }
