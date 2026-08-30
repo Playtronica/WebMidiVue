@@ -1,7 +1,14 @@
 <template>
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
 
-    <h1 class="text-center">Biotron Settings ⚙️</h1>
+    <DeviceTaskNav
+        v-if="betaBuild"
+        device-name="Biotron"
+        active-task="settings"
+        play-route="/biotron/play"
+        settings-route="/biotron"
+    />
+    <h1 class="text-center">{{ betaBuild ? 'Settings' : 'Biotron Settings ⚙️' }}</h1>
     <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} " text_label="🔌 Select Device" check-versions-flag allow-daw-handoff class="m-2"/>
     <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"  text_label="📂 Preset" class="m-2"/>
     <div class="row gx-1 mb-5">
@@ -345,11 +352,13 @@ import DeviceSelector from "@biotron-device-selector";
 import UpdateFirmwareComponent from "@/components/MidiComponents/UpdateFirmwareComponent.vue";
 import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
+import DeviceTaskNav from "@/components/DeviceTaskNav.vue";
 
 
 
 export default  {
   components: {
+    DeviceTaskNav,
     BootstrapCollapse,
     LoaderComponent,
     UpdateFirmwareComponent,
@@ -493,6 +502,7 @@ export default  {
   },
   data() {
     return {
+      betaBuild: process.env.VUE_APP_BIOTRON_PWA_BETA === 'true',
       page_is_inited: false,
       scales: ["Major", "Minor", "Chrom", "Dorian", "Mixolydian",
         "Lydian", "Wholetone", "Minblues", "Majblues", "Minpen",
