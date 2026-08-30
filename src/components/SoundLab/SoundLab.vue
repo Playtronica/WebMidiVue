@@ -23,11 +23,32 @@
       </header>
 
       <section class="sound-lab__reveal" aria-labelledby="device-reveal-title">
-        <div class="sound-lab__reveal-orb" :class="{'sound-lab__reveal-orb--active': voiceCount > 0}" aria-hidden="true"></div>
+        <div
+          class="sound-lab__reveal-orb"
+          :class="{
+            'sound-lab__reveal-orb--active': voiceCount > 0,
+            'sound-lab__reveal-orb--settling': revealStage === 'settling',
+            'sound-lab__reveal-orb--calibrating': revealStage === 'calibrating'
+          }"
+          aria-hidden="true"
+        >
+          <span v-if="revealStage === 'calibrating'" class="sound-lab__calibration-note sound-lab__calibration-note--one"></span>
+          <span v-if="revealStage === 'calibrating'" class="sound-lab__calibration-note sound-lab__calibration-note--two"></span>
+        </div>
         <div class="sound-lab__reveal-copy">
           <template v-if="revealStage === 'intro'">
             <h2 id="device-reveal-title">{{ revealProfile.introHeading }}</h2>
             <p>{{ revealProfile.introInstruction }}</p>
+          </template>
+          <template v-else-if="revealStage === 'settling'">
+            <small class="sound-lab__recognized" :title="recognizedInput">{{ revealProfile.productName }} connected</small>
+            <h2 id="device-reveal-title">{{ revealProfile.settlingHeading }}</h2>
+            <p>{{ revealProfile.settlingInstruction }}</p>
+          </template>
+          <template v-else-if="revealStage === 'calibrating'">
+            <small class="sound-lab__recognized" :title="recognizedInput">{{ revealProfile.productName }} connected</small>
+            <h2 id="device-reveal-title">{{ revealProfile.calibratingHeading }}</h2>
+            <p>{{ revealProfile.calibratingInstruction }}</p>
           </template>
           <template v-else-if="revealStage === 'ready'">
             <small class="sound-lab__recognized" :title="recognizedInput">{{ revealProfile.productName }} connected</small>
@@ -179,6 +200,7 @@ import {createRealtimeSynth} from '@/audio/engine.mjs'
 import {MidiInputSession} from '@/audio/midi.mjs'
 import {SOUND_VARIANTS} from '@/audio/presets.mjs'
 import {createExclusiveTabLease} from '@/audio/tabLease.mjs'
+import {BIOTRON_CALIBRATION, BiotronCalibrationTracker} from '@/audio/biotronCalibration.mjs'
 import {getRevealProfile, selectRevealInput} from '@/audio/revealProfiles.mjs'
 import {detectSoundCapabilities, soundCapabilityMessage} from '@/audio/capabilities.mjs'
 import DeviceTaskNav from '@/components/DeviceTaskNav.vue'
@@ -229,6 +251,9 @@ export default {
       lowCpu: this.mode === 'reveal',
       starting: false,
       releaseBlocked: false,
+      calibrationTracker: markRaw(new BiotronCalibrationTracker()),
+      calibrationCandidateTimer: null,
+      calibrationFinishTimer: null,
       voiceRefreshTimer: null,
       voiceFrame: null,
       pendingVoiceCount: 0,
@@ -259,6 +284,7 @@ export default {
     window.removeEventListener('keyup', this.keyUpHandler)
     window.removeEventListener('blur', this.blurHandler)
     document.removeEventListener('visibilitychange', this.visibilityHandler)
+    this.clearCalibrationTimers()
     this.resetVoiceUi()
     const midi = this.midi
     const engine = this.engine
@@ -346,6 +372,7 @@ export default {
         this.revealStage = 'intro'
         this.revealExpanded = false
         this.recognizedInput = ''
+        this.resetCalibration()
         this.tabLease.release()
         this.tabLeaseState = 'free'
         this.status = 'Stopped — MIDI released'
@@ -444,8 +471,7 @@ export default {
         this.selectedInput = input.id
         await this.midi.connect(input.id)
         this.recognizedInput = [input.manufacturer, input.name].filter(Boolean).join(' — ')
-        this.revealStage = 'ready'
-        this.status = this.revealProfile.readyStatus
+        this.beginCalibrationWait()
       } catch (error) {
         failure = error.message || `${this.revealProfile.productName} could not start.`
         await this.stop()
@@ -465,7 +491,6 @@ export default {
         this.status = `${event.input} connected`
         if (this.revealMode) {
           this.recognizedInput = event.input
-          this.revealStage = 'ready'
         }
       }
       else if (event.type === 'released') this.status = 'MIDI released'
@@ -476,15 +501,13 @@ export default {
         if (this.revealMode) {
           this.revealStage = 'intro'
           this.recognizedInput = ''
+          this.resetCalibration()
         }
         this.status = 'MIDI disconnected — notes stopped'
       }
       else if (event.type === 'release-error') this.status = 'MIDI release failed — retry Stop'
       else if (event.type === 'voices') {
-        if (this.revealMode && event.message?.type === 'note-on' && event.count > 0) {
-          this.revealStage = 'revealed'
-          this.status = 'Biotron is making sound'
-        }
+        if (this.revealMode) this.handleRevealMessage(event.message)
         this.pendingVoiceCount = event.count
         if (this.voiceFrame === null) {
           this.voiceFrame = window.requestAnimationFrame(() => {
@@ -492,6 +515,59 @@ export default {
             this.voiceFrame = null
           })
         }
+      }
+    },
+    clearCalibrationTimers() {
+      window.clearTimeout(this.calibrationCandidateTimer)
+      window.clearTimeout(this.calibrationFinishTimer)
+      this.calibrationCandidateTimer = null
+      this.calibrationFinishTimer = null
+    },
+    resetCalibration() {
+      this.clearCalibrationTimers()
+      this.calibrationTracker.reset()
+    },
+    beginCalibrationWait() {
+      this.resetCalibration()
+      this.revealStage = 'settling'
+      this.status = this.revealProfile.settlingStatus
+    },
+    finishCalibration() {
+      this.resetCalibration()
+      if (this.revealStage !== 'intro') {
+        this.revealStage = 'ready'
+        this.status = this.revealProfile.readyStatus
+      }
+    },
+    handleRevealMessage(message) {
+      if (this.revealStage === 'ready' && message?.type === 'note-on') {
+        this.revealStage = 'revealed'
+        this.status = 'Biotron is making sound'
+        return
+      }
+      if (!['settling', 'calibrating'].includes(this.revealStage)) return
+
+      const state = this.calibrationTracker.observe(message, performance.now())
+      if (state === 'candidate') {
+        window.clearTimeout(this.calibrationCandidateTimer)
+        this.calibrationCandidateTimer = window.setTimeout(
+          () => this.finishCalibration(),
+          BIOTRON_CALIBRATION.quietCompletionMs
+        )
+      }
+      else if (state === 'calibrating') {
+        window.clearTimeout(this.calibrationCandidateTimer)
+        window.clearTimeout(this.calibrationFinishTimer)
+        this.calibrationCandidateTimer = null
+        this.revealStage = 'calibrating'
+        this.status = this.revealProfile.calibratingStatus
+        this.calibrationFinishTimer = window.setTimeout(
+          () => this.finishCalibration(),
+          BIOTRON_CALIBRATION.quietCompletionMs
+        )
+      }
+      else if (state === 'activity') {
+        this.finishCalibration()
       }
     },
     pauseInputs(status) {
@@ -544,6 +620,11 @@ export default {
 .sound-lab__reveal { display: grid; grid-template-columns: minmax(150px, 240px) minmax(0, 1fr); gap: clamp(1.5rem, 5vw, 4rem); align-items: center; max-width: 760px; margin: 0 auto; padding: clamp(1.25rem, 4vw, 2.5rem); border: 1px solid #ded9d1; border-radius: 1.5rem; background: #fbfaf7; }
 .sound-lab__reveal-orb { width: min(48vw, 220px); aspect-ratio: 1; justify-self: center; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff 0 8%, #dcd4ff 24%, #7c69d8 65%, #302763 100%); box-shadow: 0 0 0 0 rgba(106, 90, 205, .24); transform: scale(.9); transition: transform 180ms ease, box-shadow 180ms ease; }
 .sound-lab__reveal-orb--active { transform: scale(1); box-shadow: 0 0 0 18px rgba(106, 90, 205, .16), 0 18px 50px rgba(69, 49, 150, .22); }
+.sound-lab__reveal-orb--settling { animation: biotron-settling 1.8s ease-in-out infinite; }
+.sound-lab__reveal-orb--calibrating { position: relative; animation: biotron-calibrating .28s ease-in-out infinite alternate; }
+.sound-lab__calibration-note { position: absolute; top: 50%; width: 18%; height: 36%; border-radius: 999px; background: rgba(255, 255, 255, .92); transform: translateY(-50%) scaleY(.45); }
+.sound-lab__calibration-note--one { left: 27%; animation: biotron-note-one .28s steps(2, end) infinite; }
+.sound-lab__calibration-note--two { right: 27%; animation: biotron-note-two .28s steps(2, end) .14s infinite; }
 .sound-lab__reveal-copy h2 { margin: .25rem 0 .5rem; font-size: clamp(1.5rem, 4vw, 2.4rem); }
 .sound-lab__reveal-copy p { max-width: 34rem; color: #625e58; line-height: 1.5; }
 .sound-lab__recognized { color: #4d427e; font-weight: 700; }
@@ -558,5 +639,9 @@ export default {
 .sound-lab__midi p { margin: .3rem 0 0; }
 .sound-lab__midi-actions .form-select { min-width: min(340px, 80vw); }
 @media (max-width: 640px) { .sound-lab__midi { align-items: flex-start; flex-direction: column; } .sound-lab__keyboard { grid-template-columns: repeat(13, 48px); } .sound-lab__reveal { grid-template-columns: 1fr; text-align: center; } .sound-lab__reveal-actions, .sound-lab__after-reveal { justify-content: center; } }
-@media (prefers-reduced-motion: reduce) { .sound-lab button, .sound-lab__reveal-orb { transition: none; } }
+@keyframes biotron-settling { 50% { transform: scale(.96); box-shadow: 0 0 0 12px rgba(106, 90, 205, .12); } }
+@keyframes biotron-calibrating { to { transform: scale(1.02); box-shadow: 0 0 0 20px rgba(106, 90, 205, .18), 0 18px 50px rgba(69, 49, 150, .22); } }
+@keyframes biotron-note-one { 50% { transform: translateY(-50%) scaleY(1); } }
+@keyframes biotron-note-two { 50% { transform: translateY(-50%) scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { .sound-lab button, .sound-lab__reveal-orb { transition: none; } .sound-lab__reveal-orb, .sound-lab__calibration-note { animation: none; } }
 </style>

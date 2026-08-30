@@ -18,6 +18,7 @@ import {
   validateRevealProfile
 } from '../src/audio/revealProfiles.mjs'
 import {detectSoundCapabilities, soundCapabilityMessage} from '../src/audio/capabilities.mjs'
+import {BIOTRON_CALIBRATION, BiotronCalibrationTracker} from '../src/audio/biotronCalibration.mjs'
 import {
   buildCompatibilityIssue,
   buildMidiAdvisory,
@@ -36,6 +37,25 @@ test('MIDI note-on, velocity-zero note-off and panic are accepted', () => {
   assert.deepEqual(parseMidiMessage([0x91, 60, 100]), {type: 'note-on', channel: 1, note: 60, velocity: 100})
   assert.deepEqual(parseMidiMessage([0x91, 60, 0]), {type: 'note-off', channel: 1, note: 60})
   assert.deepEqual(parseMidiMessage([0xb0, 123, 0]), {type: 'panic', channel: 0})
+  assert.deepEqual(parseMidiMessage([0xb1, 90, 72]), {type: 'controller', channel: 1, controller: 90, value: 72})
+})
+
+test('Biotron calibration recognizes only the rapid 91/92 velocity-90 pattern', () => {
+  const tracker = new BiotronCalibrationTracker()
+  const note = (value, velocity = 90) => ({type: 'note-on', channel: 1, note: value, velocity})
+  assert.equal(tracker.observe(note(92), 0), 'candidate')
+  assert.equal(tracker.observe(note(91), 70), 'candidate')
+  assert.equal(tracker.observe(note(92), 140), 'candidate')
+  assert.equal(tracker.observe(note(91), 210), 'calibrating')
+  assert.equal(tracker.calibrating, true)
+  assert.equal(BIOTRON_CALIBRATION.quietCompletionMs, 700)
+
+  tracker.reset()
+  assert.equal(tracker.observe(note(92), 0), 'candidate')
+  assert.equal(tracker.observe(note(91), 400), 'candidate')
+  assert.equal(tracker.observe(note(64, 100), 470), 'activity')
+  assert.equal(tracker.observe({type: 'controller', channel: 1, controller: 90, value: 64}, 500), 'activity')
+  assert.equal(tracker.observe({type: 'note-off', channel: 1, note: 64}, 520), 'ignored')
 })
 
 test('MIDI state exposes the parsed event without exposing SysEx access', () => {
@@ -79,11 +99,15 @@ test('reveal profiles keep first-use copy plain and product-specific', () => {
   assert.equal(validateRevealProfile(profile), profile)
   const beforeReveal = [
     profile.promise, profile.introHeading, profile.introInstruction,
-    profile.startLabel, profile.readyHeading, profile.readyInstruction
+    profile.startLabel, profile.settlingHeading, profile.settlingInstruction,
+    profile.calibratingHeading, profile.calibratingInstruction,
+    profile.readyHeading, profile.readyInstruction
   ].join(' ')
   assert.doesNotMatch(beforeReveal, /\b(?:MIDI|SysEx|firmware|channel)\b/i)
   assert.match(beforeReveal, /plant/i)
   assert.match(beforeReveal, /music/i)
+  assert.match(beforeReveal, /two steps away/i)
+  assert.match(beforeReveal, /quick two-note sound/i)
   assert.match(profile.explanation, /electrical change/i)
   assert.match(profile.explanation, /MIDI note/i)
   assert.throws(() => getRevealProfile('unknown'), /Unknown reveal profile/)

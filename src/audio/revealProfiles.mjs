@@ -1,7 +1,9 @@
 const requiredCopy = [
   'id', 'productName', 'eyebrow', 'title', 'promise', 'introHeading', 'introInstruction',
-  'startLabel', 'readyHeading', 'readyInstruction', 'revealedHeading',
-  'explanation', 'readyStatus', 'settingsRoute'
+  'startLabel', 'settlingHeading', 'settlingInstruction', 'settlingStatus',
+  'calibratingHeading', 'calibratingInstruction', 'calibratingStatus',
+  'readyHeading', 'readyInstruction', 'revealedHeading', 'explanation',
+  'readyStatus', 'settingsRoute'
 ]
 
 export function validateRevealProfile(profile) {
@@ -31,8 +33,14 @@ const biotron = validateRevealProfile(Object.freeze({
   introHeading: 'Connect a plant',
   introInstruction: 'Attach both leaf-pad clips to the plant, then connect Biotron by USB.',
   startLabel: 'Hear Biotron',
-  readyHeading: 'Touch a leaf',
-  readyInstruction: 'Listen for the next note and watch the circle move.',
+  settlingHeading: 'Step back and keep still',
+  settlingInstruction: 'Take two steps away from the computer, Biotron and the plant. Do not touch them while Biotron finds its starting signal.',
+  settlingStatus: 'Waiting for the plant signal — keep still',
+  calibratingHeading: 'Keep your distance',
+  calibratingInstruction: 'The quick two-note sound and pulsing green lights mean Biotron is measuring its starting point. Wait until they stop.',
+  calibratingStatus: 'Calibrating — keep the plant, cables and device still',
+  readyHeading: 'Biotron is ready',
+  readyInstruction: 'Now touch a leaf. Listen for the next note and watch the circle move.',
   revealedHeading: 'You can hear the plant signal',
   explanation: 'Biotron detected a tiny electrical change through the plant and sent a MIDI note. This page turned it into sound.',
   readyStatus: 'Biotron ready — touch the plant',

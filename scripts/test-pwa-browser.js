@@ -194,9 +194,16 @@ async function controllerVersion(page) {
   assert.strictEqual(await controllerVersion(page), 1)
   assert.strictEqual(await page.evaluate(() => window.__midiRequestCount), 0, 'first-play requested MIDI before a user gesture')
   await page.getByRole('button', {name: 'Hear Biotron'}).click()
-  await page.locator('.sound-lab[data-reveal-stage="ready"][data-audio-state="running"]').waitFor()
+  await page.locator('.sound-lab[data-reveal-stage="settling"][data-audio-state="running"]').waitFor()
   assert.strictEqual(await page.evaluate(() => window.__midiRequestCount), 1, 'first-play did not use exactly one MIDI permission request')
   assert.strictEqual(await page.evaluate(() => window.__midiRequestOptions[0].sysex), false, 'first-play requested unnecessary SysEx access')
+  for (const note of [92, 91, 92, 91]) {
+    await page.evaluate(value => window.__emitFirstPlayMidi([0x91, value, 90]), note)
+    await page.evaluate(value => window.__emitFirstPlayMidi([0x81, value, 0]), note)
+    await page.waitForTimeout(70)
+  }
+  await page.locator('.sound-lab[data-reveal-stage="calibrating"]').waitFor()
+  await page.locator('.sound-lab[data-reveal-stage="ready"]').waitFor({timeout: 2000})
   await page.evaluate(() => window.__emitFirstPlayMidi([0x91, 64, 100]))
   await page.locator('.sound-lab[data-reveal-stage="revealed"]').waitFor()
   await page.getByRole('button', {name: 'Stop notes'}).click()

@@ -35,6 +35,7 @@ export function parseMidiMessage(data) {
   if (kind === 0x90 && value > 0) return {type: 'note-on', channel, note, velocity: value}
   if (kind === 0x80 || (kind === 0x90 && value === 0)) return {type: 'note-off', channel, note}
   if (kind === 0xb0 && (note === 120 || note === 123)) return {type: 'panic', channel}
+  if (kind === 0xb0) return {type: 'controller', channel, controller: note, value}
   return {type: 'ignored', channel}
 }
 
