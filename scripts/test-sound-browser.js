@@ -318,6 +318,7 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
         value: async options => { window.__soundMidiRequests.push(options); return access }
       })
       window.__emitSoundMidi = data => midiListener?.({data: Uint8Array.from(data)})
+      window.__hasSoundMidiListener = () => Boolean(midiListener)
       window.__setSoundInputState = state => {
         input.state = state
         if (state === 'disconnected') input.connection = 'closed'
@@ -465,11 +466,13 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     await page.evaluate(() => window.__setSoundInputState('disconnected'))
     await page.getByText(/MIDI disconnected/i).waitFor()
     await page.locator('.sound-lab[data-active-voices="0"]').waitFor()
+    assert.strictEqual(await page.evaluate(() => window.__hasSoundMidiListener()), false)
     await page.getByRole('button', {name: 'Find MIDI device'}).waitFor()
     await page.evaluate(() => window.__setSoundInputState('connected'))
     await page.getByRole('button', {name: 'Connect selected'}).waitFor()
     await page.getByRole('button', {name: 'Connect selected'}).click()
     await page.getByText(/Biotron Port 1 connected/i).waitFor()
+    assert.strictEqual(await page.evaluate(() => window.__hasSoundMidiListener()), true)
 
     await page.dispatchEvent('body', 'keydown', {code: 'KeyA', key: 'a'})
     await page.locator('.sound-lab[data-active-voices="1"]').waitFor()

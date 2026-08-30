@@ -95,6 +95,7 @@ export class MidiInputSession {
 
   onStateChange(event) {
     if (this.input && event.port?.id === this.input.id && event.port.state === 'disconnected') {
+      this.input.removeEventListener('midimessage', this.boundMessage)
       this.engine.panic()
       this.input = null
       this.onState({type: 'disconnected', input: event.port.name || 'MIDI input'})

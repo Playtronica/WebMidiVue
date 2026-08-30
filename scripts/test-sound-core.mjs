@@ -183,9 +183,18 @@ test('background-disabled MIDI is silent until explicitly enabled', () => {
 
 test('MIDI port state changes refresh only connected inputs', () => {
   const states = []
-  const engine = {activeVoiceCount: 0, panic() {}}
+  let panics = 0
+  let removedMessages = 0
+  const engine = {activeVoiceCount: 0, panic() { panics += 1 }}
   const session = new MidiInputSession(engine, state => states.push(state))
-  const first = {id: 'one', name: 'First', state: 'connected'}
+  const first = {
+    id: 'one', name: 'First', state: 'connected',
+    removeEventListener(type, listener) {
+      assert.equal(type, 'midimessage')
+      assert.equal(listener, session.boundMessage)
+      removedMessages += 1
+    }
+  }
   const second = {id: 'two', name: 'Second', state: 'disconnected'}
   session.access = {inputs: new Map([[first.id, first], [second.id, second]])}
 
@@ -197,7 +206,11 @@ test('MIDI port state changes refresh only connected inputs', () => {
 
   first.state = 'disconnected'
   second.state = 'connected'
+  session.input = first
   session.onStateChange({port: first})
+  assert.equal(session.input, null)
+  assert.equal(removedMessages, 1)
+  assert.equal(panics, 1)
   assert.deepEqual(states.at(-1), {
     type: 'ports',
     inputs: [{id: 'two', name: 'Second', manufacturer: ''}]
