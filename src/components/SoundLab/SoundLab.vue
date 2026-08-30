@@ -158,6 +158,17 @@ export default {
       tabLease?.release()
     })
   },
+  async beforeRouteLeave(to, from, next) {
+    void to
+    void from
+    if (!this.engine && !this.midi) {
+      next()
+      return
+    }
+    await this.stop()
+    if (this.releaseBlocked) next(false)
+    else next()
+  },
   methods: {
     async acquireTabLease() {
       if (await this.tabLease.acquire()) {
@@ -200,17 +211,20 @@ export default {
     },
     async stop() {
       this.starting = true
-      let releaseFailed = false
-      try { await this.midi?.close() } catch (error) { releaseFailed = true }
-      await this.engine?.stop()
-      this.engine = null
-      this.audioState = 'closed'
+      let midiFailed = false
+      let audioFailed = false
+      try { await this.midi?.close() } catch (error) { midiFailed = true }
+      try { await this.engine?.stop() } catch (error) { audioFailed = true }
+      if (!midiFailed) this.midi = null
+      if (!audioFailed) this.engine = null
+      this.audioState = audioFailed ? 'error' : 'closed'
       this.voiceCount = 0
       this.heldCodes.clear()
-      this.releaseBlocked = releaseFailed
-      if (releaseFailed) this.status = 'Sound stopped, but MIDI did not release. Press Stop again.'
+      this.releaseBlocked = midiFailed || audioFailed
+      if (midiFailed && audioFailed) this.status = 'Audio and MIDI did not release. Press Stop again.'
+      else if (midiFailed) this.status = 'Sound stopped, but MIDI did not release. Press Stop again.'
+      else if (audioFailed) this.status = 'MIDI released, but audio did not close. Press Stop again.'
       else {
-        this.midi = null
         this.midiInputs = []
         this.selectedInput = ''
         this.tabLease.release()

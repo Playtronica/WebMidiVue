@@ -32,6 +32,18 @@ const server = http.createServer((request, response) => {
     await context.addInitScript(() => {
       window.__soundMidiRequests = []
       window.__failSoundCloseOnce = false
+      window.__failSoundAudioCloseOnce = false
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext
+      const nativeAudioClose = AudioContextClass?.prototype.close
+      if (nativeAudioClose) {
+        AudioContextClass.prototype.close = function(...args) {
+          if (window.__failSoundAudioCloseOnce) {
+            window.__failSoundAudioCloseOnce = false
+            return Promise.reject(new Error('audio driver refused close'))
+          }
+          return nativeAudioClose.apply(this, args)
+        }
+      }
       let midiListener = null
       let stateListener = null
       const input = {
@@ -174,14 +186,25 @@ const server = http.createServer((request, response) => {
     await page.locator('.sound-lab[data-audio-state="running"]').waitFor()
 
     await page.evaluate(() => { window.__failSoundCloseOnce = true })
-    await page.getByRole('button', {name: 'Stop & release'}).click()
+    await page.evaluate(() => { window.location.hash = '#/biotron' })
     await page.locator('.sound-lab[data-audio-state="closed"]').waitFor()
     await page.getByText(/MIDI did not release/i).waitFor()
+    assert.strictEqual(new URL(page.url()).hash, '#/sound')
     assert.strictEqual(await page.getByRole('button', {name: 'Start sound'}).isDisabled(), true)
     assert.strictEqual(await page.getByRole('button', {name: 'Stop & release'}).isEnabled(), true)
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'open')
     await page.getByRole('button', {name: 'Stop & release'}).click()
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'closed')
+
+    await page.getByRole('button', {name: 'Start sound'}).click()
+    await page.evaluate(() => { window.__failSoundAudioCloseOnce = true })
+    await page.getByRole('button', {name: 'Stop & release'}).click()
+    await page.locator('.sound-lab[data-audio-state="error"][data-tab-lease="held"]').waitFor()
+    await page.getByText(/audio did not close/i).waitFor()
+    assert.strictEqual(await page.getByRole('button', {name: 'Start sound'}).isDisabled(), true)
+    assert.strictEqual(await page.getByRole('button', {name: 'Stop & release'}).isEnabled(), true)
+    await page.getByRole('button', {name: 'Stop & release'}).click()
+    await page.locator('.sound-lab[data-audio-state="closed"][data-tab-lease="free"]').waitFor()
 
     const cycleStarted = Date.now()
     for (let cycle = 0; cycle < 100; cycle += 1) {

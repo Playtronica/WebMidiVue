@@ -55,11 +55,12 @@ CHROME_PATH="/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" npm r
 - Beta only: `@sound-lab` points to the real component only when `VUE_APP_BIOTRON_PWA_BETA=true`.
 - The Sound route is lazy. Its current beta chunk is about 7.4 KiB gzip, is precached for offline use and must remain below the enforced 25 KiB budget.
 - A MIDI close failure must stay visible and retryable; Start remains blocked until the input closes.
+- Navigating away runs the same awaited teardown. If audio or MIDI cannot close, routing is cancelled and the visible Stop button remains available for retry.
 - MIDI voice-count diagnostics are coalesced to one Vue update per animation frame; the browser test injects a 1000-message burst and verifies the 8-voice cap and Panic recovery.
 - The same browser test runs a 20,000-message soak with garbage collection/heap comparison, then verifies disconnect, reconnect and background suspend/resume.
 - The browser test opens two Settings tabs and proves exclusive handoff: tab B cannot start until tab A releases the lease.
 - The same real-browser test enables Low CPU, holds eight keyboard notes and proves the active graph remains capped at four voices before returning to Standard mode.
-- After an injected MIDI-close failure and successful retry, the browser test completes 100/100 Start → Stop & release cycles with no page error or stale tab lease.
+- After injected MIDI-close and AudioContext-close failures with successful retries, the browser test completes 100/100 Start → Stop & release cycles with no page error or stale tab lease.
 - Automated rendering proves bounds and stability, not whether a timbre is beautiful. Human listening is a release gate.
 - Chrome/Edge/Brave support MIDI. Safari can run Web Audio but does not provide Web MIDI, so device input is not promised there.
 - Never merge/deploy this beta branch to production without maintainer review and physical device listening.
