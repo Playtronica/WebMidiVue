@@ -59,6 +59,7 @@ CHROME_PATH="/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" npm r
 - The same browser test runs a 20,000-message soak with garbage collection/heap comparison, then verifies disconnect, reconnect and background suspend/resume.
 - The browser test opens two Settings tabs and proves exclusive handoff: tab B cannot start until tab A releases the lease.
 - The same real-browser test enables Low CPU, holds eight keyboard notes and proves the active graph remains capped at four voices before returning to Standard mode.
+- After an injected MIDI-close failure and successful retry, the browser test completes 100/100 Start → Stop & release cycles with no page error or stale tab lease.
 - Automated rendering proves bounds and stability, not whether a timbre is beautiful. Human listening is a release gate.
 - Chrome/Edge/Brave support MIDI. Safari can run Web Audio but does not provide Web MIDI, so device input is not promised there.
 - Never merge/deploy this beta branch to production without maintainer review and physical device listening.

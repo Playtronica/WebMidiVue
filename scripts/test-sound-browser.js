@@ -182,8 +182,18 @@ const server = http.createServer((request, response) => {
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'open')
     await page.getByRole('button', {name: 'Stop & release'}).click()
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'closed')
+
+    const cycleStarted = Date.now()
+    for (let cycle = 0; cycle < 100; cycle += 1) {
+      await page.getByRole('button', {name: 'Start sound'}).click()
+      await page.locator('.sound-lab[data-audio-state="running"][data-tab-lease="held"]').waitFor()
+      await page.getByRole('button', {name: 'Stop & release'}).click()
+      await page.locator('.sound-lab[data-audio-state="closed"][data-tab-lease="free"]').waitFor()
+    }
+    const cycleMilliseconds = Date.now() - cycleStarted
+    assert.strictEqual(await page.getByRole('button', {name: 'Start sound'}).isEnabled(), true)
     assert.deepStrictEqual(errors, [])
-    console.log(`Sound browser verified: 6 variants, 4-voice Low CPU mode, exclusive two-tab handoff, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)
+    console.log(`Sound browser verified: 6 variants, 4-voice Low CPU mode, exclusive two-tab handoff, 100/100 lifecycle cycles in ${cycleMilliseconds} ms, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)
   } finally {
     await browser.close()
     await new Promise(resolve => server.close(resolve))
