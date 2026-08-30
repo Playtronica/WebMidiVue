@@ -19,6 +19,7 @@ import {
 } from '../src/audio/revealProfiles.mjs'
 import {detectSoundCapabilities, soundCapabilityMessage} from '../src/audio/capabilities.mjs'
 import {BIOTRON_CALIBRATION, BiotronCalibrationTracker} from '../src/audio/biotronCalibration.mjs'
+import {DEFAULT_VOLUME, normalizeVolume, volumeToGain} from '../src/audio/engine.mjs'
 import {
   buildCompatibilityIssue,
   buildMidiAdvisory,
@@ -31,6 +32,17 @@ test('physical keyboard mapping is independent from typed character', () => {
   assert.equal(noteForKeyboardCode('KeyФ'), null)
   assert.equal(Object.keys(KEYBOARD_CODE_TO_NOTE).length, 13)
   assert.notEqual(makeNoteKey('keyboard', 0, 60), makeNoteKey('midi', 0, 60))
+})
+
+test('sound volume is bounded and maps to a safe output gain', () => {
+  assert.equal(DEFAULT_VOLUME, 70)
+  assert.equal(normalizeVolume(null), DEFAULT_VOLUME)
+  assert.equal(normalizeVolume('37'), 37)
+  assert.equal(normalizeVolume(-1), 0)
+  assert.equal(normalizeVolume(140), 100)
+  assert.equal(volumeToGain(0), 0)
+  assert.equal(volumeToGain(50), 0.625)
+  assert.equal(volumeToGain(100), 2.5)
 })
 
 test('MIDI note-on, velocity-zero note-off and panic are accepted', () => {

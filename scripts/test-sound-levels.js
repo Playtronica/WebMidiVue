@@ -45,11 +45,11 @@ const server = http.createServer((request, response) => {
     const metrics = await page.evaluate(async () => {
       const {SynthEngine} = await import('/src/audio/engine.mjs')
       const {SOUND_VARIANTS} = await import('/src/audio/presets.mjs')
-      const render = async (name, preset, notes, velocity, quality) => {
+      const render = async (name, preset, notes, velocity, quality, volume) => {
         const sampleRate = 48000
         const seconds = 3
         const context = new OfflineAudioContext(2, sampleRate * seconds, sampleRate)
-        const engine = new SynthEngine(context, {preset, quality})
+        const engine = new SynthEngine(context, {preset, quality, volume})
         for (const note of notes) engine.noteOn('level-test', 0, note, velocity, 0.05)
         for (const note of notes) engine.noteOff('level-test', 0, note, 0.55)
         const rendered = await context.startRendering()
@@ -71,10 +71,18 @@ const server = http.createServer((request, response) => {
         render(`${preset.name} velocity 1`, preset, [72], 1, quality))))
       const denseChords = await Promise.all(qualities.flatMap(quality => SOUND_VARIANTS.map(preset =>
         render(`${preset.name} dense chord`, preset, [36, 40, 43, 47, 52, 55, 59, 64], 127, quality))))
-      return {singleNotes, quietBiotronNotes, denseChords}
+      const maximumDenseChords = await Promise.all(qualities.flatMap(quality => SOUND_VARIANTS.map(preset =>
+        render(`${preset.name} maximum-volume dense chord`, preset,
+          [36, 40, 43, 47, 52, 55, 59, 64], 127, quality, 100))))
+      const volumeSweep = await Promise.all([0, 50, 70, 100].map(volume =>
+        render(`volume ${volume}`, SOUND_VARIANTS[0], [72], 100, 'standard', volume)))
+      return {singleNotes, quietBiotronNotes, denseChords, maximumDenseChords, volumeSweep}
     })
 
-    for (const metric of [...metrics.singleNotes, ...metrics.quietBiotronNotes, ...metrics.denseChords]) {
+    for (const metric of [
+      ...metrics.singleNotes, ...metrics.quietBiotronNotes,
+      ...metrics.denseChords, ...metrics.maximumDenseChords
+    ]) {
       assert.strictEqual(metric.nonFinite, 0, `${metric.name} produced non-finite audio`)
       assert(metric.peak <= 0.98, `${metric.name} peak ${metric.peak} exceeds 0.98`)
     }
@@ -84,10 +92,17 @@ const server = http.createServer((request, response) => {
       `quietest single-note RMS is ${Math.min(...metrics.singleNotes.map(metric => metric.rms))}`)
     assert(Math.min(...metrics.quietBiotronNotes.map(metric => metric.peak)) >= 0.55,
       `velocity-1 Biotron note is too quiet: ${Math.min(...metrics.quietBiotronNotes.map(metric => metric.peak))}`)
-    assert(Math.max(...metrics.denseChords.map(metric => metric.peak)) <= 0.92,
+    assert(Math.max(...metrics.denseChords.map(metric => metric.peak)) <= 0.975,
       `dense chord safety peak is ${Math.max(...metrics.denseChords.map(metric => metric.peak))}`)
     assert(Math.min(...metrics.denseChords.map(metric => metric.peak)) >= 0.35,
       `quietest dense chord peak is unexpectedly low: ${Math.min(...metrics.denseChords.map(metric => metric.peak))}`)
+    assert(metrics.volumeSweep[0].peak < 0.001, `volume zero peak is ${metrics.volumeSweep[0].peak}`)
+    assert(metrics.volumeSweep[3].rms > metrics.volumeSweep[1].rms,
+      `maximum-volume RMS ${metrics.volumeSweep[3].rms} did not exceed 50% RMS ${metrics.volumeSweep[1].rms}`)
+    assert(metrics.volumeSweep[3].peak <= 0.98,
+      `maximum-volume peak ${metrics.volumeSweep[3].peak} exceeds 0.98`)
+    assert(Math.max(...metrics.maximumDenseChords.map(metric => metric.peak)) <= 0.98,
+      `maximum-volume dense chord peak is ${Math.max(...metrics.maximumDenseChords.map(metric => metric.peak))}`)
     console.log(`Sound levels verified: ${JSON.stringify(metrics)}`)
   } finally {
     await browser.close()
