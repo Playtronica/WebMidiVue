@@ -30,8 +30,8 @@
 
     <section aria-labelledby="sound-character">
       <div class="sound-lab__heading">
-        <h2 id="sound-character">Glass flute · six ideas</h2>
-        <small>Pick by ear</small>
+        <h2 id="sound-character">Sounds</h2>
+        <small>Choose by ear</small>
       </div>
       <div class="sound-lab__variants">
         <button
@@ -41,9 +41,10 @@
           class="sound-lab__variant"
           :class="{'sound-lab__variant--active': index === currentVariant}"
           :aria-pressed="index === currentVariant"
+          :aria-label="`Sound ${index + 1}`"
           @click="chooseVariant(index)"
         >
-          <span>{{ index + 1 }}</span>{{ preset.name }}
+          <span>{{ index + 1 }}</span>
         </button>
       </div>
     </section>
@@ -245,7 +246,7 @@ export default {
     chooseVariant(index) {
       this.currentVariant = index
       this.engine?.applyPreset(this.variants[index])
-      this.status = `${this.variants[index].name} selected`
+      this.status = `Sound ${index + 1} selected`
     },
     play(note, source = 'screen') {
       if (this.engine?.state === 'running') {
@@ -341,7 +342,7 @@ export default {
 .sound-lab__heading h2, .sound-lab__midi h2 { margin: 0; font-size: 1rem; font-weight: 700; }
 .sound-lab__heading small { color: #6b6761; }
 .sound-lab__variant { min-height: 44px; border: 1px solid #cbc6be; border-radius: 999px; background: #fff; padding: 0 1rem; }
-.sound-lab__variant span { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; margin-right: .4rem; border-radius: 50%; background: #eeeae2; }
+.sound-lab__variant span { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: #eeeae2; }
 .sound-lab__variant--active { border-color: #6a5acd; background: #e9e3ff; }
 .sound-lab__keyboard { display: grid; grid-template-columns: repeat(13, minmax(44px, 1fr)); gap: 4px; overflow-x: auto; padding-bottom: .5rem; }
 .sound-lab__keyboard button { min-width: 44px; height: 120px; border: 1px solid #cbc6be; border-radius: .6rem; background: #fff; align-content: end; padding-bottom: .7rem; }

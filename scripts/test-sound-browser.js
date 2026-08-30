@@ -82,7 +82,8 @@ const server = http.createServer((request, response) => {
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     await page.goto(`${origin}/#/sound`, {waitUntil: 'networkidle'})
-    assert.strictEqual(await page.getByRole('button', {name: /Glass/}).count(), 6)
+    assert.strictEqual(await page.locator('.sound-lab__variant').count(), 6)
+    assert.deepStrictEqual(await page.locator('.sound-lab__variant').allTextContents(), ['1', '2', '3', '4', '5', '6'])
     await page.getByRole('button', {name: 'Start sound'}).click()
     await page.locator('.sound-lab[data-audio-state="running"]').waitFor()
     await page.locator('.sound-lab[data-tab-lease="held"]').waitFor()
