@@ -19,6 +19,9 @@
       <li class="nav-item">
         <a href="https://playtronica.github.io/WebMidiOrbita/?nomidi=true" class="nav-link" aria-current="page">Orbita</a>
       </li>
+      <li v-if="betaBuild" class="nav-item">
+        <router-link to="/sound" class="nav-link">Sound</router-link>
+      </li>
     </ul>
   </header>
   <small v-if="betaBuild" class="beta-build">Biotron offline beta · {{ buildId }}</small>

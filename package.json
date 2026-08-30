@@ -13,7 +13,9 @@
     "test:production-isolation": "npm run build && node scripts/test-production-isolation.js",
     "test:firmware": "node scripts/test-firmware-update.js",
     "test:pwa:browser": "node scripts/test-pwa-browser.js",
-    "test:biotron": "npm run lint && npm run test:production-isolation && npm run build:biotron-beta && npm run test:device-scope && npm run test:midi-lifecycle && npm run test:pwa && npm run test:firmware && npm run test:pwa:browser"
+    "test:sound": "node --test scripts/test-sound-core.mjs",
+    "test:sound:browser": "node scripts/test-sound-browser.js",
+    "test:biotron": "npm run lint && npm run test:sound && npm run test:production-isolation && npm run build:biotron-beta && npm run test:device-scope && npm run test:midi-lifecycle && npm run test:pwa && npm run test:firmware && npm run test:sound:browser && npm run test:pwa:browser"
   },
   "dependencies": {
     "@floating-ui/vue": "^1.1.6",

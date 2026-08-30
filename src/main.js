@@ -19,10 +19,13 @@ import ScalesPageTest from "@/components/ScalesPage/ScalesPageTest.vue";
 import CirclePage from "@/components/CirclePage/CirclePage.vue";
 import '@pwa-entry'
 
+const betaBuild = process.env.VUE_APP_BIOTRON_PWA_BETA === 'true'
+const SoundLab = () => import(/* webpackChunkName: "sound-lab" */ '@sound-lab')
+
 const knownDirectRoutes = new Set([
     '/biotron', '/biotron/update', '/touchme', '/touchme/test',
     '/touchme/standalone', '/playtron', '/playtron/test', '/scales',
-    '/scales/test', '/scala', '/circle'
+    '/scales/test', '/scala', '/circle', '/sound'
 ])
 
 // A cached navigation such as /biotron is served the app shell by Workbox.
@@ -51,6 +54,8 @@ const routes = [
 
     { path: '/circle', component: CirclePage, props: {id: "CircleWebMidiId"} }
 ]
+
+if (betaBuild) routes.push({path: '/sound', component: SoundLab})
 
 const router = createRouter({
     history: createWebHashHistory(),

@@ -28,6 +28,12 @@ module.exports = {
         ? 'src/components/MidiComponents/BiotronDeviceSelector.vue'
         : 'src/components/MidiComponents/DeviceSelector.vue')
     )
+    config.resolve.alias.set(
+      '@sound-lab',
+      path.resolve(__dirname, biotronBeta
+        ? 'src/components/SoundLab/SoundLab.vue'
+        : 'src/components/SoundLab/DisabledSoundLab.vue')
+    )
     if (!biotronBeta) {
       config.plugins.delete('pwa')
       config.plugins.delete('workbox')
