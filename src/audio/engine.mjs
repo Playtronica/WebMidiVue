@@ -164,7 +164,9 @@ export class SynthEngine {
     this.compressor = context.createDynamicsCompressor()
     this.filter.type = 'lowpass'
     this.dry.gain.value = 0.86
-    this.headroom.gain.value = 0.42
+    // The compressor already protects dense chords; unity here keeps single
+    // Biotron notes audible without adding an extra software boost stage.
+    this.headroom.gain.value = 1
     this.compressor.threshold.value = -16
     this.compressor.knee.value = 18
     this.compressor.ratio.value = 5
