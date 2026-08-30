@@ -2,6 +2,9 @@ import {clamp, makeNoteKey, midiNoteToFrequency, VoiceLedger} from './core.mjs'
 import {SOUND_VARIANTS, validatePreset} from './presets.mjs'
 
 const SILENCE = 0.0001
+const VOICE_LEVEL = 0.22
+const VELOCITY_FLOOR = 0.42
+const MASTER_GAIN = 2
 
 function makeImpulse(context, seconds = 0.45) {
   const length = Math.max(1, Math.round(context.sampleRate * seconds))
@@ -55,7 +58,9 @@ class Voice {
     this.gain.connect(destination)
     this.oscillators = []
 
-    const level = clamp(velocity / 127, 0.02, 1, 0.7) * 0.22
+    const normalizedVelocity = clamp(velocity / 127, 0, 1, 0.7)
+    const velocityLevel = VELOCITY_FLOOR + (1 - VELOCITY_FLOOR) * normalizedVelocity ** 0.7
+    const level = velocityLevel * VOICE_LEVEL
     this.addOscillator(preset.waveA, frequency, 0, 1, when)
     if (quality === 'standard' && preset.mixB > 0) {
       this.addOscillator(preset.waveB, frequency, preset.detune, preset.mixB, when)
@@ -162,16 +167,18 @@ export class SynthEngine {
     this.delayWet = context.createGain()
     this.headroom = context.createGain()
     this.compressor = context.createDynamicsCompressor()
+    this.master = context.createGain()
     this.filter.type = 'lowpass'
     this.dry.gain.value = 0.86
-    // The compressor already protects dense chords; unity here keeps single
-    // Biotron notes audible without adding an extra software boost stage.
+    // Biotron can emit very low velocities. Boost before the compressor so
+    // quiet notes stay audible while dense chords remain safely contained.
     this.headroom.gain.value = 1
-    this.compressor.threshold.value = -16
-    this.compressor.knee.value = 18
-    this.compressor.ratio.value = 5
-    this.compressor.attack.value = 0.004
+    this.compressor.threshold.value = -10
+    this.compressor.knee.value = 6
+    this.compressor.ratio.value = 12
+    this.compressor.attack.value = 0.001
     this.compressor.release.value = 0.16
+    this.master.gain.value = MASTER_GAIN
     this.input.connect(this.filter)
     this.filter.connect(this.dry).connect(this.headroom)
     this.filter.connect(this.delay)
@@ -183,7 +190,7 @@ export class SynthEngine {
       this.convolver.buffer = makeImpulse(context)
       this.filter.connect(this.convolver).connect(this.reverbWet).connect(this.headroom)
     }
-    this.headroom.connect(this.compressor).connect(context.destination)
+    this.headroom.connect(this.master).connect(this.compressor).connect(context.destination)
   }
 
   get activeVoiceCount() { return this.voices.size }
