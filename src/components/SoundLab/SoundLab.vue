@@ -184,7 +184,8 @@ export default {
       if (!this.engine || this.engine.state === 'closed') {
         this.engine = markRaw(createRealtimeSynth({
           preset: this.variants[this.currentVariant],
-          quality: this.lowCpu ? 'safe' : 'standard'
+          quality: this.lowCpu ? 'safe' : 'standard',
+          onStateChange: state => this.handleAudioContextState(state)
         }))
         this.midi = markRaw(new MidiInputSession(this.engine, event => this.handleMidiState(event)))
       }
@@ -316,19 +317,35 @@ export default {
         }
       }
     },
-    async handleVisibility() {
-      if (!document.hidden || !this.engine) return
+    pauseInputs(status) {
       if (this.midi) this.midi.setEnabled(false)
-      else this.engine.panic()
+      else this.engine?.panic()
       this.heldCodes.clear()
       window.clearTimeout(this.voiceRefreshTimer)
       window.cancelAnimationFrame(this.voiceFrame)
       this.voiceFrame = null
       this.pendingVoiceCount = 0
       this.voiceCount = 0
+      this.status = status
+    },
+    handleAudioContextState(state) {
+      if (!this.engine || state === 'running') return
+      if (state === 'closed') {
+        this.pauseInputs('Audio stopped unexpectedly — press Stop & release')
+        this.audioState = 'closed'
+        this.releaseBlocked = true
+        return
+      }
+      this.pauseInputs(document.hidden
+        ? 'Paused in background — press Start sound'
+        : 'Audio paused — press Start sound')
+      this.audioState = 'suspended'
+    },
+    async handleVisibility() {
+      if (!document.hidden || !this.engine) return
+      this.pauseInputs('Paused in background — press Start sound')
       try { await this.engine.context.suspend() } catch (error) { void error }
       this.audioState = 'suspended'
-      this.status = 'Paused in background — press Start sound'
     }
   }
 }

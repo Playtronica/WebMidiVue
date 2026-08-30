@@ -44,6 +44,19 @@ const server = http.createServer((request, response) => {
           return nativeAudioClose.apply(this, args)
         }
       }
+      if (AudioContextClass) {
+        class TrackedAudioContext extends AudioContextClass {
+          constructor(...args) {
+            super(...args)
+            window.__soundContext = this
+          }
+        }
+        if (window.AudioContext) {
+          Object.defineProperty(window, 'AudioContext', {configurable: true, value: TrackedAudioContext})
+        } else {
+          Object.defineProperty(window, 'webkitAudioContext', {configurable: true, value: TrackedAudioContext})
+        }
+      }
       let midiListener = null
       let stateListener = null
       const input = {
@@ -201,6 +214,21 @@ const server = http.createServer((request, response) => {
     await page.evaluate(() => window.__emitSoundMidi([0x90, 67, 100]))
     await page.locator('.sound-lab[data-active-voices="1"]').waitFor()
     await page.getByRole('button', {name: 'Stop notes'}).click()
+
+    await page.evaluate(() => window.__soundContext.close())
+    await page.locator('.sound-lab[data-audio-state="closed"][data-tab-lease="held"]').waitFor()
+    await page.getByText(/Audio stopped unexpectedly/i).waitFor()
+    assert.strictEqual(await page.getByRole('button', {name: 'Start sound'}).isDisabled(), true)
+    assert.strictEqual(await page.getByRole('button', {name: 'Stop & release'}).isEnabled(), true)
+    assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'open')
+    await page.getByRole('button', {name: 'Stop & release'}).click()
+    await page.locator('.sound-lab[data-audio-state="closed"][data-tab-lease="free"]').waitFor()
+    assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'closed')
+
+    await page.getByRole('button', {name: 'Start sound'}).click()
+    await page.getByRole('button', {name: 'Find MIDI device'}).click()
+    await page.getByRole('button', {name: 'Connect selected'}).click()
+    assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'open')
 
     await page.evaluate(() => { window.__failSoundCloseOnce = true })
     await page.evaluate(() => { window.location.hash = '#/biotron' })

@@ -139,6 +139,9 @@ export class SynthEngine {
     if (!context) throw new TypeError('AudioContext is required')
     this.context = context
     this.ownsContext = Boolean(options.ownsContext)
+    this.onStateChange = typeof options.onStateChange === 'function' ? options.onStateChange : () => {}
+    this.boundStateChange = () => this.onStateChange(this.context.state)
+    this.context.addEventListener?.('statechange', this.boundStateChange)
     this.quality = options.quality === 'safe' ? 'safe' : 'standard'
     this.voiceLimit = this.quality === 'safe' ? 4 : 8
     this.ledger = new VoiceLedger(this.voiceLimit)
@@ -247,7 +250,13 @@ export class SynthEngine {
 
   async stop() {
     this.panic()
-    if (this.ownsContext && this.context.state !== 'closed') await this.context.close()
+    this.context.removeEventListener?.('statechange', this.boundStateChange)
+    try {
+      if (this.ownsContext && this.context.state !== 'closed') await this.context.close()
+    } catch (error) {
+      this.context.addEventListener?.('statechange', this.boundStateChange)
+      throw error
+    }
   }
 }
 
