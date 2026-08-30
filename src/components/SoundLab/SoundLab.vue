@@ -1,5 +1,10 @@
 <template>
-  <main class="sound-lab" :data-audio-state="audioState" :data-active-voices="voiceCount">
+  <main
+    class="sound-lab"
+    :data-audio-state="audioState"
+    :data-active-voices="voiceCount"
+    :data-tab-lease="tabLeaseState"
+  >
     <header class="sound-lab__intro">
       <small>Beta sound lab</small>
       <h1>Play your device</h1>
@@ -78,6 +83,7 @@ import {noteForKeyboardCode} from '@/audio/core.mjs'
 import {createRealtimeSynth} from '@/audio/engine.mjs'
 import {MidiInputSession} from '@/audio/midi.mjs'
 import {SOUND_VARIANTS} from '@/audio/presets.mjs'
+import {createExclusiveTabLease} from '@/audio/tabLease.mjs'
 
 const keyboard = [
   ['KeyA', 60, 'A', 'C', false], ['KeyW', 61, 'W', 'C sharp', true],
@@ -111,10 +117,13 @@ export default {
       pendingVoiceCount: 0,
       keyDownHandler: null,
       keyUpHandler: null,
-      visibilityHandler: null
+      visibilityHandler: null,
+      tabLease: null,
+      tabLeaseState: 'free'
     }
   },
   mounted() {
+    this.tabLease = markRaw(createExclusiveTabLease('playtronica-settings-sound-lab'))
     this.keyDownHandler = event => this.handleKeyDown(event)
     this.keyUpHandler = event => this.handleKeyUp(event)
     this.visibilityHandler = () => this.handleVisibility()
@@ -131,12 +140,23 @@ export default {
     window.cancelAnimationFrame(this.voiceFrame)
     const midi = this.midi
     const engine = this.engine
+    const tabLease = this.tabLease
     Promise.resolve().then(async () => {
       try { await midi?.close() } catch (error) { void error }
       try { await engine?.stop() } catch (error) { void error }
+      tabLease?.release()
     })
   },
   methods: {
+    async acquireTabLease() {
+      if (await this.tabLease.acquire()) {
+        this.tabLeaseState = this.tabLease.protected ? 'held' : 'unprotected'
+        return true
+      }
+      this.tabLeaseState = 'blocked'
+      this.status = 'Sound is already open in another Settings window.'
+      return false
+    },
     async ensureEngine() {
       if (!this.engine || this.engine.state === 'closed') {
         this.engine = markRaw(createRealtimeSynth({preset: this.variants[this.currentVariant]}))
@@ -149,7 +169,19 @@ export default {
     },
     async start() {
       this.starting = true
-      try { await this.ensureEngine() } catch (error) { this.status = error.message }
+      try {
+        if (!await this.acquireTabLease()) return
+        await this.ensureEngine()
+        if (!this.tabLease.protected) this.status = 'Sound ready — keep one Settings window open'
+      } catch (error) {
+        this.status = error.message
+        try { await this.engine?.stop() } catch (stopError) { void stopError }
+        this.engine = null
+        this.midi = null
+        this.audioState = 'closed'
+        this.tabLease.release()
+        this.tabLeaseState = 'free'
+      }
       finally { this.starting = false }
     },
     async stop() {
@@ -167,6 +199,8 @@ export default {
         this.midi = null
         this.midiInputs = []
         this.selectedInput = ''
+        this.tabLease.release()
+        this.tabLeaseState = 'free'
         this.status = 'Stopped — MIDI released'
       }
       this.starting = false
@@ -221,6 +255,7 @@ export default {
     async connectMidi() {
       this.starting = true
       try {
+        if (!await this.acquireTabLease()) return
         await this.ensureEngine()
         if (!this.midiInputs.length) {
           this.midiInputs = await this.midi.requestAccess()

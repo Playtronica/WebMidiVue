@@ -73,6 +73,25 @@ const server = http.createServer((request, response) => {
     assert.strictEqual(await page.getByRole('button', {name: /Glass/}).count(), 6)
     await page.getByRole('button', {name: 'Start sound'}).click()
     await page.locator('.sound-lab[data-audio-state="running"]').waitFor()
+    await page.locator('.sound-lab[data-tab-lease="held"]').waitFor()
+
+    const secondPage = await context.newPage()
+    await secondPage.goto(`${origin}/#/sound`, {waitUntil: 'networkidle'})
+    await secondPage.getByRole('button', {name: 'Start sound'}).click()
+    await secondPage.locator('.sound-lab[data-tab-lease="blocked"]').waitFor()
+    await secondPage.getByText(/already open in another Settings window/i).waitFor()
+    assert.strictEqual(await secondPage.locator('.sound-lab').getAttribute('data-audio-state'), 'closed')
+
+    await page.getByRole('button', {name: 'Stop & release'}).click()
+    await page.locator('.sound-lab[data-tab-lease="free"]').waitFor()
+    await secondPage.getByRole('button', {name: 'Start sound'}).click()
+    await secondPage.locator('.sound-lab[data-audio-state="running"][data-tab-lease="held"]').waitFor()
+    await secondPage.getByRole('button', {name: 'Stop & release'}).click()
+    await secondPage.locator('.sound-lab[data-tab-lease="free"]').waitFor()
+    await secondPage.close()
+
+    await page.getByRole('button', {name: 'Start sound'}).click()
+    await page.locator('.sound-lab[data-audio-state="running"][data-tab-lease="held"]').waitFor()
 
     await page.dispatchEvent('body', 'keydown', {code: 'KeyA', key: 'ф'})
     await page.locator('.sound-lab[data-active-voices="1"]').waitFor()
@@ -152,7 +171,7 @@ const server = http.createServer((request, response) => {
     await page.getByRole('button', {name: 'Stop & release'}).click()
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'closed')
     assert.deepStrictEqual(errors, [])
-    console.log(`Sound browser verified: 6 variants, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)
+    console.log(`Sound browser verified: 6 variants, exclusive two-tab handoff, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)
   } finally {
     await browser.close()
     await new Promise(resolve => server.close(resolve))

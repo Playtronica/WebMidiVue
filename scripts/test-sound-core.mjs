@@ -10,6 +10,7 @@ import {
 } from '../src/audio/core.mjs'
 import {SOUND_VARIANTS, validatePreset} from '../src/audio/presets.mjs'
 import {MidiInputSession} from '../src/audio/midi.mjs'
+import {ExclusiveTabLease} from '../src/audio/tabLease.mjs'
 
 test('physical keyboard mapping is independent from typed character', () => {
   assert.equal(noteForKeyboardCode('KeyA'), 60)
@@ -75,4 +76,37 @@ test('failed MIDI close stays retryable and never reports released', async () =>
     if (originalNavigator) Object.defineProperty(globalThis, 'navigator', originalNavigator)
     else delete globalThis.navigator
   }
+})
+
+test('only one tab lease can be held and release enables handoff', async () => {
+  const locks = {
+    held: false,
+    async request(name, options, callback) {
+      assert.equal(name, 'sound-test')
+      assert.equal(options.ifAvailable, true)
+      if (this.held) return callback(null)
+      this.held = true
+      try { return await callback({name}) }
+      finally { this.held = false }
+    }
+  }
+  const first = new ExclusiveTabLease(locks, 'sound-test')
+  const second = new ExclusiveTabLease(locks, 'sound-test')
+
+  assert.equal(await first.acquire(), true)
+  assert.equal(await second.acquire(), false)
+  first.release()
+  await first.task
+  assert.equal(await second.acquire(), true)
+  second.release()
+  await second.task
+})
+
+test('audio-only fallback stays usable without Web Locks', async () => {
+  const lease = new ExclusiveTabLease(null)
+  assert.equal(lease.protected, false)
+  assert.equal(await lease.acquire(), true)
+  assert.equal(lease.held, true)
+  lease.release()
+  assert.equal(lease.held, false)
 })
