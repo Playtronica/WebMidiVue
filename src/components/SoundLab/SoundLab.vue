@@ -93,6 +93,8 @@
       <p>Choose a sound, then play from a Playtronica device or your computer keyboard.</p>
     </header>
 
+    <CompatibilityNotice v-if="midiAdvisory" :issue="midiAdvisory" advisory />
+
     <section class="sound-lab__controls" aria-label="Sound controls">
       <button type="button" class="btn btn-dark" @click="start" :disabled="starting || releaseBlocked || !capabilities.audio">Start sound</button>
       <button type="button" class="btn btn-outline-dark" @click="stop" :disabled="starting || (!engine && !midi)">Stop &amp; release</button>
@@ -150,11 +152,10 @@
       </div>
     </section>
 
-    <section class="sound-lab__midi" aria-labelledby="sound-device">
+    <section v-if="capabilities.midi && !platformCapabilities.mobile" class="sound-lab__midi" aria-labelledby="sound-device">
       <div>
         <h2 id="sound-device">Playtronica device</h2>
-        <p v-if="capabilities.audio && capabilities.midi">Only the selected MIDI input is opened. Stop &amp; release closes it.</p>
-        <p v-else>{{ deviceFallbackMessage }}</p>
+        <p>Only the selected MIDI input is opened. Stop &amp; release closes it.</p>
       </div>
       <div class="sound-lab__midi-actions">
         <select v-if="midiInputs.length" v-model="selectedInput" class="form-select" aria-label="MIDI input">
@@ -181,6 +182,8 @@ import {createExclusiveTabLease} from '@/audio/tabLease.mjs'
 import {getRevealProfile, selectRevealInput} from '@/audio/revealProfiles.mjs'
 import {detectSoundCapabilities, soundCapabilityMessage} from '@/audio/capabilities.mjs'
 import DeviceTaskNav from '@/components/DeviceTaskNav.vue'
+import CompatibilityNotice from '@/components/CompatibilityNotice.vue'
+import {buildMidiAdvisory, detectPlatformCapabilities} from '@/compatibility.mjs'
 
 const keyboard = [
   ['KeyA', 60, 'A', 'C', false], ['KeyW', 61, 'W', 'C sharp', true],
@@ -194,7 +197,7 @@ const keyboard = [
 
 export default {
   name: 'SoundLab',
-  components: {DeviceTaskNav},
+  components: {CompatibilityNotice, DeviceTaskNav},
   props: {
     mode: {type: String, default: 'lab'},
     profileId: {type: String, default: ''}
@@ -203,11 +206,7 @@ export default {
     revealMode() { return this.mode === 'reveal' },
     revealProfile() { return getRevealProfile(this.profileId) },
     canStartReveal() { return this.capabilities.audio && this.capabilities.midi },
-    deviceFallbackMessage() {
-      return this.capabilities.audio
-        ? soundCapabilityMessage(this.capabilities)
-        : 'USB input is unavailable because sound cannot start in this browser.'
-    }
+    midiAdvisory() { return this.revealMode ? null : buildMidiAdvisory(this.platformCapabilities) }
   },
   data() {
     const capabilities = detectSoundCapabilities()
@@ -221,6 +220,7 @@ export default {
       midiInputs: [],
       selectedInput: '',
       capabilities: markRaw(capabilities),
+      platformCapabilities: markRaw(detectPlatformCapabilities()),
       status: this.mode === 'reveal'
         ? soundCapabilityMessage(capabilities, {requiresMidi: true}) || 'Ready when you are'
         : capabilities.audio ? 'Press Start sound' : soundCapabilityMessage(capabilities),

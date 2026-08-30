@@ -99,8 +99,10 @@ async function verifyCapabilityFallbacks(browser, origin) {
   audioOnly.on('pageerror', error => audioOnlyErrors.push(error.message))
   await audioOnly.goto(`${origin}/#/sound`, {waitUntil: 'networkidle'})
   await audioOnly.locator('.sound-lab[data-audio-capability="available"][data-midi-capability="unavailable"]').waitFor()
-  await audioOnly.locator('.sound-lab__midi').getByText(/Computer-keyboard sound works here/i).waitFor()
-  assert.strictEqual(await audioOnly.getByRole('button', {name: 'Find MIDI device'}).isDisabled(), true)
+  await audioOnly.getByRole('heading', {name: 'USB device connection isn’t available here'}).waitFor()
+  await audioOnly.getByText(/still try every sound with your computer keyboard/i).waitFor()
+  assert.strictEqual(await audioOnly.locator('.sound-lab__midi').count(), 0)
+  assert.strictEqual(await audioOnly.getByRole('button', {name: 'Find MIDI device'}).count(), 0)
   await audioOnly.getByRole('button', {name: 'Start sound'}).click()
   await audioOnly.locator('.sound-lab[data-audio-state="running"]').waitFor()
   await audioOnly.dispatchEvent('body', 'keydown', {code: 'KeyA', key: 'a'})
@@ -108,10 +110,42 @@ async function verifyCapabilityFallbacks(browser, origin) {
   await audioOnly.dispatchEvent('body', 'keyup', {code: 'KeyA', key: 'a'})
   await audioOnly.getByRole('button', {name: 'Stop & release'}).click()
   await audioOnly.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
-  await audioOnly.getByText(/cannot hear your device/i).waitFor()
-  assert.strictEqual(await audioOnly.getByRole('button', {name: 'Hear Biotron'}).isDisabled(), true)
+  await audioOnly.getByRole('heading', {name: 'Biotron can’t connect in this browser'}).waitFor()
+  await audioOnly.getByText(/latest Chrome or Edge on a computer/i).waitFor()
+  assert.strictEqual(await audioOnly.getByRole('button', {name: 'Hear Biotron'}).count(), 0)
+  assert.strictEqual(await audioOnly.locator('.sound-lab').count(), 0)
+  for (const [route, product] of [
+    ['/biotron', 'Biotron'], ['/biotron/update', 'Biotron'],
+    ['/touchme', 'TouchMe'], ['/playtron', 'Playtron'],
+    ['/scales', 'Scales'], ['/circle', 'Circle'], ['/scala', 'Playtronica device']
+  ]) {
+    await audioOnly.goto(`${origin}/#${route}`, {waitUntil: 'networkidle'})
+    await audioOnly.getByRole('heading', {name: `${product} can’t connect in this browser`}).waitFor()
+    assert.strictEqual(await audioOnly.getByText('Select Device', {exact: true}).count(), 0)
+  }
   assert.deepStrictEqual(audioOnlyErrors, [])
   await audioOnlyContext.close()
+
+  const unsupportedBrowserContext = await browser.newContext({
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0'
+  })
+  await unsupportedBrowserContext.addInitScript(() => {
+    Object.defineProperty(navigator, 'userAgentData', {configurable: true, value: undefined})
+    Object.defineProperty(navigator, 'requestMIDIAccess', {
+      configurable: true,
+      value: async () => ({inputs: new Map(), outputs: new Map()})
+    })
+  })
+  const unsupportedBrowser = await unsupportedBrowserContext.newPage()
+  const unsupportedBrowserErrors = []
+  unsupportedBrowser.on('pageerror', error => unsupportedBrowserErrors.push(error.message))
+  await unsupportedBrowser.goto(`${origin}/#/biotron`, {waitUntil: 'networkidle'})
+  await unsupportedBrowser.getByRole('heading', {name: 'Open this page in Chrome or Edge'}).waitFor()
+  await unsupportedBrowser.getByText(/MIDI and SysEx features that are not supported here/i).waitFor()
+  assert.strictEqual(await unsupportedBrowser.getByText('Select Device', {exact: true}).count(), 0)
+  assert.strictEqual(await unsupportedBrowser.getByRole('heading', {name: 'Settings'}).count(), 0)
+  assert.deepStrictEqual(unsupportedBrowserErrors, [])
+  await unsupportedBrowserContext.close()
 
   const deniedContext = await browser.newContext()
   await deniedContext.addInitScript(() => {
@@ -146,15 +180,37 @@ async function verifyCapabilityFallbacks(browser, origin) {
   const noAudioErrors = []
   noAudio.on('pageerror', error => noAudioErrors.push(error.message))
   await noAudio.goto(`${origin}/#/sound`, {waitUntil: 'networkidle'})
-  await noAudio.locator('.sound-lab[data-audio-capability="unavailable"]').waitFor()
-  await noAudio.getByText(/Sound is not available in this browser/i).waitFor()
-  assert.strictEqual(await noAudio.getByRole('button', {name: 'Start sound'}).isDisabled(), true)
-  assert.strictEqual(await noAudio.getByRole('button', {name: 'Find MIDI device'}).isDisabled(), true)
+  await noAudio.getByRole('heading', {name: 'Sound can’t start in this browser'}).waitFor()
+  assert.strictEqual(await noAudio.getByRole('button', {name: 'Start sound'}).count(), 0)
+  assert.strictEqual(await noAudio.locator('.sound-lab').count(), 0)
   await noAudio.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
-  await noAudio.getByText(/Sound is not available in this browser/i).waitFor()
-  assert.strictEqual(await noAudio.getByRole('button', {name: 'Hear Biotron'}).isDisabled(), true)
+  await noAudio.getByRole('heading', {name: 'Sound can’t start in this browser'}).waitFor()
+  assert.strictEqual(await noAudio.getByRole('button', {name: 'Hear Biotron'}).count(), 0)
   assert.deepStrictEqual(noAudioErrors, [])
   await noAudioContext.close()
+
+  const mobileContext = await browser.newContext({
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148'
+  })
+  await mobileContext.addInitScript(() => {
+    Object.defineProperty(navigator, 'requestMIDIAccess', {
+      configurable: true,
+      value: async () => ({inputs: new Map(), outputs: new Map()})
+    })
+  })
+  const mobile = await mobileContext.newPage()
+  const mobileErrors = []
+  mobile.on('pageerror', error => mobileErrors.push(error.message))
+  await mobile.goto(`${origin}/#/biotron`, {waitUntil: 'networkidle'})
+  await mobile.getByRole('heading', {name: 'Biotron needs a computer'}).waitFor()
+  await mobile.getByText(/phone or tablet can show the page/i).waitFor()
+  assert.strictEqual(await mobile.getByRole('heading', {name: 'Settings'}).count(), 0)
+  await mobile.goto(`${origin}/#/sound`, {waitUntil: 'networkidle'})
+  await mobile.getByRole('heading', {name: 'On-screen sound only on this device'}).waitFor()
+  assert.strictEqual(await mobile.locator('.sound-lab__midi').count(), 0)
+  assert.strictEqual(await mobile.getByRole('button', {name: 'Start sound'}).isEnabled(), true)
+  assert.deepStrictEqual(mobileErrors, [])
+  await mobileContext.close()
 }
 
 function heapSlopeBytesPerMinute(samples) {

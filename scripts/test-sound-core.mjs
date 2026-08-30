@@ -18,6 +18,11 @@ import {
   validateRevealProfile
 } from '../src/audio/revealProfiles.mjs'
 import {detectSoundCapabilities, soundCapabilityMessage} from '../src/audio/capabilities.mjs'
+import {
+  buildCompatibilityIssue,
+  buildMidiAdvisory,
+  detectPlatformCapabilities
+} from '../src/compatibility.mjs'
 
 test('physical keyboard mapping is independent from typed character', () => {
   assert.equal(noteForKeyboardCode('KeyA'), 60)
@@ -115,6 +120,70 @@ test('sound capabilities fail closed without hiding the audio-only fallback', ()
   const unsupported = detectSoundCapabilities({navigator: {requestMIDIAccess() {}}})
   assert.deepEqual(unsupported, {audio: false, midi: true, tabIsolation: false})
   assert.match(soundCapabilityMessage(unsupported), /Sound is not available/i)
+})
+
+test('platform compatibility separates unsupported runtime from denied permission', () => {
+  const AudioContext = class {}
+  const desktop = detectPlatformCapabilities({
+    AudioContext,
+    isSecureContext: true,
+    navigator: {userAgent: 'Mozilla/5.0 Chrome/140.0', requestMIDIAccess() {}}
+  })
+  assert.deepEqual(desktop, {audio: true, chromium: true, midi: true, mobile: false, secureContext: true})
+  assert.equal(buildCompatibilityIssue(desktop, {requiresMidi: true, requiresDesktop: true}), null)
+
+  const noMidi = detectPlatformCapabilities({
+    AudioContext,
+    isSecureContext: true,
+    navigator: {userAgent: 'Firefox desktop'}
+  })
+  const midiIssue = buildCompatibilityIssue(noMidi, {requiresMidi: true, productName: 'Biotron'})
+  assert.equal(midiIssue.kind, 'midi')
+  assert.match(midiIssue.title, /Biotron can’t connect/i)
+  assert.match(midiIssue.steps.join(' '), /Chrome or Edge/i)
+  assert.match(buildMidiAdvisory(noMidi).summary, /computer keyboard/i)
+
+  const partialFirefox = {...noMidi, midi: true}
+  const browserIssue = buildCompatibilityIssue(partialFirefox, {
+    requiresMidi: true,
+    requiresChromium: true,
+    productName: 'Biotron'
+  })
+  assert.equal(browserIssue.kind, 'browser')
+  assert.equal(browserIssue.title, 'Open this page in Chrome or Edge')
+
+  const deniedButSupported = {...desktop}
+  assert.equal(buildCompatibilityIssue(deniedButSupported, {requiresMidi: true}), null)
+})
+
+test('mobile, insecure and audio-less environments get distinct recovery', () => {
+  const AudioContext = class {}
+  const mobile = detectPlatformCapabilities({
+    AudioContext,
+    isSecureContext: true,
+    navigator: {userAgentData: {mobile: true}, requestMIDIAccess() {}}
+  })
+  const mobileIssue = buildCompatibilityIssue(mobile, {
+    requiresMidi: true,
+    requiresDesktop: true,
+    productName: 'Scales'
+  })
+  assert.equal(mobileIssue.kind, 'mobile')
+  assert.equal(mobileIssue.title, 'Scales needs a computer')
+  assert.match(buildMidiAdvisory(mobile).title, /On-screen sound only/i)
+
+  const insecure = detectPlatformCapabilities({
+    AudioContext,
+    isSecureContext: false,
+    navigator: {userAgent: 'Desktop'}
+  })
+  assert.equal(buildCompatibilityIssue(insecure, {requiresMidi: true}).kind, 'security')
+
+  const noAudio = detectPlatformCapabilities({
+    isSecureContext: true,
+    navigator: {userAgent: 'Mozilla/5.0 Chrome/140.0', requestMIDIAccess() {}}
+  })
+  assert.equal(buildCompatibilityIssue(noAudio, {requiresAudio: true}).kind, 'audio')
 })
 
 test('MIDI permission and security failures use actionable language', () => {

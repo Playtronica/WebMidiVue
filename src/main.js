@@ -22,6 +22,13 @@ import '@pwa-entry'
 const betaBuild = process.env.VUE_APP_BIOTRON_PWA_BETA === 'true'
 const SoundLab = () => import(/* webpackChunkName: "sound-lab" */ '@sound-lab')
 const DeviceFirstPlay = () => import(/* webpackChunkName: "sound-lab" */ '@/components/SoundLab/DeviceFirstPlay.vue')
+const deviceMeta = productName => ({
+    requiresMidi: true,
+    requiresDesktop: true,
+    requiresChromium: true,
+    productName
+})
+const playMeta = productName => ({...deviceMeta(productName), requiresAudio: true})
 
 const knownDirectRoutes = new Set([
     '/biotron', '/biotron/play', '/biotron/update', '/touchme', '/touchme/test',
@@ -37,23 +44,23 @@ if (!window.location.hash && knownDirectRoutes.has(window.location.pathname)) {
 
 const routes = [
     { path: '/', component: HomeComponent},
-    { path: '/biotron', component: BiotronPageUpdated, props: {id: "BiotronWebMidiId_2" } },
+    { path: '/biotron', component: BiotronPageUpdated, props: {id: "BiotronWebMidiId_2" }, meta: deviceMeta('Biotron') },
 
-    { path: '/touchme', component: TouchMePageRelease, props: {id: "TouchmeWebMidiId_2"} },
-    { path: '/touchme/test', component: TouchMePageTest, props: {id: "TouchmeWebMidiId_2"} },
-    { path: '/touchme/standalone', component: TouchMePageStandalone, props: {id: "TouchmeWebMidiId_standalone"} },
+    { path: '/touchme', component: TouchMePageRelease, props: {id: "TouchmeWebMidiId_2"}, meta: deviceMeta('TouchMe') },
+    { path: '/touchme/test', component: TouchMePageTest, props: {id: "TouchmeWebMidiId_2"}, meta: deviceMeta('TouchMe') },
+    { path: '/touchme/standalone', component: TouchMePageStandalone, props: {id: "TouchmeWebMidiId_standalone"}, meta: deviceMeta('TouchMe') },
 
-    { path: '/playtron', component: PlaytronPageRelease, props: {id: "PlaytronWebMidiId"} },
-    { path: '/playtron/test', component: PlaytronPageTest, props: {id: "PlaytronWebMidiId"} },
+    { path: '/playtron', component: PlaytronPageRelease, props: {id: "PlaytronWebMidiId"}, meta: deviceMeta('Playtron') },
+    { path: '/playtron/test', component: PlaytronPageTest, props: {id: "PlaytronWebMidiId"}, meta: deviceMeta('Playtron') },
 
-    { path: '/scales', component: ScalesPage, props: {id: "ScalesWebMidiId_1"} },
-    { path: '/scales/test', component: ScalesPageTest, props: {id: "ScalesWebMidiId_1"} },
+    { path: '/scales', component: ScalesPage, props: {id: "ScalesWebMidiId_1"}, meta: deviceMeta('Scales') },
+    { path: '/scales/test', component: ScalesPageTest, props: {id: "ScalesWebMidiId_1"}, meta: deviceMeta('Scales') },
 
-    { path: "/biotron/update", component: BiotronUpdatePage},
+    { path: "/biotron/update", component: BiotronUpdatePage, meta: deviceMeta('Biotron')},
 
-    { path: '/scala', component: ScalaPage},
+    { path: '/scala', component: ScalaPage, meta: deviceMeta('Playtronica device')},
 
-    { path: '/circle', component: CirclePage, props: {id: "CircleWebMidiId"} }
+    { path: '/circle', component: CirclePage, props: {id: "CircleWebMidiId"}, meta: deviceMeta('Circle') }
 ]
 
 if (betaBuild) {
@@ -61,9 +68,9 @@ if (betaBuild) {
         path: '/biotron/play',
         component: DeviceFirstPlay,
         props: {profileId: 'biotron'},
-        meta: {firstPlay: true}
+        meta: {...playMeta('Biotron'), firstPlay: true}
     })
-    routes.push({path: '/sound', component: SoundLab})
+    routes.push({path: '/sound', component: SoundLab, meta: {requiresAudio: true, productName: 'Playtronica Sound'}})
 }
 
 const router = createRouter({

@@ -34,6 +34,12 @@ module.exports = {
         ? 'src/components/SoundLab/SoundLab.vue'
         : 'src/components/SoundLab/DisabledSoundLab.vue')
     )
+    config.resolve.alias.set(
+      '@compatibility-gate',
+      path.resolve(__dirname, biotronBeta
+        ? 'src/components/CompatibilityGate.vue'
+        : 'src/components/DisabledCompatibilityGate.vue')
+    )
     if (!biotronBeta) {
       config.plugins.delete('pwa')
       config.plugins.delete('workbox')

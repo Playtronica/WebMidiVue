@@ -56,7 +56,9 @@
   </div>
   <div class="wrapper">
     <div class="m-2 content ">
-      <router-view></router-view>
+      <CompatibilityGate :route="$route">
+        <router-view></router-view>
+      </CompatibilityGate>
 
     </div>
     <footer v-if="!firstPlay" class="bottom-panel">
@@ -68,6 +70,7 @@
 
 <script>
 import SocialLinks from "@/components/SocialLinks.vue";
+import CompatibilityGate from "@compatibility-gate";
 import {
   getOfflineStatus,
   OFFLINE_STATUS_EVENT,
@@ -80,7 +83,7 @@ const runningStandalone = () => window.matchMedia('(display-mode: standalone)').
 
 export default {
   name: 'App',
-  components: {SocialLinks},
+  components: {CompatibilityGate, SocialLinks},
   data() {
     return {
       url: String,

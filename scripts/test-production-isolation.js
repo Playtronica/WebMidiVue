@@ -19,5 +19,7 @@ assert(!javascript.includes('Release device for DAW'), 'beta MIDI lifecycle leak
 assert(!javascript.includes('Play your device'), 'beta sound lab leaked into the normal production bundle')
 assert(!javascript.includes('Meet Biotron'), 'beta first-play experience leaked into the normal production bundle')
 assert(!javascript.includes('Clear Glass'), 'beta synth presets leaked into the normal production bundle')
+assert(!javascript.includes('Compatibility check'), 'beta compatibility UI leaked into the normal production bundle')
+assert(!javascript.includes('needs a computer'), 'beta device advice leaked into the normal production bundle')
 
 console.log('Production isolation verified: normal build has no PWA, beta MIDI lifecycle, or sound lab.')

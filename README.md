@@ -34,6 +34,13 @@ visit. Safari and Firefox are outside this beta because the Settings UI requires
 Web MIDI. Deploy this build only on a dedicated beta origin; never under the
 production service-worker scope.
 
+Beta routes declare their required capabilities in `src/main.js`. One shared
+compatibility gate checks secure context, desktop support, Web MIDI and Web
+Audio before mounting a device page. Unsupported phones and browsers get one
+plain-language recovery card; permission denial remains a separate retryable
+state. The generic Sound route keeps its on-screen/keyboard audio mode when MIDI
+is unavailable and hides the unusable USB controls.
+
 The ordinary `npm run build` deliberately contains no manifest, service worker,
 or registration. `npm run test:production-isolation` enforces that boundary so
 this beta cannot silently alter the existing production Settings lifecycle.
