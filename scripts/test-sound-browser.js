@@ -96,6 +96,17 @@ async function verifyCapabilityFallbacks(browser, origin) {
   await noAudioContext.close()
 }
 
+function heapSlopeBytesPerMinute(samples) {
+  if (samples.length < 2) return 0
+  const meanTime = samples.reduce((sum, sample) => sum + sample.elapsedMilliseconds, 0) / samples.length
+  const meanHeap = samples.reduce((sum, sample) => sum + sample.heapBytes, 0) / samples.length
+  const numerator = samples.reduce((sum, sample) =>
+    sum + (sample.elapsedMilliseconds - meanTime) * (sample.heapBytes - meanHeap), 0)
+  const denominator = samples.reduce((sum, sample) =>
+    sum + (sample.elapsedMilliseconds - meanTime) ** 2, 0)
+  return denominator ? numerator / denominator * 60000 : 0
+}
+
 async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
   if (!seconds) return null
   const metric = (list, name) => list.find(item => item.name === name)?.value || 0
@@ -103,6 +114,10 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
   await devtools.send('HeapProfiler.collectGarbage')
   const startHeap = metric((await devtools.send('Performance.getMetrics')).metrics, 'JSHeapUsedSize')
   const startedAt = Date.now()
+  const startAudioTime = await page.evaluate(() => window.__soundContext.currentTime)
+  const sampleIntervalMilliseconds = Math.min(30000, Math.max(5000, Math.round(seconds * 1000 / 20)))
+  let nextSampleAt = startedAt + sampleIntervalMilliseconds
+  const heapSamples = [{elapsedMilliseconds: 0, heapBytes: startHeap}]
   let cycles = 0
   let maxCycleMilliseconds = 0
   while (Date.now() - startedAt < seconds * 1000) {
@@ -112,27 +127,51 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
       for (let note = 48; note < 56; note += 1) window.__emitSoundMidi([0x80, note, 0])
       window.__emitSoundMidi([0xb0, 123, 0])
     })
-    await page.locator('.sound-lab[data-active-voices="0"]').waitFor()
+    await page.locator('.sound-lab[data-active-voices="0"][data-audio-state="running"]').waitFor()
     maxCycleMilliseconds = Math.max(maxCycleMilliseconds, performance.now() - cycleStarted)
     cycles += 1
+    if (Date.now() >= nextSampleAt) {
+      await devtools.send('HeapProfiler.collectGarbage')
+      heapSamples.push({
+        elapsedMilliseconds: Date.now() - startedAt,
+        heapBytes: metric((await devtools.send('Performance.getMetrics')).metrics, 'JSHeapUsedSize')
+      })
+      nextSampleAt += sampleIntervalMilliseconds
+    }
     await page.waitForTimeout(200)
   }
   await devtools.send('HeapProfiler.collectGarbage')
   const endHeap = metric((await devtools.send('Performance.getMetrics')).metrics, 'JSHeapUsedSize')
+  const elapsedMilliseconds = Date.now() - startedAt
+  if (heapSamples.at(-1).elapsedMilliseconds !== elapsedMilliseconds) {
+    heapSamples.push({elapsedMilliseconds, heapBytes: endHeap})
+  }
+  const warmupSamples = heapSamples.slice(heapSamples.length >= 5 ? Math.floor(heapSamples.length * 0.2) : 0)
+  const heapSlope = heapSlopeBytesPerMinute(warmupSamples)
+  const endAudioTime = await page.evaluate(() => window.__soundContext.currentTime)
   const report = {
     schemaVersion: 1,
     browser: browserVersion,
     requestedSeconds: seconds,
-    elapsedMilliseconds: Date.now() - startedAt,
+    elapsedMilliseconds,
     cycles,
     maxCycleMilliseconds: Math.round(maxCycleMilliseconds * 10) / 10,
     heapGrowthBytes: endHeap - startHeap,
+    heapSlopeBytesPerMinute: Math.round(heapSlope),
+    heapSampleCount: heapSamples.length,
+    audioTimeAdvancedSeconds: Math.round((endAudioTime - startAudioTime) * 10) / 10,
+    finalAudioState: await page.locator('.sound-lab').getAttribute('data-audio-state'),
     finalVoices: Number(await page.locator('.sound-lab').getAttribute('data-active-voices')),
     midiConnection: await page.evaluate(() => window.__soundInput.connection)
   }
   assert(report.cycles > 0, 'real-time soak completed no cycles')
   assert(report.maxCycleMilliseconds < 2000, `real-time soak cycle blocked for ${report.maxCycleMilliseconds} ms`)
   assert(report.heapGrowthBytes < 20 * 1024 * 1024, `real-time soak heap grew by ${report.heapGrowthBytes} bytes`)
+  assert(report.heapSlopeBytesPerMinute < 1024 * 1024,
+    `real-time soak retained-heap slope is ${report.heapSlopeBytesPerMinute} bytes/minute`)
+  assert(report.audioTimeAdvancedSeconds >= seconds * 0.8,
+    `audio clock advanced only ${report.audioTimeAdvancedSeconds} seconds`)
+  assert.strictEqual(report.finalAudioState, 'running')
   assert.strictEqual(report.finalVoices, 0)
   assert.strictEqual(report.midiConnection, 'open')
   console.log(`SOUND_SOAK_REPORT ${JSON.stringify(report)}`)

@@ -93,7 +93,8 @@ npm run test:sound:soak        # 10 min before a review candidate
 - The same browser test runs a 20,000-message soak with garbage collection/heap comparison, then verifies disconnect, reconnect and background suspend/resume.
 - Optional elapsed-time soak repeatedly exercises Note On/Off/Panic while the
   AudioContext and selected MIDI input remain open, then checks bounded cycle
-  time, post-GC heap growth, zero voices and successful final Release. The
+  time, periodic post-GC retained-heap slope after warm-up, advancing audio
+  clock, zero voices and successful final Release. The
   machine-readable report contains no MIDI performance or private device data.
 - The browser test opens two Settings tabs and proves exclusive handoff: tab B cannot start until tab A releases the lease.
 - The same real-browser test enables Low CPU, holds eight keyboard notes and proves the active graph remains capped at four voices before returning to Standard mode.
