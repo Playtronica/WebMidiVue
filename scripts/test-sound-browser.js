@@ -171,6 +171,7 @@ async function verifyCapabilityFallbacks(browser, origin) {
     const page = await context.newPage()
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
+    const devtools = await context.newCDPSession(page)
     await page.goto(`${origin}/#/sound`, {waitUntil: 'networkidle'})
     assert.strictEqual(await page.locator('.sound-lab__variant').count(), 6)
     assert.deepStrictEqual(await page.locator('.sound-lab__variant').allTextContents(), ['1', '2', '3', '4', '5', '6'])
@@ -194,15 +195,34 @@ async function verifyCapabilityFallbacks(browser, origin) {
     await secondPage.close()
 
     await page.getByLabel('Low CPU').check()
+    await devtools.send('Emulation.setCPUThrottlingRate', {rate: 6})
+    const constrainedStart = Date.now()
     await page.getByRole('button', {name: 'Start sound'}).click()
     await page.locator('.sound-lab[data-audio-state="running"][data-quality="safe"][data-tab-lease="held"]').waitFor()
+    const constrainedStartMilliseconds = Date.now() - constrainedStart
+    assert(constrainedStartMilliseconds < 5000, `6x-throttled Low CPU start took ${constrainedStartMilliseconds} ms`)
     assert.strictEqual(await page.getByLabel('Low CPU').isDisabled(), true)
     for (const code of ['KeyA', 'KeyW', 'KeyS', 'KeyE', 'KeyD', 'KeyF', 'KeyT', 'KeyG']) {
       await page.dispatchEvent('body', 'keydown', {code, key: code})
     }
     await page.locator('.sound-lab[data-active-voices="4"]').waitFor()
     await page.getByRole('button', {name: 'Stop notes'}).click()
+    await page.getByRole('button', {name: 'Find MIDI device'}).click()
+    await page.getByRole('button', {name: 'Connect selected'}).click()
+    const constrainedBurstMilliseconds = await page.evaluate(() => {
+      const started = performance.now()
+      for (let index = 0; index < 1000; index += 1) {
+        window.__emitSoundMidi([0x90, 36 + index % 48, 100])
+      }
+      return performance.now() - started
+    })
+    await page.locator('.sound-lab[data-active-voices="4"]').waitFor()
+    assert(constrainedBurstMilliseconds < 3000,
+      `6x-throttled Low CPU burst blocked the page for ${constrainedBurstMilliseconds} ms`)
+    await page.evaluate(() => window.__emitSoundMidi([0xb0, 123, 0]))
+    await page.locator('.sound-lab[data-active-voices="0"]').waitFor()
     await page.getByRole('button', {name: 'Stop & release'}).click()
+    await devtools.send('Emulation.setCPUThrottlingRate', {rate: 1})
     await page.getByLabel('Low CPU').uncheck()
 
     await page.getByRole('button', {name: 'Start sound'}).click()
@@ -225,7 +245,7 @@ async function verifyCapabilityFallbacks(browser, origin) {
 
     await page.getByRole('button', {name: 'Find MIDI device'}).click()
     await page.getByRole('button', {name: 'Connect selected'}).click()
-    assert.deepStrictEqual(await page.evaluate(() => window.__soundMidiRequests), [{sysex: false}])
+    assert.deepStrictEqual(await page.evaluate(() => window.__soundMidiRequests), [{sysex: false}, {sysex: false}])
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'open')
     await page.evaluate(() => window.__emitSoundMidi([0x90, 64, 100]))
     await page.locator('.sound-lab[data-active-voices="1"]').waitFor()
@@ -247,7 +267,6 @@ async function verifyCapabilityFallbacks(browser, origin) {
     await page.evaluate(() => window.__emitSoundMidi([0xb0, 123, 0]))
     await page.locator('.sound-lab[data-active-voices="0"]').waitFor()
 
-    const devtools = await context.newCDPSession(page)
     await devtools.send('Performance.enable')
     await devtools.send('HeapProfiler.collectGarbage')
     const metric = (list, name) => list.find(item => item.name === name)?.value || 0
@@ -380,7 +399,7 @@ async function verifyCapabilityFallbacks(browser, origin) {
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'closed')
     await verifyCapabilityFallbacks(browser, origin)
     assert.deepStrictEqual(errors, [])
-    console.log(`Sound browser verified: first-play Biotron reveal, permission/audio-only/no-audio fallbacks, 6 variants, 4-voice Low CPU mode, exclusive two-tab handoff, 100/100 lifecycle cycles in ${cycleMilliseconds} ms, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)
+    console.log(`Sound browser verified: first-play Biotron reveal, permission/audio-only/no-audio fallbacks, 6 variants, 6x-throttled Low CPU start ${constrainedStartMilliseconds} ms and burst ${constrainedBurstMilliseconds.toFixed(1)} ms, exclusive two-tab handoff, 100/100 lifecycle cycles in ${cycleMilliseconds} ms, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)
   } finally {
     await browser.close()
     await new Promise(resolve => server.close(resolve))
