@@ -10,6 +10,12 @@
     :data-midi-capability="capabilities.midi ? 'available' : 'unavailable'"
   >
     <template v-if="revealMode">
+      <DeviceTaskNav
+        :device-name="revealProfile.productName"
+        active-task="play"
+        :play-route="`/${revealProfile.id}/play`"
+        :settings-route="revealProfile.settingsRoute"
+      />
       <header class="sound-lab__intro sound-lab__intro--reveal">
         <small>{{ revealProfile.eyebrow }}</small>
         <h1>{{ revealProfile.title }}</h1>
@@ -62,9 +68,9 @@
 
       <section v-if="revealStage === 'revealed'" class="sound-lab__after-reveal" :aria-label="`Continue with ${revealProfile.productName}`">
         <button type="button" class="btn btn-primary" @click="revealExpanded = !revealExpanded">
-          {{ revealExpanded ? 'Hide sound choices' : 'Tune the sound' }}
+          {{ revealExpanded ? 'Hide sounds' : 'Choose a sound' }}
         </button>
-        <router-link class="btn btn-outline-primary" :to="revealProfile.settingsRoute">Device settings</router-link>
+        <router-link class="btn btn-outline-primary" :to="revealProfile.settingsRoute">Settings</router-link>
         <div v-if="revealExpanded" class="sound-lab__reveal-variants" aria-label="Sound choices">
           <button
             v-for="(preset, index) in variants"
@@ -174,6 +180,7 @@ import {SOUND_VARIANTS} from '@/audio/presets.mjs'
 import {createExclusiveTabLease} from '@/audio/tabLease.mjs'
 import {getRevealProfile, selectRevealInput} from '@/audio/revealProfiles.mjs'
 import {detectSoundCapabilities, soundCapabilityMessage} from '@/audio/capabilities.mjs'
+import DeviceTaskNav from '@/components/DeviceTaskNav.vue'
 
 const keyboard = [
   ['KeyA', 60, 'A', 'C', false], ['KeyW', 61, 'W', 'C sharp', true],
@@ -187,6 +194,7 @@ const keyboard = [
 
 export default {
   name: 'SoundLab',
+  components: {DeviceTaskNav},
   props: {
     mode: {type: String, default: 'lab'},
     profileId: {type: String, default: ''}

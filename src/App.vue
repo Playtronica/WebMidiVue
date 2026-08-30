@@ -1,11 +1,12 @@
 <template>
   <img src="/Logo-Black.png" alt="Playtronica logo" width="140" loading="eager" class="small--hide image-element" itemprop="logo">
 
-  <header v-if="!firstPlay" class="d-flex justify-content-center">
-
-      <ul class="nav nav-pills">
+  <header v-if="!firstPlay" :class="betaBuild ? 'device-header' : 'd-flex justify-content-center'">
+    <span v-if="betaBuild" class="device-header__label">Devices</span>
+    <nav :aria-label="betaBuild ? 'Choose a device' : 'Devices'" :class="{'device-header__scroll': betaBuild}">
+      <ul class="nav nav-pills" :class="{'device-header__list': betaBuild}">
       <li class="nav-item">
-        <router-link :to="betaBuild ? '/biotron/play' : '/biotron'" @click="this.update" class="nav-link">Biotron</router-link>
+        <router-link to="/biotron" @click="this.update" class="nav-link">Biotron</router-link>
       </li>
       <li class="nav-item">
         <router-link  to="/touchme" @click="this.update" class="nav-link">TouchMe</router-link>
@@ -17,12 +18,10 @@
           <router-link to="/scales" @click="this.update" class="nav-link">Scales</router-link>
         </li>
       <li class="nav-item">
-        <a href="https://playtronica.github.io/WebMidiOrbita/?nomidi=true" class="nav-link" aria-current="page">Orbita</a>
-      </li>
-      <li v-if="betaBuild" class="nav-item">
-        <router-link to="/sound" class="nav-link">Sound</router-link>
+        <a href="https://playtronica.github.io/WebMidiOrbita/?nomidi=true" class="nav-link">Orbita<span v-if="betaBuild" aria-hidden="true"> ↗</span></a>
       </li>
     </ul>
+    </nav>
   </header>
   <small v-if="betaBuild && !firstPlay" class="beta-build">Biotron offline beta · {{ buildId }}</small>
   <div
@@ -203,6 +202,45 @@ export default {
   color: #6c757d;
 }
 
+.device-header {
+  display: flex;
+  width: min(760px, calc(100% - 1rem));
+  margin: .5rem auto 0;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+}
+
+.device-header__label {
+  flex: 0 0 auto;
+  color: #6b6761;
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.device-header__scroll {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.device-header__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.device-header__list {
+  flex-wrap: nowrap;
+  width: max-content;
+}
+
+.device-header__list .nav-link {
+  min-height: 44px;
+  align-content: center;
+  white-space: nowrap;
+}
+
 .offline-actions {
   display: inline-flex;
   align-items: center;
@@ -233,6 +271,17 @@ export default {
 }
 
 @media (max-width: 640px) {
+  .device-header {
+    display: block;
+  }
+  .device-header__label {
+    display: block;
+    margin-bottom: .15rem;
+    text-align: left;
+  }
+  .device-header__scroll {
+    margin-right: -.5rem;
+  }
   .offline-actions {
     display: flex;
     justify-content: center;
