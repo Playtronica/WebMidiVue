@@ -34,6 +34,11 @@
 
 <script>
   const portIdentity = (port) => [port.manufacturer || "", port.name || ""].join("\u0000");
+  // 123 is reserved for persisted-settings readback in firmware protocol v1.
+  const RECALIBRATE_COMMAND = 125;
+  const RECALIBRATE_WAITING = 1;
+  const RECALIBRATE_MEASURING = 2;
+  const RECALIBRATE_READY = 3;
   let midiAccessPromise = null;
 
   const requestMidiAccess = () => {
@@ -68,7 +73,7 @@
         type: String,
       },
     },
-    emits: ["device_changed"],
+    emits: ["device_changed", "calibration_state"],
     name: "DeviceSelector",
     data() {
       return {
@@ -82,7 +87,9 @@
         connecting: false,
         midiError: "",
         operationId: 0,
-        unmounted: false
+        unmounted: false,
+        recalibrationNonce: 0,
+        recalibrationRequest: null
       }
     },
     methods: {
@@ -145,6 +152,42 @@
         if (this.updateTimeout !== null) clearTimeout(this.updateTimeout);
         this.updateTimeout = null;
       },
+      clearRecalibrationRequest() {
+        const request = this.recalibrationRequest;
+        if (!request) return;
+        clearTimeout(request.ackTimeout);
+        clearTimeout(request.completionTimeout);
+        this.recalibrationRequest = null;
+      },
+      requestRecalibration() {
+        const device = this.selectedDevice;
+        if (!device || this.released || this.connecting) {
+          this.$emit("calibration_state", {state: "error"});
+          return;
+        }
+        this.clearRecalibrationRequest();
+        this.recalibrationNonce = (this.recalibrationNonce + 1) & 0x7f;
+        const nonce = this.recalibrationNonce;
+        const request = {
+          nonce,
+          ackTimeout: null,
+          completionTimeout: null
+        };
+        this.recalibrationRequest = request;
+        this.$emit("calibration_state", {state: "starting"});
+        request.ackTimeout = setTimeout(() => {
+          if (this.recalibrationRequest !== request) return;
+          this.clearRecalibrationRequest();
+          this.$emit("calibration_state", {state: "unsupported"});
+        }, 1800);
+        try {
+          device.output.send([0xf0, 0x14, 0x0d, RECALIBRATE_COMMAND, nonce, 0xf7]);
+        } catch (error) {
+          this.clearRecalibrationRequest();
+          this.$emit("calibration_state", {state: "error"});
+          console.log("Could not request Biotron calibration", error);
+        }
+      },
       async closeDevice(device) {
         if (!device) return [];
         const failures = [];
@@ -163,6 +206,7 @@
         const operationId = ++this.operationId;
         this.connecting = true;
         this.clearUpdateTimeout();
+        this.clearRecalibrationRequest();
         this.midiError = "";
         if (this.midiAccess) this.midiAccess.onstatechange = null;
 
@@ -218,6 +262,7 @@
         const operationId = ++this.operationId;
         this.connecting = true;
         this.clearUpdateTimeout();
+        this.clearRecalibrationRequest();
         this.midiError = "";
 
         const previousDevice = this.selectedDevice;
@@ -285,6 +330,27 @@
       },
       handleMidiMessage(event, operationId) {
         if (operationId !== this.operationId || this.released) return;
+        const data = [...event.data];
+        const request = this.recalibrationRequest;
+        if (request && data.length === 6 && data[0] === 0xf0 && data[1] === 0x0b &&
+            data[2] === RECALIBRATE_COMMAND && data[3] === request.nonce && data[5] === 0xf7) {
+          const state = data[4];
+          if (![RECALIBRATE_WAITING, RECALIBRATE_MEASURING, RECALIBRATE_READY].includes(state)) return;
+          clearTimeout(request.ackTimeout);
+          request.ackTimeout = null;
+          if (request.completionTimeout === null) {
+            request.completionTimeout = setTimeout(() => {
+              if (this.recalibrationRequest !== request) return;
+              this.clearRecalibrationRequest();
+              this.$emit("calibration_state", {state: "timeout"});
+            }, 25000);
+          }
+          const stateName = state === RECALIBRATE_WAITING ? "waiting" :
+              state === RECALIBRATE_MEASURING ? "measuring" : "ready";
+          if (state === RECALIBRATE_READY) this.clearRecalibrationRequest();
+          this.$emit("calibration_state", {state: stateName});
+          return;
+        }
         const [start_sys_ex, flag_byte, num_com, id_of_output, x, y, z, end_sys_ex] = event.data;
         if (start_sys_ex === 0xF0 && end_sys_ex === 0xF7 && flag_byte === 0x0B &&
             num_com === 126 && event.data.length === 8 && id_of_output === this.currentMidiNum) {
@@ -299,6 +365,7 @@
       this.unmounted = true;
       ++this.operationId;
       this.clearUpdateTimeout();
+      this.clearRecalibrationRequest();
       if (this.midiAccess) this.midiAccess.onstatechange = null;
       // An in-flight lifecycle operation observes operationId and closes its
       // device. Avoid racing it with a second close from the unmount hook.

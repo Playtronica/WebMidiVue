@@ -9,7 +9,31 @@
         settings-route="/biotron"
     />
     <h1 class="text-center">{{ betaBuild ? 'Settings' : 'Biotron Settings ⚙️' }}</h1>
-    <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} " text_label="🔌 Select Device" check-versions-flag allow-daw-handoff class="m-2"/>
+    <DeviceSelector
+        ref="deviceSelector"
+        regex-name="Biotron"
+        @device_changed="handleDeviceChanged"
+        @calibration_state="handleCalibrationState"
+        text_label="🔌 Select Device"
+        check-versions-flag
+        allow-daw-handoff
+        class="m-2"
+    />
+    <div v-if="betaBuild" class="calibration-control mx-2 mb-3">
+      <button
+          type="button"
+          class="btn btn-outline-primary"
+          @click="startCalibration"
+          :disabled="!device || calibrationBusy"
+      >{{ calibrationBusy ? 'Calibrating…' : 'Calibrate plant again' }}</button>
+      <span
+          v-if="calibrationMessage"
+          class="calibration-control__status"
+          :class="{'calibration-control__status--active': calibrationBusy}"
+          role="status"
+          aria-live="polite"
+      >{{ calibrationMessage }}</span>
+    </div>
     <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"  text_label="📂 Preset" class="m-2"/>
     <div class="row gx-1 mb-5">
       <div class="col">
@@ -381,9 +405,35 @@ export default  {
     },
   },
   computed: {
-
+    calibrationBusy() {
+      return ["starting", "waiting", "measuring"].includes(this.calibrationState)
+    }
   },
   methods: {
+    handleDeviceChanged(device) {
+      this.device = device
+      if (!device && this.calibrationBusy) {
+        this.calibrationState = "error"
+        this.calibrationMessage = "Biotron disconnected — reconnect it and try again."
+      }
+    },
+    startCalibration() {
+      if (!this.device || this.calibrationBusy) return
+      this.$refs.deviceSelector?.requestRecalibration()
+    },
+    handleCalibrationState(event) {
+      const messages = {
+        starting: "Starting…",
+        waiting: "Step away and keep the plant still.",
+        measuring: "Measuring… keep the plant and cables still.",
+        ready: "Calibration complete — touch the plant.",
+        unsupported: "This firmware cannot start calibration here. Reconnect USB to calibrate.",
+        timeout: "No stable signal yet. Check both plant clips and try again.",
+        error: "Calibration could not start. Reconnect Biotron and try again."
+      }
+      this.calibrationState = event?.state || "error"
+      this.calibrationMessage = messages[this.calibrationState] || messages.error
+    },
     async change_data_loader() {
       if (!this.device) return
       sleep(100)
@@ -524,6 +574,8 @@ export default  {
       patches: [],
       patch_id: 0,
       is_loading: false,
+      calibrationState: "idle",
+      calibrationMessage: "",
       commands_data: Object.fromEntries(BiotronCommandsData),
     }
   },
@@ -570,5 +622,40 @@ export default  {
 </script>
 
 <style scoped>
+
+.calibration-control {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  min-height: 44px;
+}
+
+.calibration-control__status {
+  color: #52606d;
+  line-height: 1.35;
+}
+
+.calibration-control__status--active::before {
+  content: "";
+  display: inline-block;
+  width: .65rem;
+  height: .65rem;
+  margin-right: .45rem;
+  border-radius: 50%;
+  background: #6a5acd;
+  animation: calibration-pulse .8s ease-in-out infinite alternate;
+}
+
+@keyframes calibration-pulse {
+  to { opacity: .35; transform: scale(.72); }
+}
+
+@media (max-width: 575.98px) {
+  .calibration-control { align-items: stretch; flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calibration-control__status--active::before { animation: none; }
+}
 
 </style>

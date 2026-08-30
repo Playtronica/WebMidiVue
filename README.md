@@ -50,6 +50,13 @@ alternations and waits for 700 ms of silence before inviting the user to touch
 the plant. This is deliberately a bounded MIDI-pattern inference, not a new
 firmware status claim; an explicit read-only status message would be stronger.
 
+The beta Settings page also contains an explicit `Calibrate plant again`
+control for the matching firmware draft. It sends vendor SysEx command `123`
+with a nonce and accepts only nonce-matched progress (`waiting`, `measuring`,
+`ready`) reported by the device. Older firmware is left untouched and gets a
+clear reconnect fallback after the capability timeout. The command never uses
+BOOT and the firmware-side contract forbids settings or flash mutation.
+
 The ordinary `npm run build` deliberately contains no manifest, service worker,
 or registration. `npm run test:production-isolation` enforces that boundary so
 this beta cannot silently alter the existing production Settings lifecycle.

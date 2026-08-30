@@ -2,6 +2,43 @@ import {clamp, makeNoteKey, midiNoteToFrequency, VoiceLedger} from './core.mjs'
 import {SOUND_VARIANTS, validatePreset} from './presets.mjs'
 
 const SILENCE = 0.0001
+const VOICE_LEVEL = 0.22
+const VELOCITY_FLOOR = 0.72
+const PRECOMPRESSOR_GAIN = 6
+const MAX_OUTPUT_GAIN = 2.5
+
+export const DEFAULT_VOLUME = 70
+
+export function normalizeVolume(input) {
+  if (input === null || input === undefined || input === '') return DEFAULT_VOLUME
+  return Math.round(clamp(Number(input), 0, 100, DEFAULT_VOLUME))
+}
+
+export function volumeToGain(input) {
+  const normalized = normalizeVolume(input) / 100
+  return normalized * normalized * MAX_OUTPUT_GAIN
+}
+
+function makeSoftCeilingCurve() {
+  const curve = new Float32Array(2049)
+  for (let index = 0; index < curve.length; index += 1) {
+    const input = index / (curve.length - 1) * 2 - 1
+    const sign = Math.sign(input)
+    const magnitude = Math.abs(input)
+    if (magnitude <= 0.8) {
+      curve[index] = input
+      continue
+    }
+    const progress = (magnitude - 0.8) / 0.2
+    const progress2 = progress * progress
+    const progress3 = progress2 * progress
+    const output = (2 * progress3 - 3 * progress2 + 1) * 0.8
+      + (progress3 - 2 * progress2 + progress) * 0.2
+      + (-2 * progress3 + 3 * progress2) * 0.97
+    curve[index] = sign * output
+  }
+  return curve
+}
 
 function makeImpulse(context, seconds = 0.45) {
   const length = Math.max(1, Math.round(context.sampleRate * seconds))
@@ -55,7 +92,9 @@ class Voice {
     this.gain.connect(destination)
     this.oscillators = []
 
-    const level = clamp(velocity / 127, 0.02, 1, 0.7) * 0.22
+    const normalizedVelocity = clamp(velocity / 127, 0, 1, 0.7)
+    const velocityLevel = VELOCITY_FLOOR + (1 - VELOCITY_FLOOR) * normalizedVelocity ** 0.7
+    const level = velocityLevel * VOICE_LEVEL
     this.addOscillator(preset.waveA, frequency, 0, 1, when)
     if (quality === 'standard' && preset.mixB > 0) {
       this.addOscillator(preset.waveB, frequency, preset.detune, preset.mixB, when)
@@ -148,6 +187,7 @@ export class SynthEngine {
     this.voices = new Map()
     this.retiring = []
     this.preset = validatePreset(options.preset || SOUND_VARIANTS[0])
+    this.volume = normalizeVolume(options.volume)
     this.buildGraph()
     this.applyPreset(this.preset, 0)
   }
@@ -162,14 +202,23 @@ export class SynthEngine {
     this.delayWet = context.createGain()
     this.headroom = context.createGain()
     this.compressor = context.createDynamicsCompressor()
+    this.master = context.createGain()
+    this.output = context.createGain()
+    this.ceiling = context.createWaveShaper()
     this.filter.type = 'lowpass'
     this.dry.gain.value = 0.86
-    this.headroom.gain.value = 0.42
-    this.compressor.threshold.value = -16
-    this.compressor.knee.value = 18
-    this.compressor.ratio.value = 5
-    this.compressor.attack.value = 0.004
+    // Biotron can emit very low velocities. Boost before the compressor so
+    // quiet notes stay audible while dense chords remain safely contained.
+    this.headroom.gain.value = 1
+    this.compressor.threshold.value = -12
+    this.compressor.knee.value = 6
+    this.compressor.ratio.value = 12
+    this.compressor.attack.value = 0.001
     this.compressor.release.value = 0.16
+    this.master.gain.value = PRECOMPRESSOR_GAIN
+    this.output.gain.value = volumeToGain(this.volume)
+    this.ceiling.curve = makeSoftCeilingCurve()
+    this.ceiling.oversample = this.quality === 'standard' ? '2x' : 'none'
     this.input.connect(this.filter)
     this.filter.connect(this.dry).connect(this.headroom)
     this.filter.connect(this.delay)
@@ -181,7 +230,8 @@ export class SynthEngine {
       this.convolver.buffer = makeImpulse(context)
       this.filter.connect(this.convolver).connect(this.reverbWet).connect(this.headroom)
     }
-    this.headroom.connect(this.compressor).connect(context.destination)
+    this.headroom.connect(this.master).connect(this.compressor)
+      .connect(this.output).connect(this.ceiling).connect(context.destination)
   }
 
   get activeVoiceCount() { return this.voices.size }
@@ -202,6 +252,13 @@ export class SynthEngine {
     smoothTo(this.delayFeedback.gain, this.preset.delayFeedback, time)
     smoothTo(this.delayWet.gain, this.preset.delayWet, time)
     if (this.reverbWet) smoothTo(this.reverbWet.gain, this.preset.reverbWet, time)
+  }
+
+  setVolume(input, when = this.context.currentTime) {
+    this.volume = normalizeVolume(input)
+    const time = Math.max(this.context.currentTime, Number.isFinite(when) ? when : this.context.currentTime)
+    smoothTo(this.output.gain, volumeToGain(this.volume), time, 0.035)
+    return this.volume
   }
 
   retire(voice, when) {

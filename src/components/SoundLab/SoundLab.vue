@@ -6,6 +6,7 @@
     :data-quality="lowCpu ? 'safe' : 'standard'"
     :data-tab-lease="tabLeaseState"
     :data-reveal-stage="revealMode ? revealStage : null"
+    :data-volume="volume"
     :data-audio-capability="capabilities.audio ? 'available' : 'unavailable'"
     :data-midi-capability="capabilities.midi ? 'available' : 'unavailable'"
   >
@@ -83,6 +84,19 @@
               @click="panic"
             >Stop notes</button>
           </div>
+          <label class="sound-lab__volume" for="biotron-play-volume">
+            <span>Volume</span>
+            <input
+              id="biotron-play-volume"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              :value="volume"
+              @input="updateVolume"
+            >
+            <output for="biotron-play-volume">{{ volume }}%</output>
+          </label>
           <span class="sound-lab__status sound-lab__status--reveal" role="status" aria-live="polite">{{ status }}</span>
         </div>
       </section>
@@ -128,6 +142,19 @@
           aria-label="Low CPU — use if sound crackles"
         >
         Low CPU
+      </label>
+      <label class="sound-lab__volume" for="sound-lab-volume">
+        <span>Volume</span>
+        <input
+          id="sound-lab-volume"
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          :value="volume"
+          @input="updateVolume"
+        >
+        <output for="sound-lab-volume">{{ volume }}%</output>
       </label>
       <span class="sound-lab__status" role="status" aria-live="polite">{{ status }}</span>
     </section>
@@ -196,7 +223,7 @@
 <script>
 import {markRaw} from 'vue'
 import {noteForKeyboardCode} from '@/audio/core.mjs'
-import {createRealtimeSynth} from '@/audio/engine.mjs'
+import {createRealtimeSynth, DEFAULT_VOLUME, normalizeVolume} from '@/audio/engine.mjs'
 import {MidiInputSession} from '@/audio/midi.mjs'
 import {SOUND_VARIANTS} from '@/audio/presets.mjs'
 import {createExclusiveTabLease} from '@/audio/tabLease.mjs'
@@ -216,6 +243,18 @@ const keyboard = [
   ['KeyU', 70, 'U', 'A sharp', true], ['KeyJ', 71, 'J', 'B', false],
   ['KeyK', 72, 'K', 'C high', false]
 ].map(([code, note, label, noteName, black]) => ({code, note, label, noteName, black}))
+
+const VOLUME_STORAGE_KEY = 'playtronica-sound-volume-v1'
+
+function loadVolume() {
+  try { return normalizeVolume(window.localStorage?.getItem(VOLUME_STORAGE_KEY)) }
+  catch (error) { void error; return DEFAULT_VOLUME }
+}
+
+function saveVolume(volume) {
+  try { window.localStorage?.setItem(VOLUME_STORAGE_KEY, String(volume)) }
+  catch (error) { void error }
+}
 
 export default {
   name: 'SoundLab',
@@ -237,6 +276,7 @@ export default {
       midi: null,
       variants: SOUND_VARIANTS,
       currentVariant: 0,
+      volume: loadVolume(),
       keyboard,
       heldCodes: markRaw(new Set()),
       midiInputs: [],
@@ -321,6 +361,7 @@ export default {
         this.engine = markRaw(createRealtimeSynth({
           preset: this.variants[this.currentVariant],
           quality: this.lowCpu ? 'safe' : 'standard',
+          volume: this.volume,
           onStateChange: state => this.handleAudioContextState(state)
         }))
         this.midi = markRaw(new MidiInputSession(this.engine, event => this.handleMidiState(event)))
@@ -396,6 +437,11 @@ export default {
       this.currentVariant = index
       this.engine?.applyPreset(this.variants[index])
       this.status = `Sound ${index + 1} selected`
+    },
+    updateVolume(event) {
+      this.volume = normalizeVolume(event?.target?.value)
+      this.engine?.setVolume(this.volume)
+      saveVolume(this.volume)
     },
     play(note, source = 'screen') {
       if (this.engine?.state === 'running') {
@@ -611,6 +657,9 @@ export default {
 .sound-lab__status { min-height: 1.5rem; padding-left: .5rem; color: #625e58; }
 .sound-lab__quality { display: inline-flex; min-height: 44px; align-items: center; gap: .4rem; margin: 0; padding: 0 .35rem; white-space: nowrap; }
 .sound-lab__quality input { width: 1.1rem; height: 1.1rem; }
+.sound-lab__volume { display: inline-grid; grid-template-columns: auto minmax(130px, 220px) 3.25rem; gap: .65rem; align-items: center; min-height: 44px; margin: 0; color: #353239; font-weight: 600; }
+.sound-lab__volume input { width: 100%; min-height: 32px; accent-color: #6a5acd; cursor: pointer; }
+.sound-lab__volume output { color: #625e58; font-variant-numeric: tabular-nums; text-align: right; }
 .sound-lab__heading { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .75rem; }
 .sound-lab__heading h2, .sound-lab__midi h2 { margin: 0; font-size: 1rem; font-weight: 700; }
 .sound-lab__heading small { color: #6b6761; }
@@ -638,7 +687,7 @@ export default {
 .sound-lab__midi { display: flex; justify-content: space-between; gap: 1.5rem; align-items: center; border-top: 1px solid #d6d1c8; padding-top: 1.5rem; }
 .sound-lab__midi p { margin: .3rem 0 0; }
 .sound-lab__midi-actions .form-select { min-width: min(340px, 80vw); }
-@media (max-width: 640px) { .sound-lab__midi { align-items: flex-start; flex-direction: column; } .sound-lab__keyboard { grid-template-columns: repeat(13, 48px); } .sound-lab__reveal { grid-template-columns: 1fr; text-align: center; } .sound-lab__reveal-actions, .sound-lab__after-reveal { justify-content: center; } }
+@media (max-width: 640px) { .sound-lab__midi { align-items: flex-start; flex-direction: column; } .sound-lab__keyboard { grid-template-columns: repeat(13, 48px); } .sound-lab__reveal { grid-template-columns: 1fr; text-align: center; } .sound-lab__reveal-actions, .sound-lab__after-reveal { justify-content: center; } .sound-lab__volume { width: 100%; grid-template-columns: auto minmax(0, 1fr) 3.25rem; text-align: left; } }
 @keyframes biotron-settling { 50% { transform: scale(.96); box-shadow: 0 0 0 12px rgba(106, 90, 205, .12); } }
 @keyframes biotron-calibrating { to { transform: scale(1.02); box-shadow: 0 0 0 20px rgba(106, 90, 205, .18), 0 18px 50px rgba(69, 49, 150, .22); } }
 @keyframes biotron-note-one { 50% { transform: translateY(-50%) scaleY(1); } }
