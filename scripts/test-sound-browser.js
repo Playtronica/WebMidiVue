@@ -187,7 +187,9 @@ const server = http.createServer((request, response) => {
     await page.evaluate(() => window.__setSoundInputState('disconnected'))
     await page.getByText(/MIDI disconnected/i).waitFor()
     await page.locator('.sound-lab[data-active-voices="0"]').waitFor()
+    await page.getByRole('button', {name: 'Find MIDI device'}).waitFor()
     await page.evaluate(() => window.__setSoundInputState('connected'))
+    await page.getByRole('button', {name: 'Connect selected'}).waitFor()
     await page.getByRole('button', {name: 'Connect selected'}).click()
     await page.getByText(/Biotron Port 1 connected/i).waitFor()
 

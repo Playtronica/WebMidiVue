@@ -298,7 +298,13 @@ export default {
       finally { this.starting = false }
     },
     handleMidiState(event) {
-      if (event.type === 'connected') this.status = `${event.input} connected`
+      if (event.type === 'ports') {
+        this.midiInputs = event.inputs
+        if (!event.inputs.some(input => input.id === this.selectedInput)) {
+          this.selectedInput = event.inputs[0]?.id || ''
+        }
+      }
+      else if (event.type === 'connected') this.status = `${event.input} connected`
       else if (event.type === 'released') this.status = 'MIDI released'
       else if (event.type === 'disconnected') {
         window.cancelAnimationFrame(this.voiceFrame)

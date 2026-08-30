@@ -21,11 +21,13 @@ export class MidiInputSession {
   }
 
   listInputs() {
-    return this.access ? [...this.access.inputs.values()].map(input => ({
-      id: input.id,
-      name: input.name || 'MIDI input',
-      manufacturer: input.manufacturer || ''
-    })) : []
+    return this.access ? [...this.access.inputs.values()]
+      .filter(input => input.state !== 'disconnected')
+      .map(input => ({
+        id: input.id,
+        name: input.name || 'MIDI input',
+        manufacturer: input.manufacturer || ''
+      })) : []
   }
 
   async connect(inputId) {
@@ -83,5 +85,6 @@ export class MidiInputSession {
       this.input = null
       this.onState({type: 'disconnected', input: event.port.name || 'MIDI input'})
     }
+    this.onState({type: 'ports', inputs: this.listInputs()})
   }
 }
