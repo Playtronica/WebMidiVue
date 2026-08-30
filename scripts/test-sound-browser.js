@@ -33,6 +33,7 @@ const server = http.createServer((request, response) => {
       window.__soundMidiRequests = []
       window.__failSoundCloseOnce = false
       let midiListener = null
+      let stateListener = null
       const input = {
         id: 'playtronica-in-1', name: 'Biotron Port 1', manufacturer: 'Playtronica',
         state: 'connected', connection: 'closed',
@@ -48,12 +49,21 @@ const server = http.createServer((request, response) => {
         addEventListener(type, listener) { if (type === 'midimessage') midiListener = listener },
         removeEventListener(type, listener) { if (type === 'midimessage' && midiListener === listener) midiListener = null }
       }
-      const access = {inputs: new Map([[input.id, input]]), addEventListener() {}, removeEventListener() {}}
+      const access = {
+        inputs: new Map([[input.id, input]]),
+        addEventListener(type, listener) { if (type === 'statechange') stateListener = listener },
+        removeEventListener(type, listener) { if (type === 'statechange' && stateListener === listener) stateListener = null }
+      }
       Object.defineProperty(navigator, 'requestMIDIAccess', {
         configurable: true,
         value: async options => { window.__soundMidiRequests.push(options); return access }
       })
       window.__emitSoundMidi = data => midiListener?.({data: Uint8Array.from(data)})
+      window.__setSoundInputState = state => {
+        input.state = state
+        if (state === 'disconnected') input.connection = 'closed'
+        stateListener?.({port: input})
+      }
       window.__soundInput = input
     })
     const page = await context.newPage()
@@ -94,6 +104,44 @@ const server = http.createServer((request, response) => {
     await page.evaluate(() => window.__emitSoundMidi([0xb0, 123, 0]))
     await page.locator('.sound-lab[data-active-voices="0"]').waitFor()
 
+    const devtools = await context.newCDPSession(page)
+    await devtools.send('Performance.enable')
+    await devtools.send('HeapProfiler.collectGarbage')
+    const metric = (list, name) => list.find(item => item.name === name)?.value || 0
+    const beforeMetrics = (await devtools.send('Performance.getMetrics')).metrics
+    const soakMilliseconds = await page.evaluate(() => {
+      const started = performance.now()
+      for (let cycle = 0; cycle < 20; cycle += 1) {
+        for (let index = 0; index < 1000; index += 1) {
+          window.__emitSoundMidi([0x90, 36 + index % 48, 72 + index % 48])
+        }
+        window.__emitSoundMidi([0xb0, 123, 0])
+      }
+      return performance.now() - started
+    })
+    await page.locator('.sound-lab[data-active-voices="0"]').waitFor()
+    await page.waitForTimeout(750)
+    await devtools.send('HeapProfiler.collectGarbage')
+    const afterMetrics = (await devtools.send('Performance.getMetrics')).metrics
+    const heapGrowth = metric(afterMetrics, 'JSHeapUsedSize') - metric(beforeMetrics, 'JSHeapUsedSize')
+    assert(soakMilliseconds < 15000, `20000-message soak blocked the page for ${soakMilliseconds} ms`)
+    assert(heapGrowth < 20 * 1024 * 1024, `JS heap grew by ${heapGrowth} bytes`)
+
+    await page.evaluate(() => window.__setSoundInputState('disconnected'))
+    await page.getByText(/MIDI disconnected/i).waitFor()
+    await page.locator('.sound-lab[data-active-voices="0"]').waitFor()
+    await page.evaluate(() => window.__setSoundInputState('connected'))
+    await page.getByRole('button', {name: 'Connect selected'}).click()
+    await page.getByText(/Biotron Port 1 connected/i).waitFor()
+
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', {configurable: true, get: () => true})
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    await page.locator('.sound-lab[data-audio-state="suspended"]').waitFor()
+    await page.getByRole('button', {name: 'Start sound'}).click()
+    await page.locator('.sound-lab[data-audio-state="running"]').waitFor()
+
     await page.evaluate(() => { window.__failSoundCloseOnce = true })
     await page.getByRole('button', {name: 'Stop & release'}).click()
     await page.locator('.sound-lab[data-audio-state="closed"]').waitFor()
@@ -104,7 +152,7 @@ const server = http.createServer((request, response) => {
     await page.getByRole('button', {name: 'Stop & release'}).click()
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'closed')
     assert.deepStrictEqual(errors, [])
-    console.log(`Sound browser verified: 6 variants, keyboard + MIDI together, 1000-message burst (${burstMilliseconds.toFixed(1)} ms), panic and retryable release.`)
+    console.log(`Sound browser verified: 6 variants, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)
   } finally {
     await browser.close()
     await new Promise(resolve => server.close(resolve))

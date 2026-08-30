@@ -234,7 +234,12 @@ export default {
     handleMidiState(event) {
       if (event.type === 'connected') this.status = `${event.input} connected`
       else if (event.type === 'released') this.status = 'MIDI released'
-      else if (event.type === 'disconnected') this.status = 'MIDI disconnected — notes stopped'
+      else if (event.type === 'disconnected') {
+        window.cancelAnimationFrame(this.voiceFrame)
+        this.voiceFrame = null
+        this.voiceCount = 0
+        this.status = 'MIDI disconnected — notes stopped'
+      }
       else if (event.type === 'release-error') this.status = 'MIDI release failed — retry Stop'
       else if (event.type === 'voices') {
         this.pendingVoiceCount = event.count
