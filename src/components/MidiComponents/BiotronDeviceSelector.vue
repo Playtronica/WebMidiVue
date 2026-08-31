@@ -195,7 +195,9 @@
           return;
         }
         this.clearRecalibrationRequest();
-        this.clearSettingsReadbackRequest(new Error("Settings read was cancelled by calibration."));
+        const cancellation = new Error("Settings read was cancelled by calibration.");
+        cancellation.name = "AbortError";
+        this.clearSettingsReadbackRequest(cancellation);
         this.recalibrationNonce = (this.recalibrationNonce + 1) & 0x7f;
         const nonce = this.recalibrationNonce;
         const request = {

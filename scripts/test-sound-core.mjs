@@ -54,15 +54,22 @@ test('MIDI note-on, velocity-zero note-off and panic are accepted', () => {
   assert.deepEqual(parseMidiMessage([0xb1, 90, 72]), {type: 'controller', channel: 1, controller: 90, value: 72})
 })
 
-test('Biotron calibration recognizes only the rapid 91/92 velocity-90 pattern', () => {
+test('Biotron calibration recognizes the soft cue and legacy 91/92 pattern', () => {
   const tracker = new BiotronCalibrationTracker()
   const note = (value, velocity = 90) => ({type: 'note-on', channel: 1, note: value, velocity})
+  assert.equal(tracker.observe(note(79, 42), 0), 'candidate')
+  assert.equal(tracker.observe(note(76, 42), 500), 'candidate')
+  assert.equal(tracker.observe(note(72, 42), 1000), 'candidate')
+  assert.equal(tracker.observe(note(67, 42), 1600), 'calibrating')
+  assert.equal(tracker.calibrating, true)
+  assert.equal(BIOTRON_CALIBRATION.quietCompletionMs, 900)
+
+  tracker.reset()
   assert.equal(tracker.observe(note(92), 0), 'candidate')
   assert.equal(tracker.observe(note(91), 70), 'candidate')
   assert.equal(tracker.observe(note(92), 140), 'candidate')
   assert.equal(tracker.observe(note(91), 210), 'calibrating')
   assert.equal(tracker.calibrating, true)
-  assert.equal(BIOTRON_CALIBRATION.quietCompletionMs, 700)
 
   tracker.reset()
   assert.equal(tracker.observe(note(92), 0), 'candidate')
@@ -121,7 +128,7 @@ test('reveal profiles keep first-use copy plain and product-specific', () => {
   assert.match(beforeReveal, /plant/i)
   assert.match(beforeReveal, /music/i)
   assert.match(beforeReveal, /two steps away/i)
-  assert.match(beforeReveal, /quick two-note sound/i)
+  assert.match(beforeReveal, /gentle notes and breathing green lights/i)
   assert.match(profile.explanation, /electrical change/i)
   assert.match(profile.explanation, /MIDI note/i)
   assert.throws(() => getRevealProfile('unknown'), /Unknown reveal profile/)

@@ -669,7 +669,7 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     }
     await page.locator('.sound-lab[data-reveal-stage="calibrating"] .sound-lab__calibration-note').first().waitFor()
     await page.getByRole('heading', {name: 'Keep your distance'}).waitFor()
-    await page.getByText(/quick two-note sound and pulsing green lights/i).waitFor()
+    await page.getByText(/gentle notes and breathing green lights/i).waitFor()
     await page.locator('.sound-lab[data-reveal-stage="ready"]').waitFor({timeout: 2000})
     await page.getByRole('heading', {name: 'Biotron is ready'}).waitFor()
     await page.evaluate(() => window.__emitSoundMidi([0x91, 64, 100]))

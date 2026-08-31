@@ -1,11 +1,12 @@
 export const BIOTRON_CALIBRATION = Object.freeze({
-  // Firmware 1.8.2/current src/leds.c emits this alternating pair only while
-  // global status is Stabilization. Four notes avoid treating one high note as calibration.
-  notes: Object.freeze([91, 92]),
-  velocity: 90,
+  // 1.9.4 uses a soft G-E-C-G / C-E-G-C cue; older firmware alternates 91/92.
+  cue: Object.freeze([79, 76, 72, 67, 72, 76, 79, 84]),
+  cueVelocities: Object.freeze([42, 48, 52]),
+  legacyNotes: Object.freeze([91, 92]),
+  legacyVelocity: 90,
   detectionNotes: 4,
-  maxAlternationGapMs: 250,
-  quietCompletionMs: 700
+  maxAlternationGapMs: 700,
+  quietCompletionMs: 900
 })
 
 export class BiotronCalibrationTracker {
@@ -18,6 +19,7 @@ export class BiotronCalibrationTracker {
     this.lastNote = null
     this.lastAt = null
     this.alternations = 0
+    this.cueIndex = 0
     this.calibrating = false
   }
 
@@ -28,9 +30,11 @@ export class BiotronCalibrationTracker {
     }
     if (message?.type !== 'note-on') return 'ignored'
 
-    const calibrationNote = this.contract.notes.includes(message.note) &&
-      message.velocity === this.contract.velocity
-    if (!calibrationNote) {
+    const cueNote = this.contract.cue[this.cueIndex] === message.note &&
+      this.contract.cueVelocities.includes(message.velocity)
+    const legacyNote = this.contract.legacyNotes.includes(message.note) &&
+      message.velocity === this.contract.legacyVelocity
+    if (!cueNote && !legacyNote) {
       this.reset()
       return 'activity'
     }
@@ -41,7 +45,13 @@ export class BiotronCalibrationTracker {
       timestamp >= this.lastAt &&
       timestamp - this.lastAt <= this.contract.maxAlternationGapMs
 
-    this.alternations = alternates && followsQuickly ? this.alternations + 1 : 1
+    if (cueNote) {
+      this.cueIndex++
+      this.alternations = followsQuickly ? this.cueIndex : 1
+    } else {
+      this.cueIndex = 0
+      this.alternations = alternates && followsQuickly ? this.alternations + 1 : 1
+    }
     this.lastNote = message.note
     this.lastAt = timestamp
     this.calibrating = this.alternations >= this.contract.detectionNotes

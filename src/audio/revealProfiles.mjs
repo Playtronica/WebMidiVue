@@ -37,7 +37,7 @@ const biotron = validateRevealProfile(Object.freeze({
   settlingInstruction: 'Take two steps away from the computer, Biotron and the plant. Do not touch them while Biotron finds its starting signal.',
   settlingStatus: 'Waiting for the plant signal — keep still',
   calibratingHeading: 'Keep your distance',
-  calibratingInstruction: 'The quick two-note sound and pulsing green lights mean Biotron is measuring its starting point. Wait until they stop.',
+  calibratingInstruction: 'The gentle notes and breathing green lights mean Biotron is measuring. Step away and wait for the phrase to resolve.',
   calibratingStatus: 'Calibrating — keep the plant, cables and device still',
   readyHeading: 'Biotron is ready',
   readyInstruction: 'Now touch a leaf. Listen for the next note and watch the circle move.',

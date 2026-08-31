@@ -206,7 +206,13 @@ async function recalibrationRequiresExactNonceAndReportsProgress() {
   scheduled.clear()
   const selected = {input: port('in-1'), output: port('out-1')}
   const target = instance({selectedDevice: selected})
+  let settingsCancellation = null
+  target.settingsReadbackRequest = {
+    timeout: null,
+    reject(error) { settingsCancellation = error }
+  }
   target.requestRecalibration()
+  assert.strictEqual(settingsCancellation?.name, 'AbortError')
   assert.strictEqual(selected.output.sent.length, 1)
   const request = selected.output.sent[0]
   assert.strictEqual(JSON.stringify(request.slice(0, 4)), JSON.stringify([0xf0, 0x14, 0x0d, 125]))

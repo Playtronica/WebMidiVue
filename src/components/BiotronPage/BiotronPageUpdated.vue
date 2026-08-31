@@ -406,8 +406,6 @@ import {
   settingsVectorsEqual
 } from "@/biotron/settingsReadback.mjs";
 
-
-
 export default  {
   components: {
     DeviceTaskNav,
@@ -477,6 +475,7 @@ export default  {
           return await this.requestPersistedSettingsWithin(3500)
         } catch (error) {
           lastError = error
+          if (error?.name === "AbortError") throw error
           if (attempt + 1 < attempts) await new Promise(resolve => setTimeout(resolve, 450))
         }
       }
@@ -543,6 +542,11 @@ export default  {
     },
     startCalibration() {
       if (!this.device || this.calibrationBusy) return
+      this.settingsLoadId++
+      if (this.settingsState === "loading") {
+        this.settingsState = "idle"
+        this.settingsMessage = ""
+      }
       this.$refs.deviceSelector?.requestRecalibration()
     },
     handleCalibrationState(event) {
