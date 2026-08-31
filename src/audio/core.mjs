@@ -22,6 +22,9 @@ export const makeNoteKey = (sourceId, channel, note) =>
 
 export function parseMidiMessage(data) {
   if (!data || data.length < 1) return {type: 'ignored'}
+  if (data.length >= 2 && Number(data[0]) === 0xf0 && Number(data[data.length - 1]) === 0xf7) {
+    return {type: 'system-exclusive', data: Array.from(data, value => Number(value) & 0xff)}
+  }
   const rawStatus = Number(data[0])
   if (!Number.isFinite(rawStatus)) return {type: 'ignored'}
   const status = Math.round(rawStatus) & 0xff

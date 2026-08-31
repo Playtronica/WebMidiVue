@@ -18,7 +18,8 @@ import {
   validateRevealProfile
 } from '../src/audio/revealProfiles.mjs'
 import {detectSoundCapabilities, soundCapabilityMessage} from '../src/audio/capabilities.mjs'
-import {BIOTRON_CALIBRATION, biotronVoiceLevel, BiotronCalibrationTracker} from '../src/audio/biotronCalibration.mjs'
+import {BIOTRON_CALIBRATION, biotronVoiceLevel, BiotronCalibrationTracker,
+  parseBiotronCalibrationState} from '../src/audio/biotronCalibration.mjs'
 import {DEFAULT_VOLUME, normalizeVolume, volumeToGain} from '../src/audio/engine.mjs'
 import {
   buildCompatibilityIssue,
@@ -52,22 +53,24 @@ test('MIDI note-on, velocity-zero note-off and panic are accepted', () => {
   assert.deepEqual(parseMidiMessage([0x91, 60, 0]), {type: 'note-off', channel: 1, note: 60})
   assert.deepEqual(parseMidiMessage([0xb0, 123, 0]), {type: 'panic', channel: 0})
   assert.deepEqual(parseMidiMessage([0xb1, 90, 72]), {type: 'controller', channel: 1, controller: 90, value: 72})
+  assert.deepEqual(parseMidiMessage([0xf0, 0x0b, 125, 0, 1, 0xf7]),
+    {type: 'system-exclusive', data: [0xf0, 0x0b, 125, 0, 1, 0xf7]})
 })
 
 test('Biotron calibration recognizes the soft cue and legacy 91/92 pattern', () => {
   const tracker = new BiotronCalibrationTracker()
   const note = (value, velocity = 90) => ({type: 'note-on', channel: 1, note: value, velocity})
-  assert.equal(tracker.observe(note(64, 64), 0), 'candidate')
-  assert.equal(tracker.observe(note(65, 64), 500), 'candidate')
-  assert.equal(tracker.observe(note(67, 64), 1000), 'candidate')
-  assert.equal(tracker.observe(note(72, 64), 1500), 'calibrating')
+  assert.equal(tracker.observe(note(64, 24), 0), 'candidate')
+  assert.equal(tracker.observe(note(65, 24), 500), 'candidate')
+  assert.equal(tracker.observe(note(67, 24), 1000), 'candidate')
+  assert.equal(tracker.observe(note(72, 24), 1500), 'calibrating')
   assert.equal(tracker.calibrating, true)
   assert.equal(BIOTRON_CALIBRATION.quietCompletionMs, 1100)
-  assert.equal(biotronVoiceLevel(note(64, 64)), BIOTRON_CALIBRATION.localLevel)
+  assert.equal(biotronVoiceLevel(note(64, 24)), BIOTRON_CALIBRATION.localLevel)
   assert.equal(biotronVoiceLevel(note(64, 63)), 1)
-  assert.equal(biotronVoiceLevel(note(64, 64)), 0.08)
+  assert.equal(biotronVoiceLevel(note(64, 24)), 0.025)
   assert.equal(biotronVoiceLevel(note(50, 75)), 1)
-  assert.equal(biotronVoiceLevel(note(50, 75), BIOTRON_CALIBRATION, true), 0.08)
+  assert.equal(biotronVoiceLevel(note(50, 75), BIOTRON_CALIBRATION, true), 0.025)
   assert.equal(biotronVoiceLevel({type: 'note-on', channel: 2, note: 50, velocity: 75}),
     BIOTRON_CALIBRATION.lightLevel)
 
@@ -77,6 +80,18 @@ test('Biotron calibration recognizes the soft cue and legacy 91/92 pattern', () 
   assert.equal(tracker.observe(note(92), 140), 'candidate')
   assert.equal(tracker.observe(note(91), 210), 'calibrating')
   assert.equal(tracker.calibrating, true)
+
+  tracker.reset()
+  ;[22, 24, 26, 28].forEach((velocity, index) => {
+    const expected = index === 3 ? 'calibrating' : 'candidate'
+    assert.equal(tracker.observe(note(BIOTRON_CALIBRATION.cue[index], velocity), index * 500), expected)
+  })
+
+  assert.deepEqual(parseBiotronCalibrationState(
+    parseMidiMessage([0xf0, 0x0b, 125, 0, 1, 0xf7])), {nonce: 0, state: 'measuring'})
+  assert.deepEqual(parseBiotronCalibrationState(
+    parseMidiMessage([0xf0, 0x0b, 125, 42, 2, 0xf7])), {nonce: 42, state: 'ready'})
+  assert.equal(parseBiotronCalibrationState(parseMidiMessage([0xf0, 0x0b, 124, 0, 1, 0xf7])), null)
 
   tracker.reset()
   assert.equal(tracker.observe(note(92), 0), 'candidate')

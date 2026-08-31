@@ -228,7 +228,7 @@ import {registerSoundController, soundSessionState, unregisterSoundController, u
 import {MidiInputSession} from '@/audio/midi.mjs'
 import {SOUND_VARIANTS} from '@/audio/presets.mjs'
 import {createExclusiveTabLease} from '@/audio/tabLease.mjs'
-import {BIOTRON_CALIBRATION, biotronVoiceLevel, BiotronCalibrationTracker} from '@/audio/biotronCalibration.mjs'
+import {BIOTRON_CALIBRATION, biotronVoiceLevel, BiotronCalibrationTracker, parseBiotronCalibrationState} from '@/audio/biotronCalibration.mjs'
 import {getRevealProfile, selectRevealInput} from '@/audio/revealProfiles.mjs'
 import {detectSoundCapabilities, soundCapabilityMessage} from '@/audio/capabilities.mjs'
 import DeviceTaskNav from '@/components/DeviceTaskNav.vue'
@@ -535,7 +535,9 @@ export default {
         this.selectedInput = input.id
         await this.midi.connect(input.id)
         this.recognizedInput = [input.manufacturer, input.name].filter(Boolean).join(' — ')
-        this.beginCalibrationWait()
+        this.resetCalibration()
+        this.revealStage = 'settling'
+        this.status = this.revealProfile.settlingStatus
       } catch (error) {
         failure = error.message || `${this.revealProfile.productName} could not start.`
         await this.stop()
@@ -582,19 +584,13 @@ export default {
       }
     },
     clearCalibrationTimers() {
-      window.clearTimeout(this.calibrationCandidateTimer)
-      window.clearTimeout(this.calibrationFinishTimer)
-      this.calibrationCandidateTimer = null
-      this.calibrationFinishTimer = null
+      [this.calibrationCandidateTimer, this.calibrationFinishTimer].forEach(id => window.clearTimeout(id))
+      this.calibrationCandidateTimer = this.calibrationFinishTimer = null
     },
     resetCalibration() {
       this.clearCalibrationTimers()
       this.calibrationTracker.reset()
-    },
-    beginCalibrationWait() {
-      this.resetCalibration()
-      this.revealStage = 'settling'
-      this.status = this.revealProfile.settlingStatus
+      updateSoundSession({calibrating: false})
     },
     finishCalibration() {
       this.resetCalibration()
@@ -604,6 +600,14 @@ export default {
       }
     },
     handleRevealMessage(message) {
+      const calibration = parseBiotronCalibrationState(message)
+      if (calibration) {
+        const active = calibration.state !== 'ready'
+        updateSoundSession({calibrating: active})
+        if (active) Object.assign(this, {revealStage: 'calibrating', status: this.revealProfile.calibratingStatus})
+        else this.finishCalibration()
+        return
+      }
       if (this.revealStage === 'ready' && message?.type === 'note-on') {
         this.revealStage = 'revealed'
         this.status = 'Biotron is making sound'
@@ -630,9 +634,7 @@ export default {
           BIOTRON_CALIBRATION.quietCompletionMs
         )
       }
-      else if (state === 'activity') {
-        this.finishCalibration()
-      }
+      else if (state === 'activity') this.finishCalibration()
     },
     pauseInputs(status) {
       if (this.midi) this.midi.setEnabled(false)

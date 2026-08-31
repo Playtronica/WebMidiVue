@@ -299,6 +299,7 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     const context = await browser.newContext()
     await context.addInitScript(() => {
       window.__soundMidiRequests = []
+      window.__soundMidiSent = []
       window.__failSoundCloseOnce = false
       window.__failSoundAudioCloseOnce = false
       let deferSoundOpenOnce = false
@@ -331,7 +332,7 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
       let stateListener = null
       const input = {
         id: 'playtronica-in-1', name: 'Biotron Port 1', manufacturer: 'Playtronica',
-        state: 'connected', connection: 'closed',
+        state: 'connected', connection: 'closed', onmidimessage: null,
         async open() {
           if (deferSoundOpenOnce) {
             deferSoundOpenOnce = false
@@ -360,11 +361,32 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
         async close() { this.connection = 'closed'; return this },
         addEventListener() {}, removeEventListener() {}
       }
+      const persistedValues = [
+        78, 3, 4, 4, 50, 10, 0, 4, 8, 98, 74, 75, 0, 1, 0, 12,
+        0, 0, 1, 1, 0, 1, 60, 2, 3, 100, 0
+      ]
       const outputFor = (id, name) => ({
         id, name, manufacturer: 'Playtronica', state: 'connected', connection: 'closed',
         async open() { this.connection = 'open'; return this },
         async close() { this.connection = 'closed'; return this },
-        send() {}
+        send(data) {
+          const message = Array.from(data)
+          window.__soundMidiSent.push(message)
+          if (id !== 'playtronica-out-1') return
+          if (message[0] === 0xf0 && message[1] === 20 && message[2] === 13 &&
+              message[3] === 0 && message.at(-1) === 0xf7) {
+            const bpm = message.slice(4, -1).reduce((sum, byte) => sum + byte, 0)
+            persistedValues[0] = bpm & 0x7f
+            persistedValues[1] = (bpm >> 7) & 0x7f
+          }
+          if (message.length === 7 && message[0] === 0xf0 && message[3] === 123) {
+            const response = [
+              0xf0, 0x0b, 123, 1, 1, 1, message[5], 1,
+              7, 0, 0, 0, 0, 7, 0, 0, 0, 0, ...persistedValues, 0xf7
+            ]
+            setTimeout(() => input.onmidimessage?.({data: Uint8Array.from(response)}), 0)
+          }
+        }
       })
       const output = outputFor('playtronica-out-1', 'Biotron Port 1')
       const serviceOutput = outputFor('playtronica-out-2', 'Biotron Port 2')
@@ -681,6 +703,7 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     await page.getByRole('heading', {name: 'Settings', exact: true}).waitFor()
     assert.strictEqual(new URL(page.url()).hash, '#/biotron')
     await page.getByText(/Sound stays on while you adjust settings/i).waitFor()
+    await page.getByText('Settings loaded from Biotron.').waitFor({timeout: 5000})
     const settingHelpButtons = page.locator('details.hint > summary')
     assert(await settingHelpButtons.count() >= 8, 'settings info icons must be real help buttons')
     const muteHelp = page.getByRole('button', {name: /Help: Turns off notes coming off plant sensor/i})
@@ -690,7 +713,20 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     assert.strictEqual(await page.getByRole('tooltip').count(), 0)
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'open')
     assert.strictEqual(await page.evaluate(() => window.__hasSoundMidiListener()), true)
+    assert.strictEqual(await page.evaluate(() => window.__soundContext.state), 'running')
     await page.evaluate(() => window.__emitSoundMidi([0x91, 67, 100]))
+    const speedSlider = page.locator('input[type="range"]').first()
+    const previousSpeed = Number(await speedSlider.inputValue())
+    await speedSlider.evaluate((element, value) => {
+      element.value = String(value)
+      element.dispatchEvent(new Event('change', {bubbles: true}))
+    }, Math.min(previousSpeed + 1, 1000))
+    await page.getByText('Applied live and saved on Biotron.').waitFor({timeout: 10000})
+    assert.strictEqual(await page.locator('#loader_div').count(), 0,
+      'Play to Settings live change showed a blocking full-screen loader')
+    assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'open')
+    assert.strictEqual(await page.evaluate(() => window.__hasSoundMidiListener()), true)
+    assert.strictEqual(await page.evaluate(() => window.__soundContext.state), 'running')
     await page.getByRole('link', {name: 'Sound & volume'}).click()
     await page.locator('.sound-lab[data-audio-state="running"][data-active-voices="1"]').waitFor()
     assert.strictEqual(await page.getByRole('slider', {name: 'Volume'}).getAttribute('max'), '150')
@@ -705,7 +741,7 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     await verifyCapabilityFallbacks(browser, origin)
     assert.deepStrictEqual(errors, [])
     if (realtimeSoak) writeSoakEvidence('PASS', 'suite-complete', realtimeSoak)
-    console.log(`Sound browser verified: first-play Biotron reveal, permission/audio-only/no-audio fallbacks, 6 variants, 6x-throttled Low CPU start ${constrainedStartMilliseconds} ms and burst ${constrainedBurstMilliseconds.toFixed(1)} ms, exclusive two-tab handoff, 100/100 lifecycle cycles in ${cycleMilliseconds} ms, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, optional real-time soak ${realtimeSoak ? `${realtimeSoak.elapsedMilliseconds} ms` : 'not requested'}, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)
+    console.log(`Sound browser verified: first-play Biotron reveal, Play → Settings → Speed live-save continuity, permission/audio-only/no-audio fallbacks, 6 variants, 6x-throttled Low CPU start ${constrainedStartMilliseconds} ms and burst ${constrainedBurstMilliseconds.toFixed(1)} ms, exclusive two-tab sound handoff, 100/100 lifecycle cycles in ${cycleMilliseconds} ms, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, optional real-time soak ${realtimeSoak ? `${realtimeSoak.elapsedMilliseconds} ms` : 'not requested'}, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)
   } finally {
     await browser.close()
     await new Promise(resolve => server.close(resolve))

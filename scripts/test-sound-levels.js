@@ -65,6 +65,27 @@ const server = http.createServer((request, response) => {
         }
         return {name, quality, peak, rms: Math.sqrt(energy / channel.length), nonFinite}
       }
+      const renderSequence = async (name, preset, events, quality, volume) => {
+        const sampleRate = 48000
+        const seconds = Math.max(...events.map(event => event.at + event.duration)) + preset.release + 0.75
+        const context = new OfflineAudioContext(2, Math.ceil(sampleRate * seconds), sampleRate)
+        const engine = new SynthEngine(context, {preset, quality, volume})
+        for (const event of events) {
+          engine.noteOn('sequence-test', 0, event.note, event.velocity, event.at, event.levelScale)
+          engine.noteOff('sequence-test', 0, event.note, event.at + event.duration)
+        }
+        const rendered = await context.startRendering()
+        const channel = rendered.getChannelData(0)
+        let peak = 0
+        let energy = 0
+        let nonFinite = 0
+        for (const sample of channel) {
+          if (!Number.isFinite(sample)) nonFinite += 1
+          peak = Math.max(peak, Math.abs(sample))
+          energy += sample * sample
+        }
+        return {name, quality, peak, rms: Math.sqrt(energy / channel.length), nonFinite}
+      }
       const qualities = ['standard', 'safe']
       const singleNotes = await Promise.all(qualities.flatMap(quality => SOUND_VARIANTS.map(preset =>
         render(preset.name, preset, [72], 100, quality))))
@@ -78,8 +99,30 @@ const server = http.createServer((request, response) => {
       const volumeSweep = await Promise.all([0, 50, 70, 100, 150].map(volume =>
         render(`volume ${volume}`, SOUND_VARIANTS[0], [72], 100, 'standard', volume)))
       const normalPlay = await render('normal Biotron play', SOUND_VARIANTS[0], [64], 98, 'safe', 70, 1)
-      const calibration = await render('1.9.5 calibration', SOUND_VARIANTS[0], [64], 64,
+      const calibration = await render('quiet calibration', SOUND_VARIANTS[0], [64], 24,
         'safe', 70, BIOTRON_CALIBRATION.localLevel)
+      const calibrationEvents = [
+        [0.3, 64, 0.3], [0.8, 65, 0.3], [1.3, 67, 0.4], [1.8, 72, 0.4],
+        [2.4, 71, 0.3], [2.9, 67, 0.3], [3.4, 62, 0.4], [4.0, 60, 0.9]
+      ].map(([at, note, duration]) => ({at, note, duration, velocity: 24,
+        levelScale: BIOTRON_CALIBRATION.localLevel}))
+      const calibrationPhrase = await renderSequence('quiet full calibration phrase', SOUND_VARIANTS[0],
+        calibrationEvents, 'safe', 70)
+      const calibration194Velocities = [22, 24, 26, 28, 26, 24, 22, 18]
+      const calibration194Phrase = await renderSequence('1.9.4 full calibration phrase', SOUND_VARIANTS[0],
+        calibrationEvents.map((event, index) => ({...event, velocity: calibration194Velocities[index]})),
+        'safe', 70)
+      const ordinaryPhrase = await renderSequence('ordinary phrase at calibration rhythm', SOUND_VARIANTS[0],
+        calibrationEvents.map(event => ({...event, velocity: 98, levelScale: 1})), 'safe', 70)
+      const legacyCalibrationEvents = Array.from({length: 20}, (_, index) => ({
+        at: 0.1 + index * 0.1,
+        note: index % 2 ? 91 : 92,
+        duration: 0.1,
+        velocity: 90,
+        levelScale: BIOTRON_CALIBRATION.localLevel
+      }))
+      const legacyCalibrationPhrase = await renderSequence('1.9.3 legacy calibration phrase', SOUND_VARIANTS[0],
+        legacyCalibrationEvents, 'safe', 70)
       const lightSensor = await render('light sensor', SOUND_VARIANTS[0], [64], 75,
         'safe', 70, BIOTRON_CALIBRATION.lightLevel)
       const renderReleaseEdge = async () => {
@@ -125,7 +168,8 @@ const server = http.createServer((request, response) => {
       const releaseEdge = await renderReleaseEdge()
       return {
         singleNotes, quietBiotronNotes, denseChords, maximumDenseChords,
-        volumeSweep, normalPlay, calibration, lightSensor, releaseEdge
+        volumeSweep, normalPlay, calibration, calibrationPhrase, calibration194Phrase, ordinaryPhrase,
+        legacyCalibrationPhrase, lightSensor, releaseEdge
       }
     })
 
@@ -154,9 +198,15 @@ const server = http.createServer((request, response) => {
     assert(metrics.volumeSweep[2].rms >= 0.19,
       `default-volume RMS ${metrics.volumeSweep[2].rms} is below the loudness floor`)
     const calibrationDb = 20 * Math.log10(metrics.calibration.rms / metrics.normalPlay.rms)
+    const calibrationPhraseDb = 20 * Math.log10(metrics.calibrationPhrase.rms / metrics.ordinaryPhrase.rms)
     const lightSensorDb = 20 * Math.log10(metrics.lightSensor.rms / metrics.normalPlay.rms)
-    assert(calibrationDb <= -8 && calibrationDb >= -18,
-      `calibration relative level ${calibrationDb.toFixed(2)} dB is outside -18..-8 dB`)
+    const calibration194Db = 20 * Math.log10(metrics.calibration194Phrase.rms / metrics.ordinaryPhrase.rms)
+    assert(calibrationDb <= -18 && calibrationDb >= -36,
+      `calibration relative level ${calibrationDb.toFixed(2)} dB is outside -36..-18 dB`)
+    assert(calibrationPhraseDb <= -18 && calibrationPhraseDb >= -36,
+      `full calibration phrase relative level ${calibrationPhraseDb.toFixed(2)} dB is outside -36..-18 dB`)
+    assert(calibration194Db <= -18 && calibration194Db >= -36,
+      `1.9.4 calibration relative level ${calibration194Db.toFixed(2)} dB is outside -36..-18 dB`)
     assert(lightSensorDb <= -8 && lightSensorDb >= -18,
       `light relative level ${lightSensorDb.toFixed(2)} dB is outside -18..-8 dB`)
     assert(Math.max(...metrics.maximumDenseChords.map(metric => metric.peak)) <= 0.98,
