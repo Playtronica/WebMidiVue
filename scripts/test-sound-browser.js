@@ -547,10 +547,11 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     await page.getByText(/Biotron Port 1 connected/i).waitFor()
     assert.strictEqual(await page.evaluate(() => window.__hasSoundMidiListener()), true)
 
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
       Object.defineProperty(document, 'hidden', {configurable: true, get: () => true})
-      document.dispatchEvent(new Event('visibilitychange'))
+      await window.__soundContext.suspend()
     })
+    await page.waitForFunction(() => window.__soundContext.state === 'running')
     await page.locator('.sound-lab[data-audio-state="running"]').waitFor()
     await page.evaluate(() => window.__emitSoundMidi([0x90, 67, 100]))
     await page.locator('.sound-lab[data-active-voices="1"]').waitFor()
@@ -560,6 +561,7 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
       document.dispatchEvent(new Event('visibilitychange'))
     })
     await page.locator('.sound-lab[data-audio-state="running"]').waitFor()
+    assert.strictEqual(await page.evaluate(() => window.__hasSoundMidiListener()), true)
     await page.evaluate(() => window.__emitSoundMidi([0x90, 69, 100]))
     await page.locator('.sound-lab[data-active-voices="1"]').waitFor()
     await page.evaluate(() => window.__emitSoundMidi([0x80, 69, 0]))
@@ -658,7 +660,7 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     assert.deepStrictEqual((await page.evaluate(() => window.__soundMidiRequests)).at(-1), {sysex: true})
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'open')
     assert.strictEqual(await page.evaluate(() => window.__soundServiceInput.connection), 'closed')
-    for (const [note, velocity] of [[64, 22], [65, 24], [67, 26], [72, 28]]) {
+    for (const [note, velocity] of [[64, 64], [65, 64], [67, 64], [72, 64]]) {
       await page.evaluate(([value, level]) => window.__emitSoundMidi([0x91, value, level]), [note, velocity])
       await page.evaluate(value => window.__emitSoundMidi([0x81, value, 0]), note)
       await page.waitForTimeout(70)

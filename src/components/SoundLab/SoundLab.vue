@@ -224,11 +224,7 @@
 import {markRaw} from 'vue'
 import {noteForKeyboardCode} from '@/audio/core.mjs'
 import {createRealtimeSynth, DEFAULT_VOLUME, normalizeVolume} from '@/audio/engine.mjs'
-import {
-  registerSoundController,
-  unregisterSoundController,
-  updateSoundSession
-} from '@/audio/sessionState.mjs'
+import {registerSoundController, soundSessionState, unregisterSoundController, updateSoundSession} from '@/audio/sessionState.mjs'
 import {MidiInputSession} from '@/audio/midi.mjs'
 import {SOUND_VARIANTS} from '@/audio/presets.mjs'
 import {createExclusiveTabLease} from '@/audio/tabLease.mjs'
@@ -378,8 +374,10 @@ export default {
         }))
         const biotron = this.revealMode && this.revealProfile.id === 'biotron'
         this.midi = markRaw(new MidiInputSession(this.engine, event => this.handleMidiState(event), {
-          sysex: biotron, voiceLevel: biotron ? biotronVoiceLevel : undefined
+          sysex: biotron, voiceLevel: biotron ? message => biotronVoiceLevel(message,
+            BIOTRON_CALIBRATION, soundSessionState.calibrating) : undefined
         }))
+        try { if (navigator.audioSession) navigator.audioSession.type = 'playback' } catch (error) { void error }
       }
       if (await this.engine.resume() !== 'running') throw new Error('Audio could not start.')
       this.midi?.setEnabled(true)
@@ -642,6 +640,11 @@ export default {
       this.resetVoiceUi()
       this.status = status
     },
+    markAudioSuspended(status) {
+      this.pauseInputs(status)
+      this.audioState = 'suspended'
+      updateSoundSession({running: false, volume: this.volume})
+    },
     handleAudioContextState(state) {
       if (!this.engine || state === 'running') return
       if (state === 'closed') {
@@ -651,11 +654,11 @@ export default {
         this.releaseBlocked = true
         return
       }
-      this.pauseInputs(document.hidden
-        ? 'Paused in background — press Start sound'
-        : 'Audio paused — press Start sound')
-      this.audioState = 'suspended'
-      updateSoundSession({running: false, volume: this.volume})
+      if (document.hidden) {
+        void this.ensureEngine().catch(() => this.markAudioSuspended('Background audio was paused by the browser'))
+        return
+      }
+      this.markAudioSuspended('Audio paused — press Start sound')
     },
     async handleVisibility() {
       this.releaseHeldKeyboard()

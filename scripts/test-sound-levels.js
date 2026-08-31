@@ -78,7 +78,7 @@ const server = http.createServer((request, response) => {
       const volumeSweep = await Promise.all([0, 50, 70, 100, 150].map(volume =>
         render(`volume ${volume}`, SOUND_VARIANTS[0], [72], 100, 'standard', volume)))
       const normalPlay = await render('normal Biotron play', SOUND_VARIANTS[0], [64], 98, 'safe', 70, 1)
-      const calibration = await render('1.9.4 calibration', SOUND_VARIANTS[0], [64], 22,
+      const calibration = await render('1.9.4 calibration', SOUND_VARIANTS[0], [64], 64,
         'safe', 70, BIOTRON_CALIBRATION.localLevel)
       const lightSensor = await render('light sensor', SOUND_VARIANTS[0], [64], 75,
         'safe', 70, BIOTRON_CALIBRATION.lightLevel)
@@ -157,8 +157,8 @@ const server = http.createServer((request, response) => {
     const lightSensorDb = 20 * Math.log10(metrics.lightSensor.rms / metrics.normalPlay.rms)
     assert(calibrationDb <= -8 && calibrationDb >= -18,
       `calibration relative level ${calibrationDb.toFixed(2)} dB is outside -18..-8 dB`)
-    assert(lightSensorDb <= -2 && lightSensorDb >= -10,
-      `light relative level ${lightSensorDb.toFixed(2)} dB is outside -10..-2 dB`)
+    assert(lightSensorDb <= -8 && lightSensorDb >= -18,
+      `light relative level ${lightSensorDb.toFixed(2)} dB is outside -18..-8 dB`)
     assert(Math.max(...metrics.maximumDenseChords.map(metric => metric.peak)) <= 0.98,
       `maximum-volume dense chord peak is ${Math.max(...metrics.maximumDenseChords.map(metric => metric.peak))}`)
     assert(metrics.releaseEdge.maxPostStopDelta <= 0.0005,

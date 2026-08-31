@@ -1,20 +1,19 @@
 export const BIOTRON_CALIBRATION = Object.freeze({
   // Keep this byte-for-byte aligned with firmware 1.9.4 Gentle Cadence.
   cue: Object.freeze([64, 65, 67, 72, 71, 67, 62, 60]),
-  cueVelocities: Object.freeze([22, 24, 26, 28, 26, 24, 22, 18]),
+  cueVelocity: 64,
   legacyNotes: Object.freeze([91, 92]),
   legacyVelocity: 90,
   detectionNotes: 4,
   maxAlternationGapMs: 700,
   quietCompletionMs: 1100,
-  localLevel: 0.08, lightChannel: 2, lightLevel: 0.25
+  localLevel: 0.08, lightChannel: 2, lightLevel: 0.08
 })
-export function biotronVoiceLevel(message, contract = BIOTRON_CALIBRATION) {
+export function biotronVoiceLevel(message, contract = BIOTRON_CALIBRATION, calibrating = false) {
   if (message?.type !== 'note-on') return 1
-  const cue = contract.cue.some((note, index) => note === message.note &&
-    contract.cueVelocities[index] === message.velocity)
+  const cue = contract.cue.includes(message.note) && message.velocity === contract.cueVelocity
   const legacy = contract.legacyNotes.includes(message.note) && message.velocity === contract.legacyVelocity
-  if (cue || legacy) return contract.localLevel
+  if (calibrating || cue || legacy) return contract.localLevel
   return message.channel === contract.lightChannel ? contract.lightLevel : 1
 }
 export class BiotronCalibrationTracker {
@@ -39,7 +38,7 @@ export class BiotronCalibrationTracker {
     if (message?.type !== 'note-on') return 'ignored'
 
     const cueNote = this.contract.cue[this.cueIndex] === message.note &&
-      this.contract.cueVelocities[this.cueIndex] === message.velocity
+      this.contract.cueVelocity === message.velocity
     const legacyNote = this.contract.legacyNotes.includes(message.note) &&
       message.velocity === this.contract.legacyVelocity
     if (!cueNote && !legacyNote) {

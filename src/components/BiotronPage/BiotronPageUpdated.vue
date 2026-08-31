@@ -399,7 +399,7 @@ import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
 import DeviceTaskNav from "@/components/DeviceTaskNav.vue";
 import {createListenerScope} from "@/assets/js/ListenerScope.mjs";
-import {soundSessionState, stopPersistentSound} from "@/audio/sessionState.mjs";
+import {soundSessionState, stopPersistentSound, updateSoundSession} from "@/audio/sessionState.mjs";
 import {
   applySettingsVector,
   settingsVectorFromCommands,
@@ -450,6 +450,7 @@ export default  {
       if (!device && this.calibrationBusy) {
         this.calibrationState = "error"
         this.calibrationMessage = "Biotron disconnected — reconnect it and try again."
+        updateSoundSession({calibrating: false})
       }
       if (!this.betaBuild) return
       if (!device) {
@@ -561,6 +562,7 @@ export default  {
       }
       this.calibrationState = event?.state || "error"
       this.calibrationMessage = messages[this.calibrationState] || messages.error
+      updateSoundSession({calibrating: this.calibrationBusy})
     },
     async change_data_loader() {
       if (!this.device || this.is_loading) return
@@ -793,6 +795,7 @@ export default  {
   },
   beforeUnmount() {
     this.clearLiveVerification()
+    updateSoundSession({calibrating: false})
     this.settingsLoadId++
     this.device = null
     this.listenerScope?.clear()
