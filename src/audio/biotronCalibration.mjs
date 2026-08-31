@@ -1,5 +1,5 @@
 export const BIOTRON_CALIBRATION = Object.freeze({
-  // Keep this byte-for-byte aligned with firmware 1.9.4 Gentle Cadence.
+  // Keep this byte-for-byte aligned with firmware 1.9.5 Gentle Cadence.
   cue: Object.freeze([64, 65, 67, 72, 71, 67, 62, 60]),
   cueVelocity: 64,
   legacyNotes: Object.freeze([91, 92]),

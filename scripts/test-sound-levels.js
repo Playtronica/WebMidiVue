@@ -78,7 +78,7 @@ const server = http.createServer((request, response) => {
       const volumeSweep = await Promise.all([0, 50, 70, 100, 150].map(volume =>
         render(`volume ${volume}`, SOUND_VARIANTS[0], [72], 100, 'standard', volume)))
       const normalPlay = await render('normal Biotron play', SOUND_VARIANTS[0], [64], 98, 'safe', 70, 1)
-      const calibration = await render('1.9.4 calibration', SOUND_VARIANTS[0], [64], 64,
+      const calibration = await render('1.9.5 calibration', SOUND_VARIANTS[0], [64], 64,
         'safe', 70, BIOTRON_CALIBRATION.localLevel)
       const lightSensor = await render('light sensor', SOUND_VARIANTS[0], [64], 75,
         'safe', 70, BIOTRON_CALIBRATION.lightLevel)
