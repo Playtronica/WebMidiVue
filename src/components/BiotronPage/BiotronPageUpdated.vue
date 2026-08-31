@@ -1,5 +1,5 @@
 <template>
-  <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
+  <LoaderComponent v-if="this.is_loading && !betaBuild" :key="forceRerender"/>
 
     <DeviceTaskNav
         v-if="betaBuild"
@@ -49,8 +49,8 @@
     <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"  text_label="📂 Preset" class="m-2"/>
     <div class="row gx-1 mb-5">
       <div class="col">
-        <button @mouseup="change_data_loader" :disabled="!this.device || this.is_loading || (betaBuild && !settingsReady)" class="btn btn-primary w-100 h-100">
-          {{ betaBuild ? (is_loading ? 'Applying…' : 'Apply and verify') : '❇️ Send to Device' }}
+        <button @click="change_data_loader" :disabled="!this.device || this.is_loading || (betaBuild && !settingsReady)" class="btn btn-primary w-100 h-100">
+          {{ betaBuild ? (is_loading ? 'Checking…' : 'Check saved settings') : '❇️ Send to Device' }}
         </button>
       </div>
       <div class="col">
@@ -440,7 +440,7 @@ export default  {
       return ["starting", "waiting", "measuring"].includes(this.calibrationState)
     },
     settingsReady() {
-      return ["loaded", "changed", "saved"].includes(this.settingsState)
+      return ["loaded", "changed", "saved", "error"].includes(this.settingsState)
     }
   },
   methods: {
@@ -474,13 +474,26 @@ export default  {
       for (let attempt = 0; attempt < attempts; attempt++) {
         if (this.device !== device) throw new Error("Biotron changed.")
         try {
-          return await this.$refs.deviceSelector.requestPersistedSettings()
+          return await this.requestPersistedSettingsWithin(3500)
         } catch (error) {
           lastError = error
           if (attempt + 1 < attempts) await new Promise(resolve => setTimeout(resolve, 450))
         }
       }
       throw lastError
+    },
+    async requestPersistedSettingsWithin(timeoutMs) {
+      let timeout
+      try {
+        return await Promise.race([
+          this.$refs.deviceSelector.requestPersistedSettings(),
+          new Promise((resolve, reject) => {
+            timeout = setTimeout(() => reject(new Error("Saved settings check timed out.")), timeoutMs)
+          })
+        ])
+      } finally {
+        clearTimeout(timeout)
+      }
     },
     async loadPersistedSettings(device) {
       const loadId = ++this.settingsLoadId
@@ -524,7 +537,7 @@ export default  {
         } catch (error) {
           if (this.device !== device || verifyId !== this.liveVerifyId) return
           this.settingsState = "error"
-          this.settingsMessage = "Applied live, but automatic save verification did not answer. Reconnect before relying on the saved state."
+          this.settingsMessage = "Changed live. Saved copy could not be confirmed — try Check saved settings."
         }
       }, 1500)
     },
@@ -548,11 +561,28 @@ export default  {
     async change_data_loader() {
       if (!this.device || this.is_loading) return
       const device = this.device
+      const waitForPendingSave = this.betaBuild && this.settingsState === "changed"
       this.is_loading = true;
-      this.settingsState = "saving"
-      this.settingsMessage = this.betaBuild ? "Applying settings…" : ""
+      this.settingsState = this.betaBuild ? "checking" : "saving"
+      this.settingsMessage = this.betaBuild ? "Checking the saved copy…" : ""
       this.forceRerender++;
       try {
+        if (this.betaBuild) {
+          this.clearLiveVerification()
+          this.settingsLoadId++
+          if (waitForPendingSave) {
+            await new Promise(resolve => setTimeout(resolve, 1100))
+          }
+          if (this.device !== device) throw new Error("Biotron disconnected during check.")
+          const expected = settingsVectorFromCommands(this.commands_data)
+          const snapshot = await this.readPersistedSettingsWithRetry(device, 1)
+          if (snapshot.dirty || !settingsVectorsEqual(snapshot.values, expected)) {
+            throw new Error("Saved settings did not match the form.")
+          }
+          this.settingsState = "saved"
+          this.settingsMessage = "Live changes are saved on Biotron."
+          return
+        }
         await withMidiWriteSession(device, () => this.device, async output => {
           await output.wait(100)
           await this.sendData(output)
@@ -561,21 +591,10 @@ export default  {
             await this.sendDataDeprecated(output)
           }
         })
-        if (this.betaBuild) {
-          await new Promise(resolve => setTimeout(resolve, 1300))
-          if (this.device !== device) throw new Error("Biotron disconnected during save.")
-          const expected = settingsVectorFromCommands(this.commands_data)
-          const snapshot = await this.$refs.deviceSelector.requestPersistedSettings()
-          if (snapshot.dirty || !settingsVectorsEqual(snapshot.values, expected)) {
-            throw new Error("Saved settings did not match the form.")
-          }
-          this.settingsState = "saved"
-          this.settingsMessage = "Saved on Biotron."
-        }
       } catch (error) {
         if (this.betaBuild) {
           this.settingsState = "error"
-          this.settingsMessage = "Could not verify the saved settings. Nothing is marked as saved."
+          this.settingsMessage = "Live changes still work. The saved copy could not be confirmed — try again."
         }
       } finally {
         this.is_loading = false;

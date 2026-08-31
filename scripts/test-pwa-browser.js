@@ -38,6 +38,7 @@ async function openProfile(online, denyMidiOnce = false) {
     window.__midiRequestCount = 0
     window.__midiRequestOptions = []
     window.__midiSent = []
+    window.__respondSettings = true
     window.__denyMidiOnce = initiallyDenyMidi
     Object.defineProperty(navigator, 'onLine', {
       configurable: true,
@@ -72,7 +73,7 @@ async function openProfile(online, denyMidiOnce = false) {
             message[2] === 13 && message[3] === 22 && message[5] === 0xf7) {
           persistedValues[17] = message[4]
         }
-        if (message[0] === 0xf0 && message[3] === 123 && message.length === 7) {
+        if (window.__respondSettings && message[0] === 0xf0 && message[3] === 123 && message.length === 7) {
           const response = [
             0xf0, 0x0b, 123, 1, 1, 1, message[5], 1,
             7, 0, 0, 0, 0, 7, 0, 0, 0, 0, ...persistedValues, 0xf7
@@ -139,7 +140,7 @@ async function controllerVersion(page) {
 
   let page = await openProfile(true, true)
   await page.goto(`${origin}/biotron`, { waitUntil: 'load' })
-  await page.getByText(/Ready offline —/i).waitFor({state: 'visible', timeout: 15000})
+  await page.getByText(/Offline mode is ready/i).waitFor({state: 'visible', timeout: 15000})
   assert.strictEqual(await controllerVersion(page), 1)
   await page.getByText(/MIDI access was blocked/i).waitFor({state: 'visible', timeout: 5000})
   await page.getByRole('button', {name: /Retry connection/i}).click()
@@ -147,6 +148,7 @@ async function controllerVersion(page) {
   assert.strictEqual(await page.evaluate(() => window.__midiRequestCount), 2, 'MIDI denial did not recover with exactly one retry')
   assert.strictEqual(await page.evaluate(() => window.__midiRequestOptions[0].sysex), true, 'SysEx was not requested in the single MIDI permission flow')
 
+  const desktopButton = page.getByRole('button', {name: /Add desktop shortcut/i})
   await page.evaluate(() => {
     window.__installPromptCalls = 0
     const event = new Event('beforeinstallprompt', {cancelable: true})
@@ -154,10 +156,12 @@ async function controllerVersion(page) {
     event.userChoice = Promise.resolve({outcome: 'accepted'})
     window.dispatchEvent(event)
   })
-  await page.getByRole('button', {name: /Install offline app/i}).click()
+  await desktopButton.click()
   assert.strictEqual(await page.evaluate(() => window.__installPromptCalls), 1, 'install prompt was not called exactly once')
+  await desktopButton.click()
+  await page.getByText(/Chrome: menu/i).waitFor({state: 'visible'})
   await page.evaluate(() => window.dispatchEvent(new Event('appinstalled')))
-  await page.getByText('Installed', {exact: true}).waitFor({state: 'visible', timeout: 5000})
+  await page.getByText('Added to desktop', {exact: true}).waitFor({state: 'visible', timeout: 5000})
 
   const manifest = await page.evaluate(() => fetch('/manifest.json').then(response => response.json()))
   assert.strictEqual(manifest.name, 'Biotron Settings Offline Beta')
@@ -205,13 +209,13 @@ async function controllerVersion(page) {
   await page.dispatchEvent('body', 'keyup', {code: 'KeyA', key: 'ф'})
   await page.getByRole('button', {name: 'Stop & release'}).click()
   await page.goto(`${origin}/#/biotron`, {waitUntil: 'load'})
-  await page.getByText(/Offline — Settings are available/i).waitFor({state: 'visible', timeout: 10000})
+  await page.getByText(/Offline mode — Settings are working without internet/i).waitFor({state: 'visible', timeout: 10000})
   await waitFor(() => page.evaluate(() => window.__midiRequestCount === 1), 'Settings did not retain first-play MIDI access')
   assert.deepStrictEqual(await page.evaluate(() => window.__midiRequestOptions.map(options => options.sysex)),
     [true], 'Settings did not reuse first-play SysEx access')
   console.log('2/7 full Chrome restart, first-play reveal, cached Sound route and any-layout keyboard with network disabled verified')
 
-  const sendButton = page.getByRole('button', {name: /Apply and verify|Send to Device/i})
+  const sendButton = page.getByRole('button', {name: /Check saved settings|Send to Device/i})
   await waitFor(() => sendButton.isEnabled(), 'fake Biotron did not connect offline')
   await page.getByText('Settings loaded from Biotron.').waitFor({state: 'visible'})
   const liveWriteCount = await page.evaluate(() => window.__midiSent.length)
@@ -251,16 +255,37 @@ async function controllerVersion(page) {
     () => page.evaluate(before => window.__midiSent.length > before, sentBefore),
     'offline setting write did not reach the fake MIDI output'
   )
-  await page.locator('#loader_div').waitFor({state: 'detached', timeout: 15000})
+  assert.strictEqual(await page.locator('#loader_div').count(), 0,
+    'read-only save check showed a blocking full-screen loader')
+  await page.getByText('Live changes are saved on Biotron.').waitFor({state: 'visible', timeout: 5000})
   const settingsStatuses = await page.locator('[role="status"]').allTextContents()
-  assert(settingsStatuses.some(text => text.includes('Saved on Biotron.')),
+  assert(settingsStatuses.some(text => text.includes('Live changes are saved on Biotron.')),
     `exact readback did not confirm save: ${JSON.stringify(settingsStatuses)}`)
+  const checkMessages = await page.evaluate(before => window.__midiSent.slice(before), sentBefore)
+  assert(checkMessages.length <= 2 && checkMessages.every(message => [123, 126].includes(message[3])),
+    `save check unexpectedly rewrote settings: ${JSON.stringify(checkMessages)}`)
   const heartbeatMaxGap = await page.evaluate(() => {
     clearInterval(window.__midiHeartbeat)
     return window.__midiHeartbeatMaxGap
   })
   assert(heartbeatMaxGap < 500, `settings write blocked the browser event loop for ${heartbeatMaxGap} ms`)
   assert(await page.evaluate(() => window.__midiSent.some(message => message[0] === 0xF0 && message.at(-1) === 0xF7)), 'no complete SysEx setting was sent offline')
+
+  await waitFor(() => sendButton.isEnabled(), 'save check did not finish cleanly')
+  await page.evaluate(() => { window.__respondSettings = false })
+  const timeoutCheckStart = await page.evaluate(() => window.__midiSent.length)
+  await sendButton.click()
+  await waitFor(
+    () => page.evaluate(before => window.__midiSent.length > before, timeoutCheckStart),
+    'timeout check did not send a settings query'
+  )
+  assert.strictEqual(await page.locator('#loader_div').count(), 0,
+    'timeout recovery showed a blocking full-screen loader')
+  await page.getByText(/saved copy could not be confirmed/i).waitFor({state: 'visible', timeout: 10000})
+  assert(await sendButton.isEnabled(), 'save check stayed disabled after timeout')
+  await page.evaluate(() => { window.__respondSettings = true })
+  await sendButton.click()
+  await page.getByText('Live changes are saved on Biotron.').waitFor({state: 'visible', timeout: 5000})
   console.log(`3/7 offline Biotron detection, nonce-bound recalibration and non-blocking SysEx write verified (max event-loop gap ${heartbeatMaxGap.toFixed(1)} ms)`)
 
   await page.evaluate(() => window.__emitSettingsMidi([0xf0, 0x0b, 126, 0, 1, 9, 3, 0xf7]))
@@ -286,7 +311,7 @@ async function controllerVersion(page) {
   await closeProfile()
   page = await openProfile(false)
   await page.goto(`${origin}/biotron`, {waitUntil: 'load'})
-  await page.getByText(/Offline — Settings are available/i).waitFor({state: 'visible', timeout: 10000})
+  await page.getByText(/Offline mode — Settings are working without internet/i).waitFor({state: 'visible', timeout: 10000})
   assert.strictEqual(await controllerVersion(page), 2, 'waiting update did not activate after the browser process closed')
   assert.strictEqual(
     await page.evaluate(async () => Boolean((await navigator.serviceWorker.getRegistration()).waiting)),
@@ -313,11 +338,11 @@ async function controllerVersion(page) {
     window.dispatchEvent(new Event('online'))
   })
   await page.getByRole('button', {name: 'Retry', exact: true}).click()
-  await page.getByText(/Ready offline —/i).waitFor({state: 'visible', timeout: 15000})
+  await page.getByText(/Offline mode is ready/i).waitFor({state: 'visible', timeout: 15000})
   await closeProfile()
   page = await openProfile(false)
   await page.goto(`${origin}/biotron`, {waitUntil: 'load'})
-  await page.getByText(/Offline — Settings are available/i).waitFor({state: 'visible', timeout: 10000})
+  await page.getByText(/Offline mode — Settings are working without internet/i).waitFor({state: 'visible', timeout: 10000})
   console.log('7/7 Retry repairs offline setup and the same profile launches offline again')
 
   console.log('Browser PWA verified across persistent-profile restarts: installability, offline app shell, permission/retry, MIDI setting write, firmware guard and controlled update.')

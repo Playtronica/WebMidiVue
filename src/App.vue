@@ -32,18 +32,16 @@
       aria-live="polite"
   >
     <span>{{ offlineMessage }}</span>
-    <span v-if="offlineStatus.ready && online && !installed" class="offline-actions">
+    <span v-if="offlineStatus.ready && !installed" class="offline-actions">
       <button
-          v-if="installPrompt"
           type="button"
           class="offline-action"
           @click="installApp"
       >
-        Install offline app
+        Add desktop shortcut
       </button>
-      <small v-else>Install from the Chrome/Edge address bar to add it to your desktop.</small>
     </span>
-    <span v-if="installed" class="offline-installed">Installed</span>
+    <span v-if="installed" class="offline-installed">Added to desktop</span>
     <button
         v-if="offlineStatus.state === 'error'"
         type="button"
@@ -53,6 +51,9 @@
     >
       {{ offlineRetrying ? "Retrying…" : "Retry" }}
     </button>
+    <small v-if="showInstallHelp && offlineStatus.ready && !installed" class="offline-install-help">
+      Chrome: menu ⋮ → Cast, save and share → Install page as app. Edge: menu ⋯ → Apps → Install this site as an app.
+    </small>
   </div>
   <div class="wrapper">
     <div class="m-2 content ">
@@ -80,6 +81,12 @@ import {
   OFFLINE_STATUS_EVENT,
   prepareOfflineAccess
 } from "@pwa-entry";
+import {
+  clearInstallPrompt,
+  getInstallPrompt,
+  INSTALL_PROMPT_AVAILABLE_EVENT,
+  takeInstallPrompt
+} from "@/pwaInstallPrompt.mjs";
 
 const runningStandalone = () => window.matchMedia('(display-mode: standalone)').matches ||
     window.navigator.standalone === true
@@ -92,8 +99,9 @@ export default {
     return {
       offlineStatus: getOfflineStatus(),
       online: navigator.onLine,
-      installPrompt: null,
+      installPrompt: getInstallPrompt(),
       installed: runningStandalone(),
+      showInstallHelp: false,
       offlineRetrying: false,
       betaBuild: process.env.VUE_APP_BIOTRON_PWA_BETA === 'true',
       buildId: process.env.VUE_APP_BUILD_ID || 'local-build'
@@ -105,10 +113,10 @@ export default {
     },
     offlineMessage() {
       if (this.offlineStatus.ready && !this.online) {
-        return "Offline — Settings are available. Firmware updates still need internet."
+        return "Offline mode — Settings are working without internet. Firmware updates still need internet."
       }
       if (this.offlineStatus.ready) {
-        return "Ready offline — Settings are installed for this browser profile."
+        return "Offline mode is ready — this browser can reopen Settings without internet."
       }
       if (this.offlineStatus.state === "installing") {
         return "Preparing offline access… Keep this window open until it is ready."
@@ -138,14 +146,14 @@ export default {
     window.addEventListener(OFFLINE_STATUS_EVENT, this.handleOfflineStatus)
     window.addEventListener("online", this.handleConnectionChange)
     window.addEventListener("offline", this.handleConnectionChange)
-    window.addEventListener("beforeinstallprompt", this.handleInstallPrompt)
+    window.addEventListener(INSTALL_PROMPT_AVAILABLE_EVENT, this.handleInstallPrompt)
     window.addEventListener("appinstalled", this.handleInstalled)
   },
   beforeUnmount() {
     window.removeEventListener(OFFLINE_STATUS_EVENT, this.handleOfflineStatus)
     window.removeEventListener("online", this.handleConnectionChange)
     window.removeEventListener("offline", this.handleConnectionChange)
-    window.removeEventListener("beforeinstallprompt", this.handleInstallPrompt)
+    window.removeEventListener(INSTALL_PROMPT_AVAILABLE_EVENT, this.handleInstallPrompt)
     window.removeEventListener("appinstalled", this.handleInstalled)
   },
   methods: {
@@ -155,20 +163,26 @@ export default {
     handleConnectionChange() {
       this.online = navigator.onLine
     },
-    handleInstallPrompt(event) {
-      event.preventDefault()
-      this.installPrompt = event
+    handleInstallPrompt() {
+      this.installPrompt = getInstallPrompt()
+      this.showInstallHelp = false
     },
     handleInstalled() {
+      clearInstallPrompt()
       this.installPrompt = null
       this.installed = true
+      this.showInstallHelp = false
     },
     async installApp() {
-      const prompt = this.installPrompt
-      if (!prompt) return
+      const prompt = takeInstallPrompt()
+      if (!prompt) {
+        this.showInstallHelp = !this.showInstallHelp
+        return
+      }
       this.installPrompt = null
       await prompt.prompt()
-      await prompt.userChoice
+      const choice = await prompt.userChoice
+      if (choice?.outcome !== 'accepted') this.showInstallHelp = true
     },
     async retryOfflineSetup() {
       this.offlineRetrying = true
@@ -272,6 +286,12 @@ export default {
   display: inline-block;
   margin-left: 0.75rem;
   font-weight: 600;
+}
+
+.offline-install-help {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
 }
 
 @media (max-width: 640px) {
