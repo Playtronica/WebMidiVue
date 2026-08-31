@@ -30,6 +30,10 @@ const largestFiles = sources
   .map(({file, text}) => ({file, lines: text.split('\n').length}))
   .sort((a, b) => b.lines - a.lines)
   .slice(0, 10)
+const largestProductFile = sources
+  .filter(({file}) => file.startsWith('src/'))
+  .map(({file, text}) => ({file, lines: text.split('\n').length}))
+  .sort((a, b) => b.lines - a.lines)[0] || {file: '', lines: 0}
 const main = sources.find(({file}) => file === 'src/main.js')?.text || ''
 const sysEx = sources.find(({file}) => file === 'src/assets/js/SysExCommand.js')?.text || ''
 const unawaitedDelayFiles = sources
@@ -54,9 +58,15 @@ const report = {
 const limits = {
   eagerDeviceRouteImports: 0,
   sleepCalls: 0,
-  unmanagedListenerFiles: 0
+  unmanagedListenerFiles: 0,
+  sourceFiles: 64,
+  sourceLines: 10050,
+  largestProductFileLines: 850
 }
 const violations = [
+  report.sourceFiles > limits.sourceFiles && `source files exceed the reviewed cap ${limits.sourceFiles}`,
+  report.sourceLines > limits.sourceLines && `source lines exceed the reviewed cap ${limits.sourceLines}`,
+  largestProductFile.lines > limits.largestProductFileLines && `${largestProductFile.file} exceeds ${limits.largestProductFileLines} lines`,
   report.eagerDeviceRouteImports > limits.eagerDeviceRouteImports && `eager device imports exceed ${limits.eagerDeviceRouteImports}`,
   report.clientServerMiddleware && 'server-only CORS middleware is installed in the browser app',
   report.blockingSleepImplementation && 'CPU-blocking sleep implementation returned',
@@ -75,6 +85,7 @@ if (process.argv.includes('--json')) {
   console.log(`Unmanaged global-listener files: ${report.unmanagedListenerFiles.length}`)
   for (const file of report.unmanagedListenerFiles) console.log(`  - ${file}`)
   console.log(`Unmanaged component-listener files: ${report.unmanagedComponentListenerFiles.length}`)
+  console.log(`Complexity caps: ${report.sourceFiles}/${limits.sourceFiles} source files, ${report.sourceLines}/${limits.sourceLines} lines, largest ${largestProductFile.lines}/${limits.largestProductFileLines}`)
   if (report.unclearedListenerScopeFiles.length) {
     console.log(`Uncleared listener scopes: ${report.unclearedListenerScopeFiles.join(', ')}`)
   }
@@ -87,6 +98,6 @@ if (process.argv.includes('--check')) {
     for (const violation of violations) console.error(`ARCHITECTURE REGRESSION: ${violation}`)
     process.exitCode = 1
   } else {
-    console.log('Architecture ratchet passed. Blocking waits and unmanaged listeners remain absent.')
+    console.log('Architecture ratchet passed. Size caps, blocking waits and listener ownership remain within contract.')
   }
 }

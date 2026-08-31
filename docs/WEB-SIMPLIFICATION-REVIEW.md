@@ -2,6 +2,72 @@
 
 Status: local review branch; no production deploy. Updated 2026-08-30.
 
+## Normative engineering contract
+
+This section is the code-review gate. The rest of the document records the
+reasoning and staged plan. “Works” is necessary but not sufficient: a change
+must also leave the project easier to explain, test, remove and maintain.
+
+### Shape
+
+1. **One owner per behaviour.** MIDI connection, sound, settings persistence,
+   firmware update and PWA installation each have one state owner. Views render
+   that state; they do not create a second lifecycle.
+2. **Pure decisions, effects at the edge.** Encoding, parsing, validation and
+   state transitions stay in plain modules. Vue components bind them to DOM,
+   Web MIDI, Web Audio and service workers.
+3. **No speculative abstraction.** A helper must remove at least two real
+   copies or close one named failure with a test. “Might be useful” is not a
+   reason for another layer, registry or wrapper.
+4. **No compatibility by duplication.** Do not send two protocols, open every
+   matching port or keep two state machines “just in case”. Detect a capability
+   once, select one path and fail visibly on ambiguity.
+5. **Bounded asynchronous work.** Every hardware/network operation is
+   cancellable or generation-bound, has a timeout and returns controls to a
+   retryable state. Background verification never owns a full-screen loader.
+6. **Truthful states.** `connected`, `saved`, `offline`, `installed` and
+   `updated` are shown only after their corresponding observable proof. A
+   timeout is an explicit `unknown/error`, never success.
+
+### Change budget
+
+- Prefer deletion or reuse before adding a file or dependency.
+- One behaviour change per commit; no repository-wide formatting alongside it.
+- Report source files, source lines, largest file and direct dependencies before
+  and after. Growth requires a named reason and human review of the ratchet.
+- A production Vue file may not silently grow beyond 850 lines. Split by a real
+  responsibility, not by arbitrary fragments.
+- Product source is capped at 64 files and 10,050 lines at the current baseline.
+  A feature that crosses the cap must remove equivalent debt or explicitly
+  update this contract in a separate reviewed commit.
+- A new dependency needs: browser/runtime purpose, why the platform cannot do
+  it, bundle cost, maintenance owner and removal path.
+
+### Evidence gate
+
+- Tests exercise production modules; a rewritten model of the same logic is not
+  proof by itself.
+- Each bug fix carries the failing path and the recovery path. MIDI/device work
+  includes no-reply, disconnect and stale-operation cases.
+- `npm run test:biotron` must pass from the exact commit. Real hardware/Windows
+  gates remain separate and cannot be inferred from mocks.
+- Beta and production isolation is permanent. A beta feature cannot register a
+  production service worker or silently change another device route.
+- AI may propose or implement; it cannot approve its own architecture, physical
+  behaviour, merge, deployment or customer claim.
+
+### Reviewer stop conditions
+
+Reject or split the change when its author cannot answer in five minutes:
+
+- What single user-visible behaviour changed?
+- Which module owns it now?
+- What was deleted or made simpler?
+- What exact failure and recovery tests protect it?
+- How is it removed or rolled back without touching unrelated devices?
+
+If the answer needs a long narrative, the change is too broad.
+
 ## Outcome first
 
 Keep Vue 3 and the current Vue CLI build for now. The safest high-value path is
