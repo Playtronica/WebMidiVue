@@ -76,7 +76,48 @@ const server = http.createServer((request, response) => {
           [36, 40, 43, 47, 52, 55, 59, 64], 127, quality, 150))))
       const volumeSweep = await Promise.all([0, 50, 70, 100, 150].map(volume =>
         render(`volume ${volume}`, SOUND_VARIANTS[0], [72], 100, 'standard', volume)))
-      return {singleNotes, quietBiotronNotes, denseChords, maximumDenseChords, volumeSweep}
+      const renderReleaseEdge = async () => {
+        const sampleRate = 48000
+        const context = new OfflineAudioContext(1, sampleRate, sampleRate)
+        const release = 0.1
+        const noteOff = 0.25
+        const stopTime = noteOff + release + 0.025
+        const preset = {...SOUND_VARIANTS[0], mixB: 0, delayWet: 0, reverbWet: 0, release}
+        const engine = new SynthEngine(context, {preset, quality: 'safe', volume: 150})
+        engine.noteOn('release-edge', 0, 72, 127, 0.05)
+        engine.noteOff('release-edge', 0, 72, noteOff)
+        const rendered = await context.startRendering()
+        const channel = rendered.getChannelData(0)
+        const stopSample = Math.round(stopTime * sampleRate)
+        let maxAdjacentDelta = 0
+        let maxPostStopDelta = 0
+        let maxPostStopDeltaOffset = 0
+        let peakNearStop = 0
+        for (let index = stopSample - 256; index <= stopSample + 256; index++) {
+          peakNearStop = Math.max(peakNearStop, Math.abs(channel[index] || 0))
+          maxAdjacentDelta = Math.max(maxAdjacentDelta,
+            Math.abs((channel[index] || 0) - (channel[index - 1] || 0)))
+        }
+        for (let index = stopSample; index <= stopSample + 4096; index++) {
+          const delta = Math.abs((channel[index] || 0) - (channel[index - 1] || 0))
+          if (delta > maxPostStopDelta) {
+            maxPostStopDelta = delta
+            maxPostStopDeltaOffset = index - stopSample
+          }
+        }
+        return {
+          maxAdjacentDelta,
+          maxPostStopDelta,
+          maxPostStopDeltaOffset,
+          peakNearStop,
+          stopSample,
+          stopDelta: Math.abs((channel[stopSample] || 0) - (channel[stopSample - 1] || 0)),
+          sampleBeforeStop: channel[stopSample - 1] || 0,
+          sampleAtStop: channel[stopSample] || 0
+        }
+      }
+      const releaseEdge = await renderReleaseEdge()
+      return {singleNotes, quietBiotronNotes, denseChords, maximumDenseChords, volumeSweep, releaseEdge}
     })
 
     for (const metric of [
@@ -105,6 +146,8 @@ const server = http.createServer((request, response) => {
       `default-volume RMS ${metrics.volumeSweep[2].rms} is below the loudness floor`)
     assert(Math.max(...metrics.maximumDenseChords.map(metric => metric.peak)) <= 0.98,
       `maximum-volume dense chord peak is ${Math.max(...metrics.maximumDenseChords.map(metric => metric.peak))}`)
+    assert(metrics.releaseEdge.maxPostStopDelta <= 0.0005,
+      `release edge ${metrics.releaseEdge.maxPostStopDelta} can produce an audible click`)
     console.log(`Sound levels verified: ${JSON.stringify(metrics)}`)
   } finally {
     await browser.close()

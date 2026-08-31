@@ -8,6 +8,7 @@ const VOICE_LEVEL = 0.22
 const VELOCITY_FLOOR = 0.72
 const PRECOMPRESSOR_GAIN = 6
 const SOFT_CEILING = 0.95
+const ZERO_FADE_SECONDS = 0.008
 
 function makeSoftCeilingCurve() {
   const curve = new Float32Array(2049)
@@ -48,13 +49,17 @@ function makeImpulse(context, seconds = 0.45) {
   return buffer
 }
 
-function holdAndRamp(param, now, endTime, target) {
+function holdAndFadeToZero(param, now, endTime) {
   if (typeof param.cancelAndHoldAtTime === 'function') param.cancelAndHoldAtTime(now)
   else {
     param.cancelScheduledValues(now)
     param.setValueAtTime(Math.max(SILENCE, Number.isFinite(param.value) ? param.value : SILENCE), now)
   }
-  param.exponentialRampToValueAtTime(Math.max(SILENCE, target), endTime)
+  const duration = Math.max(0, endTime - now)
+  const zeroFade = Math.min(ZERO_FADE_SECONDS, duration * 0.5)
+  const exponentialEnd = endTime - zeroFade
+  if (exponentialEnd > now) param.exponentialRampToValueAtTime(SILENCE, exponentialEnd)
+  param.linearRampToValueAtTime(0, endTime)
 }
 
 function smoothTo(param, target, now, seconds = 0.025) {
@@ -137,7 +142,7 @@ class Voice {
     if (this.ended || this.releaseScheduled) return
     this.releaseScheduled = true
     const end = when + this.preset.release
-    holdAndRamp(this.gain.gain, when, end, SILENCE)
+    holdAndFadeToZero(this.gain.gain, when, end)
     this.stopAt(end + 0.025)
   }
 
@@ -145,7 +150,7 @@ class Voice {
     if (this.ended) return
     this.releaseScheduled = true
     const end = when + 0.008
-    holdAndRamp(this.gain.gain, when, end, SILENCE)
+    holdAndFadeToZero(this.gain.gain, when, end)
     this.stopAt(end + 0.012)
   }
 
