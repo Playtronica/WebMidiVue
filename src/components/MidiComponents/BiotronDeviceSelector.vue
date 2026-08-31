@@ -33,6 +33,8 @@
 </template>
 
 <script>
+  import {buildSettingsQuery, parseSettingsResponse} from "@/biotron/settingsReadback.mjs";
+
   const portIdentity = (port) => [port.manufacturer || "", port.name || ""].join("\u0000");
   // 123 is reserved for persisted-settings readback in firmware protocol v1.
   const RECALIBRATE_COMMAND = 125;
@@ -89,7 +91,9 @@
         operationId: 0,
         unmounted: false,
         recalibrationNonce: 0,
-        recalibrationRequest: null
+        recalibrationRequest: null,
+        settingsReadbackNonce: 0,
+        settingsReadbackRequest: null
       }
     },
     methods: {
@@ -159,6 +163,40 @@
         clearTimeout(request.completionTimeout);
         this.recalibrationRequest = null;
       },
+      clearSettingsReadbackRequest(error = null) {
+        const request = this.settingsReadbackRequest;
+        if (!request) return;
+        clearTimeout(request.timeout);
+        this.settingsReadbackRequest = null;
+        if (error) request.reject(error);
+      },
+      requestPersistedSettings() {
+        const device = this.selectedDevice;
+        if (!device || this.released) {
+          return Promise.reject(new Error("Biotron is not connected."));
+        }
+        this.clearSettingsReadbackRequest(new Error("Settings read was replaced by a newer request."));
+        this.settingsReadbackNonce = (this.settingsReadbackNonce % 127) + 1;
+        const nonce = this.settingsReadbackNonce;
+        return new Promise((resolve, reject) => {
+          const request = {
+            nonce,
+            resolve,
+            reject,
+            timeout: setTimeout(() => {
+              if (this.settingsReadbackRequest !== request) return;
+              this.settingsReadbackRequest = null;
+              reject(new Error("Biotron did not return saved settings."));
+            }, 2500)
+          };
+          this.settingsReadbackRequest = request;
+          try {
+            device.output.send(buildSettingsQuery(nonce));
+          } catch (error) {
+            this.clearSettingsReadbackRequest(error);
+          }
+        });
+      },
       requestRecalibration() {
         const device = this.selectedDevice;
         if (!device || this.released || this.connecting) {
@@ -166,6 +204,7 @@
           return;
         }
         this.clearRecalibrationRequest();
+        this.clearSettingsReadbackRequest(new Error("Settings read was cancelled by calibration."));
         this.recalibrationNonce = (this.recalibrationNonce + 1) & 0x7f;
         const nonce = this.recalibrationNonce;
         const request = {
@@ -207,6 +246,7 @@
         this.connecting = true;
         this.clearUpdateTimeout();
         this.clearRecalibrationRequest();
+        this.clearSettingsReadbackRequest(new Error("MIDI device changed."));
         this.midiError = "";
         if (this.midiAccess) this.midiAccess.onstatechange = null;
 
@@ -331,6 +371,17 @@
       handleMidiMessage(event, operationId) {
         if (operationId !== this.operationId || this.released) return;
         const data = [...event.data];
+        const settingsRequest = this.settingsReadbackRequest;
+        if (settingsRequest) {
+          const snapshot = parseSettingsResponse(data, settingsRequest.nonce);
+          if (snapshot) {
+            clearTimeout(settingsRequest.timeout);
+            this.settingsReadbackRequest = null;
+            if (snapshot.valid) settingsRequest.resolve(snapshot);
+            else settingsRequest.reject(new Error("Biotron has no valid saved settings."));
+            return;
+          }
+        }
         const request = this.recalibrationRequest;
         if (request && data.length === 6 && data[0] === 0xf0 && data[1] === 0x0b &&
             data[2] === RECALIBRATE_COMMAND && data[3] === request.nonce && data[5] === 0xf7) {
@@ -366,6 +417,7 @@
       ++this.operationId;
       this.clearUpdateTimeout();
       this.clearRecalibrationRequest();
+      this.clearSettingsReadbackRequest(new Error("Settings page closed."));
       if (this.midiAccess) this.midiAccess.onstatechange = null;
       // An in-flight lifecycle operation observes operationId and closes its
       // device. Avoid racing it with a second close from the unmount hook.

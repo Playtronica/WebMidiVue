@@ -61,7 +61,21 @@ async function openProfile(online, denyMidiOnce = false) {
       connection: 'closed',
       async open() { this.connection = 'open'; return this },
       async close() { this.connection = 'closed'; return this },
-      send(data) { window.__midiSent.push(Array.from(data)) }
+      send(data) {
+        const message = Array.from(data)
+        window.__midiSent.push(message)
+        if (message[0] === 0xf0 && message[3] === 123 && message.length === 7) {
+          const values = [
+            78, 3, 4, 4, 50, 10, 0, 4, 8, 98, 74, 75, 0, 1, 0, 12,
+            0, 0, 1, 1, 0, 1, 60, 2, 3, 100, 0
+          ]
+          const response = [
+            0xf0, 0x0b, 123, 1, 1, 1, message[5], 1,
+            7, 0, 0, 0, 0, 7, 0, 0, 0, 0, ...values, 0xf7
+          ]
+          setTimeout(() => input.onmidimessage?.({data: Uint8Array.from(response)}), 0)
+        }
+      }
     }
     const access = {
       inputs: new Map([[input.id, input]]),
@@ -191,8 +205,9 @@ async function controllerVersion(page) {
   assert.strictEqual(await page.evaluate(() => window.__midiRequestOptions[1].sysex), true, 'Settings did not request SysEx after first-play released input-only MIDI')
   console.log('2/7 full Chrome restart, first-play reveal, cached Sound route and any-layout keyboard with network disabled verified')
 
-  const sendButton = page.getByRole('button', {name: /Send to Device/i})
+  const sendButton = page.getByRole('button', {name: /Apply and verify|Send to Device/i})
   await waitFor(() => sendButton.isEnabled(), 'fake Biotron did not connect offline')
+  await page.getByText('Settings loaded from Biotron.').waitFor({state: 'visible'})
   const calibrateButton = page.getByRole('button', {name: /Calibrate plant again/i})
   await waitFor(() => calibrateButton.isEnabled(), 'recalibration control did not become available')
   await calibrateButton.click()
@@ -224,6 +239,9 @@ async function controllerVersion(page) {
     'offline setting write did not reach the fake MIDI output'
   )
   await page.locator('#loader_div').waitFor({state: 'detached', timeout: 15000})
+  const settingsStatuses = await page.locator('[role="status"]').allTextContents()
+  assert(settingsStatuses.some(text => text.includes('Saved on Biotron.')),
+    `exact readback did not confirm save: ${JSON.stringify(settingsStatuses)}`)
   const heartbeatMaxGap = await page.evaluate(() => {
     clearInterval(window.__midiHeartbeat)
     return window.__midiHeartbeatMaxGap

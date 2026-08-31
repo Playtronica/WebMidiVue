@@ -12,9 +12,17 @@ const context = {
   navigator: { requestMIDIAccess: async () => ({inputs: new Map(), outputs: new Map()}) },
   console: { log() {} },
   setTimeout(callback) { scheduled.set(++timerId, callback); return timerId },
-  clearTimeout(id) { scheduled.delete(id) }
+  clearTimeout(id) { scheduled.delete(id) },
+  buildSettingsQuery(requestId) { return [0xf0, 0x14, 0x0d, 123, 1, requestId, 0xf7] },
+  parseSettingsResponse(data, expectedRequestId) {
+    if (data.length !== 46 || data[2] !== 123 || data[6] !== expectedRequestId) return null
+    return {valid: Boolean(data[7] & 1), dirty: Boolean(data[7] & 2), values: data.slice(18, 45)}
+  }
 }
-vm.runInNewContext(script.replace('export default', 'module.exports ='), context)
+vm.runInNewContext(
+  script.replace(/^\s*import .*$/gm, '').replace('export default', 'module.exports ='),
+  context
+)
 const component = context.module.exports
 
 function deferred() {

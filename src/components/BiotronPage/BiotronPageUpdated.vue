@@ -34,10 +34,19 @@
           aria-live="polite"
       >{{ calibrationMessage }}</span>
     </div>
+    <div
+        v-if="betaBuild && settingsMessage"
+        class="mx-2 mb-3 alert py-2"
+        :class="settingsState === 'error' ? 'alert-warning' : 'alert-light'"
+        role="status"
+        aria-live="polite"
+    >{{ settingsMessage }}</div>
     <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"  text_label="📂 Preset" class="m-2"/>
     <div class="row gx-1 mb-5">
       <div class="col">
-        <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary w-100 h-100">❇️ Send to Device</button>
+        <button @mouseup="change_data_loader" :disabled="!this.device || this.is_loading || (betaBuild && !settingsReady)" class="btn btn-primary w-100 h-100">
+          {{ betaBuild ? (is_loading ? 'Applying…' : 'Apply and verify') : '❇️ Send to Device' }}
+        </button>
       </div>
       <div class="col">
         <button @click="this.createPreset" class="btn btn-primary w-100 h-100">💾 Save Preset</button>
@@ -378,6 +387,11 @@ import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
 import DeviceTaskNav from "@/components/DeviceTaskNav.vue";
 import {createListenerScope} from "@/assets/js/ListenerScope.mjs";
+import {
+  applySettingsVector,
+  settingsVectorFromCommands,
+  settingsVectorsEqual
+} from "@/biotron/settingsReadback.mjs";
 
 
 
@@ -408,14 +422,41 @@ export default  {
   computed: {
     calibrationBusy() {
       return ["starting", "waiting", "measuring"].includes(this.calibrationState)
+    },
+    settingsReady() {
+      return ["loaded", "changed", "saved"].includes(this.settingsState)
     }
   },
   methods: {
-    handleDeviceChanged(device) {
+    async handleDeviceChanged(device) {
       this.device = device
       if (!device && this.calibrationBusy) {
         this.calibrationState = "error"
         this.calibrationMessage = "Biotron disconnected — reconnect it and try again."
+      }
+      if (!this.betaBuild) return
+      if (!device) {
+        this.settingsState = "idle"
+        this.settingsMessage = ""
+        return
+      }
+      if (!this.page_is_inited) return
+      await this.loadPersistedSettings(device)
+    },
+    async loadPersistedSettings(device) {
+      this.settingsState = "loading"
+      this.settingsMessage = "Reading saved settings from Biotron…"
+      try {
+        const snapshot = await this.$refs.deviceSelector.requestPersistedSettings()
+        if (this.device !== device) return
+        applySettingsVector(this.commands_data, snapshot.values)
+        this.forceRerender++
+        this.settingsState = "loaded"
+        this.settingsMessage = "Settings loaded from Biotron."
+      } catch (error) {
+        if (this.device !== device) return
+        this.settingsState = "error"
+        this.settingsMessage = "Saved settings could not be read. Use firmware 1.9.3 for this team test."
       }
     },
     startCalibration() {
@@ -439,14 +480,34 @@ export default  {
       if (!this.device || this.is_loading) return
       const device = this.device
       this.is_loading = true;
+      this.settingsState = "saving"
+      this.settingsMessage = this.betaBuild ? "Applying settings…" : ""
       this.forceRerender++;
       try {
         await withMidiWriteSession(device, () => this.device, async output => {
           await output.wait(100)
           await this.sendData(output)
-          await output.wait(100)
-          await this.sendDataDeprecated(output)
+          if (!this.betaBuild) {
+            await output.wait(100)
+            await this.sendDataDeprecated(output)
+          }
         })
+        if (this.betaBuild) {
+          await new Promise(resolve => setTimeout(resolve, 1300))
+          if (this.device !== device) throw new Error("Biotron disconnected during save.")
+          const expected = settingsVectorFromCommands(this.commands_data)
+          const snapshot = await this.$refs.deviceSelector.requestPersistedSettings()
+          if (snapshot.dirty || !settingsVectorsEqual(snapshot.values, expected)) {
+            throw new Error("Saved settings did not match the form.")
+          }
+          this.settingsState = "saved"
+          this.settingsMessage = "Saved on Biotron."
+        }
+      } catch (error) {
+        if (this.betaBuild) {
+          this.settingsState = "error"
+          this.settingsMessage = "Could not verify the saved settings. Nothing is marked as saved."
+        }
       } finally {
         this.is_loading = false;
         this.forceRerender++;
@@ -543,8 +604,18 @@ export default  {
     },
     async sys_ex_changed(object) {
       await this.patchChanged();
+      if (this.betaBuild && !this.settingsReady) {
+        this.settingsState = "error"
+        this.settingsMessage = "Connect a Biotron with firmware 1.9.3 before changing device settings."
+        this.forceRerender++
+        return
+      }
       if (this.device) {
         await object.sendToMidi(this.device)
+      }
+      if (this.betaBuild) {
+        this.settingsState = "changed"
+        this.settingsMessage = "Changed — use Apply and verify to confirm it on Biotron."
       }
       this.forceRerender++;
       this.patchRerender++;
@@ -576,6 +647,8 @@ export default  {
       is_loading: false,
       calibrationState: "idle",
       calibrationMessage: "",
+      settingsState: "idle",
+      settingsMessage: "",
       commands_data: Object.fromEntries(BiotronCommandsData),
     }
   },
@@ -593,6 +666,7 @@ export default  {
     await this.loadData()
     this.forceRerender++;
     this.page_is_inited = true
+    if (this.betaBuild && this.device) await this.loadPersistedSettings(this.device)
 
   },
   mounted() {

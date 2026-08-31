@@ -25,7 +25,7 @@ export class SysExCommand {
                     name = null,
                     number_command = 0,
                     min_value = 0,
-                    max_value = 126,
+                    max_value = 127,
                     step = 1,
                     sendable = true,
                     custom_fold = null,
@@ -43,7 +43,9 @@ export class SysExCommand {
         this.sendable = sendable
 
         if (custom_fold === null) {
-            this.fold_function = (arr, val) => {arr.push(val % 127)}
+            this.fold_function = (arr, val) => {
+                arr.push(Math.max(0, Math.min(127, Math.round(Number(val) || 0))))
+            }
         }
         else {
             this.fold_function = custom_fold
