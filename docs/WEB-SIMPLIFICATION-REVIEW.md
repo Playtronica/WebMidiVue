@@ -111,7 +111,7 @@ testable without Chrome or a connected instrument.
 |---|---|---:|---:|---|
 | P0 review | Physically verify cancellation during unplug/navigation | S | medium | real device + browser |
 | P0 next | Version/capability negotiation; one wire protocol per session | M | high | released-firmware matrix + real device |
-| P1 | Shared Chrome/static-server test harness | S | low | identical browser scenarios before/after |
+| Done | Shared Chrome/static-server test harness | S | low | identical browser scenarios before/after |
 | P1 | Bootstrap SCSS subset, one component family at a time | M | medium | screenshots at desktop/mobile/200% zoom |
 | P1 | Shared MIDI session core for Settings and Sound | M | medium | existing race suite + 100 reconnect cycles |
 | P2 | Merge 90%+ duplicate Release/Test pages via route mode | L | high | golden presets/MIDI for every device |
@@ -123,7 +123,7 @@ selection is a firmware compatibility decision and needs its own rollback.
 ### S0 — mechanical reduction (this branch)
 
 - Lazy-load device routes.
-- Remove dead App state and unused direct dependencies.
+- Remove dead App state, two unreachable components and unused direct dependencies.
 - Keep normal-production/PWA isolation tests green.
 - Record entry bundle and route chunks before/after.
 
@@ -132,7 +132,8 @@ selection is a firmware compatibility decision and needs its own rollback.
 - Keep every component-owned global listener inside the scoped-listener utility.
 - Add a navigation stress test: visit A→B→A 100 times; one event must trigger
   exactly one handler and heap growth must remain bounded.
-- Extract one shared browser-test server/profile helper.
+- One shared browser-test server/Chrome locator now serves both sound and PWA
+  suites without changing their scenarios.
 
 ### S2 — non-blocking MIDI transport (timing slice completed)
 
@@ -175,3 +176,32 @@ hardware remains required for MIDI ownership, reconnect and offline acceptance.
 - Prefer deletion and pure modules over a new framework or abstraction layer.
 - A new helper must replace at least two copies or close a proven failure mode.
 - Production and beta remain separate build contracts; neither deploys itself.
+
+## Completed simplification pass — 2026-08-31
+
+Compared with `a862c25`, the four atomic commits remove 524 net lines:
+
+- source files: 60 → 59;
+- product source lines: 10,049 → 9,515 (−534);
+- test/script lines: 2,227 → 2,370 (+143 for cancellation, lifecycle and
+  legacy-selector contracts);
+- direct dev dependencies: −3; clean `npm ci` and the full gate pass;
+- CPU-blocking MIDI waits: 44 → 0;
+- unmanaged component/global listener files: 0;
+- unreachable components: −2 files / −576 lines.
+
+The product runtime was not deployed. Each commit is reviewable independently;
+the final branch only stacks already-tested commits.
+
+### Model routing contract
+
+- Deterministic scripts measure reachability, references, bundle size and test
+  results before any model judgment.
+- SOL may perform one mechanical net-negative change at a time: remove proven
+  dead code/dependencies, consolidate exact test-only duplicates, or maintain a
+  ratchet. Wire bytes and UX must remain unchanged and the full gate is required.
+- Strong review plus hardware evidence is mandatory for MIDI lifecycle,
+  protocol/version negotiation, presets, firmware update, device identity,
+  sound/LED meaning and any release decision.
+- Ambiguity means stop and escalate; no model may turn an assumption into a
+  customer claim, merge or deployment.
