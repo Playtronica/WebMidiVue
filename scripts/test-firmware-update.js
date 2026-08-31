@@ -40,6 +40,11 @@ async function run({ online, response }) {
 }
 
 ;(async () => {
+  const {compareFirmwareVersions} = contextForHelpers()
+  assert.strictEqual(compareFirmwareVersions('1.9.3', '1.8.2'), 1)
+  assert.strictEqual(compareFirmwareVersions('v1.8.2', '1.8.2'), 0)
+  assert.strictEqual(compareFirmwareVersions('1.8.2', '1.9.3'), -1)
+
   let result = await run({ online: false })
   assert.match(result.error.message, /internet connection/)
   assert.deepStrictEqual(result.events, [])
@@ -81,3 +86,15 @@ async function run({ online, response }) {
   console.error(error)
   process.exitCode = 1
 })
+
+function contextForHelpers() {
+  const helperContext = {
+    exports: {},
+    module: {exports: {}},
+    navigator: {onLine: true},
+    require: () => ({bootDevice: async () => {}})
+  }
+  helperContext.exports = helperContext.module.exports
+  vm.runInNewContext(compiled, helperContext)
+  return helperContext.module.exports
+}

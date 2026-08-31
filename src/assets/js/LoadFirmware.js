@@ -1,7 +1,17 @@
 import {bootDevice} from "@/assets/js/SysExCommand";
 
+export function compareFirmwareVersions(left = '', right = '') {
+    const parse = value => String(value).replace(/^v/, '').split('.').map(part => Number(part) || 0)
+    const a = parse(left)
+    const b = parse(right)
+    for (let index = 0; index < Math.max(a.length, b.length); index++) {
+        const difference = (a[index] || 0) - (b[index] || 0)
+        if (difference) return Math.sign(difference)
+    }
+    return 0
+}
 
-export async function LoadFirmware(repo_link, device) {
+export async function GetLatestFirmware(repo_link) {
     if (!navigator.onLine) {
         throw new Error('Firmware updates require an internet connection.')
     }
@@ -24,9 +34,17 @@ export async function LoadFirmware(repo_link, device) {
     if (firmwareAssets.length !== 1) {
         throw new Error('The latest release must contain exactly one verified .uf2 firmware file.')
     }
-    const firmwareUrl = firmwareAssets[0].browser_download_url
+    return {
+        version: String(data.tag_name || data.name || '').replace(/^v/i, ''),
+        name: firmwareAssets[0].name,
+        url: firmwareAssets[0].browser_download_url
+    }
+}
+
+export async function LoadFirmware(repo_link, device) {
+    const firmware = await GetLatestFirmware(repo_link)
 
     // Enter BOOT mode only after the online firmware file has been resolved.
     await bootDevice(device)
-    window.location.assign(firmwareUrl)
+    window.location.assign(firmware.url)
 }

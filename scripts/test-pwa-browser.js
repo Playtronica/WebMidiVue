@@ -56,6 +56,10 @@ async function openProfile(online, denyMidiOnce = false) {
         if (type === 'midimessage' && midiMessageListener === listener) midiMessageListener = null
       }
     }
+    const persistedValues = [
+      78, 3, 4, 4, 50, 10, 0, 4, 8, 98, 74, 75, 0, 1, 0, 12,
+      0, 0, 1, 1, 0, 1, 60, 2, 3, 100, 0
+    ]
     const output = {
       id: 'biotron-output-1', manufacturer: 'Playtronica', name: 'Biotron',
       connection: 'closed',
@@ -64,14 +68,14 @@ async function openProfile(online, denyMidiOnce = false) {
       send(data) {
         const message = Array.from(data)
         window.__midiSent.push(message)
+        if (message.length === 6 && message[0] === 0xf0 && message[1] === 20 &&
+            message[2] === 13 && message[3] === 22 && message[5] === 0xf7) {
+          persistedValues[17] = message[4]
+        }
         if (message[0] === 0xf0 && message[3] === 123 && message.length === 7) {
-          const values = [
-            78, 3, 4, 4, 50, 10, 0, 4, 8, 98, 74, 75, 0, 1, 0, 12,
-            0, 0, 1, 1, 0, 1, 60, 2, 3, 100, 0
-          ]
           const response = [
             0xf0, 0x0b, 123, 1, 1, 1, message[5], 1,
-            7, 0, 0, 0, 0, 7, 0, 0, 0, 0, ...values, 0xf7
+            7, 0, 0, 0, 0, 7, 0, 0, 0, 0, ...persistedValues, 0xf7
           ]
           setTimeout(() => input.onmidimessage?.({data: Uint8Array.from(response)}), 0)
         }
@@ -210,6 +214,13 @@ async function controllerVersion(page) {
   const sendButton = page.getByRole('button', {name: /Apply and verify|Send to Device/i})
   await waitFor(() => sendButton.isEnabled(), 'fake Biotron did not connect offline')
   await page.getByText('Settings loaded from Biotron.').waitFor({state: 'visible'})
+  const liveWriteCount = await page.evaluate(() => window.__midiSent.length)
+  await page.locator('input[type="checkbox"]').first().evaluate(element => element.click())
+  await page.getByText('Applied live — saving and checking…').waitFor({state: 'visible'})
+  await page.getByText('Applied live and saved on Biotron.').waitFor({state: 'visible', timeout: 10000})
+  assert(await page.evaluate(before => window.__midiSent.slice(before).some(message =>
+    JSON.stringify(message) === JSON.stringify([0xf0, 20, 13, 22, 1, 0xf7])
+  ), liveWriteCount), 'single setting did not reach Biotron immediately')
   const calibrateButton = page.getByRole('button', {name: /Calibrate plant again/i})
   await waitFor(() => calibrateButton.isEnabled(), 'recalibration control did not become available')
   await calibrateButton.click()
@@ -252,10 +263,11 @@ async function controllerVersion(page) {
   assert(await page.evaluate(() => window.__midiSent.some(message => message[0] === 0xF0 && message.at(-1) === 0xF7)), 'no complete SysEx setting was sent offline')
   console.log(`3/7 offline Biotron detection, nonce-bound recalibration and non-blocking SysEx write verified (max event-loop gap ${heartbeatMaxGap.toFixed(1)} ms)`)
 
+  await page.evaluate(() => window.__emitSettingsMidi([0xf0, 0x0b, 126, 0, 1, 9, 3, 0xf7]))
   await page.getByRole('button', { name: /Update Firmware/i }).click()
   await page.getByText(/Firmware updates require an internet connection/i).waitFor({state: 'visible', timeout: 5000})
   const update = page.locator('.modal.show').getByRole('button', { name: 'Update', exact: true })
-  assert(await update.isDisabled(), 'firmware Update remains enabled offline')
+  assert.strictEqual(await update.count(), 0, 'firmware action was offered without a verified newer release')
   console.log('4/7 offline firmware guard verified')
 
   await context.setOffline(false)

@@ -66,7 +66,7 @@
         type: String,
       },
     },
-    emits: ["device_changed", "calibration_state"],
+    emits: ["device_changed", "calibration_state", "firmware_version"],
     name: "DeviceSelector",
     data() {
       return {
@@ -401,7 +401,10 @@
         const [start_sys_ex, flag_byte, num_com, id_of_output, x, y, z, end_sys_ex] = event.data;
         if (start_sys_ex === 0xF0 && end_sys_ex === 0xF7 && flag_byte === 0x0B &&
             num_com === 126 && event.data.length === 8 && id_of_output === this.currentMidiNum) {
-          this.versions[this.selectedDevice.output.id] = `v${x}.${y}.${z}`;
+          const version = `${x}.${y}.${z}`;
+          const outputId = this.selectedDevice.output.id;
+          this.versions[outputId] = `v${version}`;
+          this.$emit("firmware_version", {version, outputId});
         }
       }
     },

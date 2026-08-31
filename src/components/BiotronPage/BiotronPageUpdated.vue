@@ -18,6 +18,7 @@
         regex-name="Biotron"
         @device_changed="handleDeviceChanged"
         @calibration_state="handleCalibrationState"
+        @firmware_version="handleFirmwareVersion"
         text_label="🔌 Select Device"
         check-versions-flag
         allow-daw-handoff
@@ -56,7 +57,14 @@
         <button @click="this.createPreset" class="btn btn-primary w-100 h-100">💾 Save Preset</button>
       </div>
       <div class="col">
-        <UpdateFirmwareComponent class="w-100 h-100" text="🔄 Update Firmware" repo="Playtronica/biotron-firmware" :device="this.device"/>
+        <UpdateFirmwareComponent
+            class="w-100 h-100"
+            text="🔄 Update Firmware"
+            repo="Playtronica/biotron-firmware"
+            :device="this.device"
+            :current-version="firmwareVersion"
+            :version-aware="betaBuild"
+        />
       </div>
 
       <div class="col">
@@ -437,7 +445,10 @@ export default  {
   },
   methods: {
     async handleDeviceChanged(device) {
+      this.clearLiveVerification()
+      this.settingsLoadId++
       this.device = device
+      this.firmwareVersion = ""
       if (!device && this.calibrationBusy) {
         this.calibrationState = "error"
         this.calibrationMessage = "Biotron disconnected — reconnect it and try again."
@@ -451,21 +462,71 @@ export default  {
       if (!this.page_is_inited) return
       await this.loadPersistedSettings(device)
     },
+    async handleFirmwareVersion(event) {
+      if (!this.device || event?.outputId !== this.device.id) return
+      this.firmwareVersion = event.version
+      if (this.betaBuild && this.settingsState === "error") {
+        await this.loadPersistedSettings(this.device)
+      }
+    },
+    async readPersistedSettingsWithRetry(device, attempts = 3) {
+      let lastError
+      for (let attempt = 0; attempt < attempts; attempt++) {
+        if (this.device !== device) throw new Error("Biotron changed.")
+        try {
+          return await this.$refs.deviceSelector.requestPersistedSettings()
+        } catch (error) {
+          lastError = error
+          if (attempt + 1 < attempts) await new Promise(resolve => setTimeout(resolve, 450))
+        }
+      }
+      throw lastError
+    },
     async loadPersistedSettings(device) {
+      const loadId = ++this.settingsLoadId
       this.settingsState = "loading"
       this.settingsMessage = "Reading saved settings from Biotron…"
       try {
-        const snapshot = await this.$refs.deviceSelector.requestPersistedSettings()
-        if (this.device !== device) return
+        const snapshot = await this.readPersistedSettingsWithRetry(device)
+        if (this.device !== device || loadId !== this.settingsLoadId) return
         applySettingsVector(this.commands_data, snapshot.values)
         this.forceRerender++
         this.settingsState = "loaded"
         this.settingsMessage = "Settings loaded from Biotron."
       } catch (error) {
-        if (this.device !== device) return
+        if (this.device !== device || loadId !== this.settingsLoadId) return
         this.settingsState = "error"
-        this.settingsMessage = "Saved settings could not be read. Use firmware 1.9.3 for this team test."
+        this.settingsMessage = this.firmwareVersion
+            ? `Firmware ${this.firmwareVersion} is connected, but saved settings did not answer. Live changes still work; reconnect to retry verification.`
+            : "Biotron is connected, but saved settings could not be read. Live changes still work; reconnect to retry verification."
       }
+    },
+    clearLiveVerification() {
+      if (this.liveVerifyTimer !== null) clearTimeout(this.liveVerifyTimer)
+      this.liveVerifyTimer = null
+      this.liveVerifyId++
+    },
+    scheduleLiveVerification(device) {
+      this.clearLiveVerification()
+      const verifyId = this.liveVerifyId
+      this.liveVerifyTimer = setTimeout(async () => {
+        this.liveVerifyTimer = null
+        if (this.device !== device || verifyId !== this.liveVerifyId) return
+        try {
+          const expected = settingsVectorFromCommands(this.commands_data)
+          const snapshot = await this.readPersistedSettingsWithRetry(device, 2)
+          if (this.device !== device || verifyId !== this.liveVerifyId) return
+          if (snapshot.dirty || !settingsVectorsEqual(snapshot.values, expected)) {
+            throw new Error("Saved settings did not match the controls.")
+          }
+          this.settingsState = "saved"
+          this.settingsMessage = "Applied live and saved on Biotron."
+        } catch (error) {
+          if (this.device !== device || verifyId !== this.liveVerifyId) return
+          this.settingsState = "error"
+          this.settingsMessage = "Applied live, but automatic save verification did not answer. Reconnect before relying on the saved state."
+        }
+      }, 1500)
     },
     startCalibration() {
       if (!this.device || this.calibrationBusy) return
@@ -611,19 +672,19 @@ export default  {
       this.saveData();
     },
     async sys_ex_changed(object) {
+      // A user gesture wins over a late startup read; never overwrite the
+      // control they just changed with an older snapshot.
+      this.settingsLoadId++
       await this.patchChanged();
-      if (this.betaBuild && !this.settingsReady) {
-        this.settingsState = "error"
-        this.settingsMessage = "Connect a Biotron with firmware 1.9.3 before changing device settings."
-        this.forceRerender++
-        return
-      }
       if (this.device) {
         await object.sendToMidi(this.device)
       }
       if (this.betaBuild) {
         this.settingsState = "changed"
-        this.settingsMessage = "Changed — use Apply and verify to confirm it on Biotron."
+        this.settingsMessage = this.device
+            ? "Applied live — saving and checking…"
+            : "Connect Biotron to apply this setting."
+        if (this.device) this.scheduleLiveVerification(this.device)
       }
       this.forceRerender++;
       this.patchRerender++;
@@ -661,6 +722,10 @@ export default  {
       calibrationMessage: "",
       settingsState: "idle",
       settingsMessage: "",
+      settingsLoadId: 0,
+      liveVerifyTimer: null,
+      liveVerifyId: 0,
+      firmwareVersion: "",
       commands_data: Object.fromEntries(BiotronCommandsData),
     }
   },
@@ -704,6 +769,8 @@ export default  {
     })
   },
   beforeUnmount() {
+    this.clearLiveVerification()
+    this.settingsLoadId++
     this.device = null
     this.listenerScope?.clear()
   }
