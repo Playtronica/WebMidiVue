@@ -2,13 +2,12 @@ const assert = require('assert')
 const crypto = require('crypto')
 const {execFileSync} = require('child_process')
 const fs = require('fs')
-const http = require('http')
 const os = require('os')
 const path = require('path')
 const {chromium} = require('playwright-core')
+const {chromePath, createStaticServer} = require('./browser-test-harness')
 
 const root = path.resolve(__dirname, '..', 'dist')
-const mime = {'.css':'text/css','.html':'text/html','.js':'text/javascript','.json':'application/json','.png':'image/png','.woff2':'font/woff2'}
 
 const soakArgument = process.argv.find(argument => argument.startsWith('--soak-seconds='))
 const realtimeSoakSeconds = soakArgument ? Number(soakArgument.split('=')[1]) : 0
@@ -42,13 +41,6 @@ function hashDirectory(directory) {
   return hash.digest('hex')
 }
 
-const chromePath = () => {
-  const candidates = [process.env.CHROME_PATH, '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/usr/bin/google-chrome', '/usr/bin/chromium'].filter(Boolean)
-  const executable = candidates.find(fs.existsSync)
-  assert(executable, 'Chrome/Chromium not found; set CHROME_PATH')
-  return executable
-}
-
 const evidenceContext = soakReportPath ? {
   sourceCommit: execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim(),
   sourceDirty: Boolean(execFileSync('/usr/bin/git', ['status', '--porcelain'], {encoding: 'utf8'}).trim()),
@@ -80,14 +72,7 @@ function writeSoakEvidence(status, phase, report = latestRealtimeSoak, error = n
   }
 }
 
-const server = http.createServer((request, response) => {
-  const pathname = new URL(request.url, 'http://127.0.0.1').pathname
-  const relative = pathname === '/' ? 'index.html' : pathname.slice(1)
-  let file = path.resolve(root, relative)
-  if (!file.startsWith(`${root}${path.sep}`) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(root, 'index.html')
-  response.writeHead(200, {'Content-Type': mime[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store'})
-  response.end(fs.readFileSync(file))
-})
+const server = createStaticServer(root)
 
 async function verifyCapabilityFallbacks(browser, origin) {
   const audioOnlyContext = await browser.newContext()

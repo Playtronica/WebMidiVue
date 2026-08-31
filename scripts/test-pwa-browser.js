@@ -1,53 +1,21 @@
 const assert = require('assert')
 const fs = require('fs')
-const http = require('http')
 const os = require('os')
 const path = require('path')
 const { chromium } = require('playwright-core')
+const {chromePath, createStaticServer} = require('./browser-test-harness')
 
 const root = path.resolve(__dirname, '..', 'dist')
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'biotron-pwa-profile-'))
 let origin
-const mime = {
-  '.css': 'text/css', '.html': 'text/html', '.ico': 'image/x-icon',
-  '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png',
-  '.ttf': 'font/ttf', '.woff2': 'font/woff2'
-}
 let serviceWorkerVersion = 1
 let context
-
-function chromePath() {
-  const candidates = [
-    process.env.CHROME_PATH,
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    '/usr/bin/google-chrome',
-    '/usr/bin/google-chrome-stable',
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser'
-  ].filter(Boolean)
-  const executable = candidates.find(fs.existsSync)
-  assert(executable, 'Chrome/Chromium not found; set CHROME_PATH')
-  return executable
-}
-
-const server = http.createServer((request, response) => {
-  const pathname = new URL(request.url, origin).pathname
-  let relative = pathname === '/' ? 'index.html' : pathname.slice(1)
-  let file = path.resolve(root, relative)
-  if (!file.startsWith(`${root}${path.sep}`) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
-    relative = 'index.html'
-    file = path.join(root, relative)
+const server = createStaticServer(root, {
+  headers: {'Service-Worker-Allowed': '/'},
+  transform(relative, body) {
+    if (relative !== 'service-worker.js') return body
+    return Buffer.from(`${body.toString()}\nself.addEventListener('message',event=>{if(event.data&&event.data.type==='TEST_SW_VERSION'&&event.ports[0])event.ports[0].postMessage(${serviceWorkerVersion})})\n`)
   }
-  let body = fs.readFileSync(file)
-  if (relative === 'service-worker.js') {
-    body = Buffer.from(`${body.toString()}\nself.addEventListener('message',event=>{if(event.data&&event.data.type==='TEST_SW_VERSION'&&event.ports[0])event.ports[0].postMessage(${serviceWorkerVersion})})\n`)
-  }
-  response.writeHead(200, {
-    'Content-Type': mime[path.extname(file)] || 'application/octet-stream',
-    'Cache-Control': 'no-store',
-    'Service-Worker-Allowed': '/'
-  })
-  response.end(body)
 })
 
 async function waitFor(predicate, message, timeout = 10000) {
