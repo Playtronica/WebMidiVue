@@ -240,13 +240,29 @@ async function controllerVersion(page) {
   await page.evaluate(nonce => window.__emitSettingsMidi([0xf0, 0x0b, 125, nonce, 3, 0xf7]), calibrationNonce)
   await page.getByText('Calibration complete — touch the plant.').waitFor({state: 'visible'})
   const sentBefore = await page.evaluate(() => window.__midiSent.length)
+  await page.evaluate(() => {
+    window.__midiHeartbeatMaxGap = 0
+    let last = performance.now()
+    window.__midiHeartbeat = setInterval(() => {
+      const now = performance.now()
+      window.__midiHeartbeatMaxGap = Math.max(window.__midiHeartbeatMaxGap, now - last)
+      last = now
+    }, 20)
+  })
+  await page.waitForTimeout(50)
   await sendButton.click()
   await waitFor(
     () => page.evaluate(before => window.__midiSent.length > before, sentBefore),
     'offline setting write did not reach the fake MIDI output'
   )
+  await page.locator('#loader_div').waitFor({state: 'detached', timeout: 15000})
+  const heartbeatMaxGap = await page.evaluate(() => {
+    clearInterval(window.__midiHeartbeat)
+    return window.__midiHeartbeatMaxGap
+  })
+  assert(heartbeatMaxGap < 500, `settings write blocked the browser event loop for ${heartbeatMaxGap} ms`)
   assert(await page.evaluate(() => window.__midiSent.some(message => message[0] === 0xF0 && message.at(-1) === 0xF7)), 'no complete SysEx setting was sent offline')
-  console.log('3/7 offline Biotron detection, nonce-bound recalibration and SysEx settings write verified')
+  console.log(`3/7 offline Biotron detection, nonce-bound recalibration and non-blocking SysEx write verified (max event-loop gap ${heartbeatMaxGap.toFixed(1)} ms)`)
 
   await page.getByRole('button', { name: /Update Firmware/i }).click()
   await page.getByText(/Firmware updates require an internet connection/i).waitFor({state: 'visible', timeout: 5000})

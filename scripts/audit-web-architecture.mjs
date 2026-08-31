@@ -32,6 +32,10 @@ const largestFiles = sources
   .slice(0, 10)
 const main = sources.find(({file}) => file === 'src/main.js')?.text || ''
 const sysEx = sources.find(({file}) => file === 'src/assets/js/SysExCommand.js')?.text || ''
+const unawaitedDelayFiles = sources
+  .filter(({file}) => file.startsWith('src/'))
+  .filter(({text}) => text.split('\n').some(line => /\bdelay\s*\(/.test(line) && !/\bawait\s+delay\s*\(|function\s+delay\s*\(/.test(line)))
+  .map(({file}) => file)
 const report = {
   sourceFiles: sources.filter(({file}) => file.startsWith('src/')).length,
   sourceLines: sources.filter(({file}) => file.startsWith('src/')).reduce((sum, {text}) => sum + text.split('\n').length, 0),
@@ -39,7 +43,8 @@ const report = {
   eagerDeviceRouteImports: matches(main, /^import .*@\/components\/(?!HomeComponent)/gm),
   clientServerMiddleware: /require\(['"]cors['"]\)|\.use\(cors\)/.test(main),
   blockingSleepImplementation: /do\s*\{[^}]*Date\.now\(\)[^}]*\}\s*while/s.test(sysEx),
-  sleepCalls: sources.reduce((sum, {text}) => sum + matches(text, /\bsleep\s*\(/g), 0) - 1,
+  sleepCalls: sources.reduce((sum, {text}) => sum + matches(text, /\bsleep\s*\(/g), 0),
+  unawaitedDelayFiles,
   unmanagedListenerFiles,
   unmanagedComponentListenerFiles,
   unclearedListenerScopeFiles,
@@ -48,12 +53,14 @@ const report = {
 
 const limits = {
   eagerDeviceRouteImports: 0,
-  sleepCalls: 44,
+  sleepCalls: 0,
   unmanagedListenerFiles: 0
 }
 const violations = [
   report.eagerDeviceRouteImports > limits.eagerDeviceRouteImports && `eager device imports exceed ${limits.eagerDeviceRouteImports}`,
   report.clientServerMiddleware && 'server-only CORS middleware is installed in the browser app',
+  report.blockingSleepImplementation && 'CPU-blocking sleep implementation returned',
+  report.unawaitedDelayFiles.length > 0 && `non-blocking delays are not awaited: ${report.unawaitedDelayFiles.join(', ')}`,
   report.sleepCalls > limits.sleepCalls && `blocking-delay calls exceed the known baseline ${limits.sleepCalls}`,
   report.unmanagedListenerFiles.length > limits.unmanagedListenerFiles && `unmanaged listener files exceed the known baseline ${limits.unmanagedListenerFiles}`,
   report.unmanagedComponentListenerFiles.length > 0 && `unmanaged component listeners: ${report.unmanagedComponentListenerFiles.join(', ')}`,
@@ -80,6 +87,6 @@ if (process.argv.includes('--check')) {
     for (const violation of violations) console.error(`ARCHITECTURE REGRESSION: ${violation}`)
     process.exitCode = 1
   } else {
-    console.log('Architecture ratchet passed. Known blocking-wait debt may decrease, never increase.')
+    console.log('Architecture ratchet passed. Blocking waits and unmanaged listeners remain absent.')
   }
 }

@@ -21,7 +21,11 @@ async function run({ online, response }) {
     window: { location: { assign: url => events.push(['download', url]) } },
     require: name => {
       assert.strictEqual(name, '@/assets/js/SysExCommand')
-      return { bootDevice: device => events.push(['boot', device]) }
+      return { bootDevice: async device => {
+        events.push(['boot-start', device])
+        await Promise.resolve()
+        events.push(['boot-done', device])
+      } }
     }
   }
   context.exports = context.module.exports
@@ -67,7 +71,8 @@ async function run({ online, response }) {
   })
   assert.ifError(result.error)
   assert.deepStrictEqual(result.events, [
-    ['boot', 'device'],
+    ['boot-start', 'device'],
+    ['boot-done', 'device'],
     ['download', 'https://github.com/Playtronica/biotron-firmware/releases/download/1.8.2/biotron-firmware_1.8.2.uf2']
   ])
 

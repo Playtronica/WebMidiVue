@@ -361,7 +361,7 @@
 
 <script>
 
-import { sleep } from "@/assets/js/SysExCommand"
+import {withMidiWriteSession} from "@/assets/js/timing.mjs"
 
 import { saveAs } from '@progress/kendo-file-saver';
 import {BiotronCommandsData, BiotronDb} from "@/components/BiotronPage/BiotronIDB"
@@ -436,58 +436,57 @@ export default  {
       this.calibrationMessage = messages[this.calibrationState] || messages.error
     },
     async change_data_loader() {
-      if (!this.device) return
-      sleep(100)
-       this.is_loading = true;
-       this.forceRerender++;
-
-      setTimeout(function () {
+      if (!this.device || this.is_loading) return
+      const device = this.device
+      this.is_loading = true;
+      this.forceRerender++;
+      try {
+        await withMidiWriteSession(device, () => this.device, async output => {
+          await output.wait(100)
+          await this.sendData(output)
+          await output.wait(100)
+          await this.sendDataDeprecated(output)
+        })
+      } finally {
         this.is_loading = false;
         this.forceRerender++;
-      }.bind(this),3000)
-
-      setTimeout(function () {
-        this.sendData()
-        sleep(100)
-        this.sendDataDeprecated()
-      }.bind(this),10)
-
+      }
     },
-    async sendDataDeprecated() {
-      if (this.device) {
-        this.device.send([240, 11, 16, 127, 247])
+    async sendDataDeprecated(output) {
+      if (output) {
+        output.send([240, 11, 16, 127, 247])
         let extraComp = []
 
         extraComp.push("plantBpm");
         for (let comm in this.commands_data) {
           if (!extraComp.includes(comm)) {
-            this.commands_data[comm].sendToMidi(this.device, [11])
-            sleep(100);
+            this.commands_data[comm].sendToMidi(output, [11])
+            await output.wait(100);
           }
         }
-        this.device.send([240, 11, 126, 247]);
-        sleep(100);
-        this.commands_data.plantBpm.sendToMidi(this.device, [11])
+        output.send([240, 11, 126, 247]);
+        await output.wait(100);
+        this.commands_data.plantBpm.sendToMidi(output, [11])
       }
     },
 
-    async sendData() {
-      if (this.device) {
-        this.device.send([240, 11, 20, 13, 126, 247]);
-        sleep(100);
+    async sendData(output) {
+      if (output) {
+        output.send([240, 11, 20, 13, 126, 247]);
+        await output.wait(100);
         let extraComp = []
 
         extraComp.push("plantBpm");
         for (let comm in this.commands_data) {
           if (!extraComp.includes(comm)) {
-            this.commands_data[comm].sendToMidi(this.device)
-            sleep(100);
+            this.commands_data[comm].sendToMidi(output)
+            await output.wait(100);
           }
         }
-        sleep(100);
-        this.device.send([240, 11, 20, 13, 126, 247]);
-        sleep(100);
-        this.commands_data.plantBpm.sendToMidi(this.device)
+        await output.wait(100);
+        output.send([240, 11, 20, 13, 126, 247]);
+        await output.wait(100);
+        this.commands_data.plantBpm.sendToMidi(output)
       }
     },
 
@@ -619,6 +618,7 @@ export default  {
     })
   },
   beforeUnmount() {
+    this.device = null
     this.listenerScope?.clear()
   }
 

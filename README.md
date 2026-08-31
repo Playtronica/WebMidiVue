@@ -77,9 +77,11 @@ in this branch pushes, deploys, publishes firmware, or touches production.
 
 `npm run audit:web` prints the current architectural debt and largest files.
 `npm run test:architecture` is a ratchet inside the full gate: eager routes and
-unmanaged component listeners cannot return, while the remaining blocking MIDI
-wait debt can only decrease. The staged simplification plan and rejected rewrite
-options are recorded in
+unmanaged component listeners cannot return, and CPU-blocking MIDI waits cannot
+return. `npm run test:midi-timing` proves delays yield to the event loop and
+writes stop after device switch, disconnect or close; the browser PWA gate
+measures responsiveness during a complete settings write. The
+staged simplification plan and rejected rewrite options are recorded in
 [`docs/WEB-SIMPLIFICATION-REVIEW.md`](docs/WEB-SIMPLIFICATION-REVIEW.md).
 
 The browser lifecycle test uses an installed Chrome/Chromium (`CHROME_PATH` can

@@ -27,6 +27,6 @@ export async function LoadFirmware(repo_link, device) {
     const firmwareUrl = firmwareAssets[0].browser_download_url
 
     // Enter BOOT mode only after the online firmware file has been resolved.
-    bootDevice(device)
+    await bootDevice(device)
     window.location.assign(firmwareUrl)
 }

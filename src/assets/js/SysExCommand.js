@@ -1,3 +1,5 @@
+import {delay} from "@/assets/js/timing.mjs";
+
 export function div(val, by){
     return (val - val % by) / by;
 }
@@ -98,19 +100,9 @@ export class SysExCommand {
 
 }
 
-export function bootDevice(device) {
-    console.log(device)
+export async function bootDevice(device) {
     if (!device) return;
     device.send([240, 11, 127, 247])
-    sleep(100)
+    await delay(100)
     device.send([240, 11, 20, 13, 127, 247])
-}
-
-
-export function sleep(milliseconds) {
-    const date = Date.now();
-    let currentDate = null;
-    do {
-        currentDate = Date.now();
-    } while (currentDate - date < milliseconds);
 }

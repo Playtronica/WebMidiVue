@@ -258,7 +258,7 @@
 </template>
 
 <script>
-import { sleep } from "@/assets/js/SysExCommand"
+import {withMidiWriteSession} from "@/assets/js/timing.mjs"
 import { saveAs } from '@progress/kendo-file-saver';
 import FileDropArea from "@/components/MidiComponents/FileDropArea.vue";
 import GroupOfCommands from "@/components/MidiComponents/GroupOfCommands.vue";
@@ -298,26 +298,26 @@ export default {
   },
   methods: {
     async change_data_loader() {
-      if (!this.device) return
-      sleep(100)
+      if (!this.device || this.is_loading) return
+      const device = this.device
       this.is_loading = true;
       this.forceRerender++;
-
-      setTimeout(function () {
+      try {
+        await withMidiWriteSession(device, () => this.device, async output => {
+          await output.wait(100)
+          await this.sendData(output)
+        })
+      } finally {
         this.is_loading = false;
         this.forceRerender++;
-      }.bind(this), 3000)
-
-      setTimeout(function () {
-        this.sendData()
-      }.bind(this), 10)
+      }
     },
 
-    async sendData() {
-      if (this.device) {
+    async sendData(output) {
+      if (output) {
         for (let comm in this.commands_data) {
-          this.commands_data[comm].sendToMidi(this.device)
-          sleep(100);
+          this.commands_data[comm].sendToMidi(output)
+          await output.wait(100);
         }
       }
     },
@@ -460,6 +460,7 @@ export default {
     })
   },
   beforeUnmount() {
+    this.device = null
     this.listenerScope?.clear()
   }
 }

@@ -109,7 +109,7 @@ testable without Chrome or a connected instrument.
 
 | Priority | Change | Size | Risk | Proof required |
 |---|---|---:|---:|---|
-| P0 next | Cancellable MIDI command queue; keep 100 ms pacing | M | medium | fake timers + old/current firmware |
+| P0 review | Physically verify cancellation during unplug/navigation | S | medium | real device + browser |
 | P0 next | Version/capability negotiation; one wire protocol per session | M | high | released-firmware matrix + real device |
 | P1 | Shared Chrome/static-server test harness | S | low | identical browser scenarios before/after |
 | P1 | Bootstrap SCSS subset, one component family at a time | M | medium | screenshots at desktop/mobile/200% zoom |
@@ -134,14 +134,26 @@ selection is a firmware compatibility decision and needs its own rollback.
   exactly one handler and heap growth must remain bounded.
 - Extract one shared browser-test server/profile helper.
 
-### S2 — non-blocking MIDI transport
+### S2 — non-blocking MIDI transport (timing slice completed)
 
-- Replace the busy loop with a cancellable FIFO command queue.
-- Preserve the released 100 ms pacing until firmware/version tests authorize a
-  faster rate.
+- All 44 CPU-blocking waits now yield to the browser event loop while preserving
+  released 100 ms pacing (and the Scala loader's 1 s pacing).
+- One save operation is single-flight and the loader remains visible until its
+  asynchronous sequence finishes.
+- The old selector explicitly opens matching outputs instead of sending an
+  invalid empty MIDI packet; non-matching inputs no longer receive handlers.
+- BOOT waits for both legacy/current reset frames before navigating to firmware.
+- Automated Chrome measured a 28.1 ms maximum event-loop gap during a complete
+  offline Biotron settings write; the regression budget is 500 ms.
+- A shared write session now cancels before the next MIDI message after device
+  switch, disconnect, port close or component unmount. Unit tests prove it never
+  continues on a replacement output.
+- Before merge, verify the same cancellation paths with a real unplug and route
+  change. Do not make the released pacing faster without firmware tests.
 - Stop sending both current and deprecated protocols blindly. Negotiate once,
   cache the result for the connection, and fail visibly on ambiguity.
-- Test cancellation, unplug, route change, queue saturation and old firmware.
+- Test queue saturation and old firmware; physical unplug/route tests remain a
+  release gate even though deterministic cancellation tests are green.
 
 ### S3 — pure device core
 
