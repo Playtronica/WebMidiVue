@@ -9,6 +9,10 @@
         settings-route="/biotron"
     />
     <h1 class="text-center">{{ betaBuild ? 'Settings' : 'Biotron Settings ⚙️' }}</h1>
+    <div v-if="betaBuild && soundSession.running" class="alert alert-success mx-2 py-2" role="status">
+      🔊 Sound stays on while you adjust settings. Touch the plant to hear each change.
+      <router-link to="/biotron/play" class="alert-link ms-1">Sound &amp; volume</router-link>
+    </div>
     <DeviceSelector
         ref="deviceSelector"
         regex-name="Biotron"
@@ -387,6 +391,7 @@ import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
 import DeviceTaskNav from "@/components/DeviceTaskNav.vue";
 import {createListenerScope} from "@/assets/js/ListenerScope.mjs";
+import {soundSessionState, stopPersistentSound} from "@/audio/sessionState.mjs";
 import {
   applySettingsVector,
   settingsVectorFromCommands,
@@ -420,6 +425,9 @@ export default  {
     },
   },
   computed: {
+    soundSession() {
+      return soundSessionState
+    },
     calibrationBusy() {
       return ["starting", "waiting", "measuring"].includes(this.calibrationState)
     },
@@ -620,6 +628,10 @@ export default  {
       this.forceRerender++;
       this.patchRerender++;
     },
+  },
+  async beforeRouteLeave(to) {
+    if (!this.betaBuild || to.path === "/biotron/play" || !soundSessionState.running) return true
+    return await stopPersistentSound()
   },
   data() {
     return {

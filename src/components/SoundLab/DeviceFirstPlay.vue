@@ -12,9 +12,13 @@ export default {
     profileId: {type: String, required: true}
   },
   async beforeRouteLeave(to, from, next) {
-    void to
     void from
     const sound = this.$refs.sound
+    if (to.path === '/biotron') {
+      sound?.releaseHeldKeyboard()
+      next()
+      return
+    }
     if (!sound?.engine && !sound?.midi) {
       next()
       return

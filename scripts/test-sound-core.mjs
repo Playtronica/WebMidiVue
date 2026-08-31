@@ -39,10 +39,12 @@ test('sound volume is bounded and maps to a safe output gain', () => {
   assert.equal(normalizeVolume(null), DEFAULT_VOLUME)
   assert.equal(normalizeVolume('37'), 37)
   assert.equal(normalizeVolume(-1), 0)
-  assert.equal(normalizeVolume(140), 100)
+  assert.equal(normalizeVolume(140), 140)
+  assert.equal(normalizeVolume(200), 150)
   assert.equal(volumeToGain(0), 0)
-  assert.equal(volumeToGain(50), 0.625)
-  assert.equal(volumeToGain(100), 2.5)
+  assert.equal(volumeToGain(50), 1.25)
+  assert.equal(volumeToGain(100), 5)
+  assert.equal(volumeToGain(150), 11.25)
 })
 
 test('MIDI note-on, velocity-zero note-off and panic are accepted', () => {

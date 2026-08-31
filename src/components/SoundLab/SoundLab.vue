@@ -90,12 +90,12 @@
               id="biotron-play-volume"
               type="range"
               min="0"
-              max="100"
+              max="150"
               step="1"
               :value="volume"
               @input="updateVolume"
             >
-            <output for="biotron-play-volume">{{ volume }}%</output>
+            <output for="biotron-play-volume">{{ volume }}{{ volume > 100 ? '% boost' : '%' }}</output>
           </label>
           <span class="sound-lab__status sound-lab__status--reveal" role="status" aria-live="polite">{{ status }}</span>
         </div>
@@ -149,12 +149,12 @@
           id="sound-lab-volume"
           type="range"
           min="0"
-          max="100"
+          max="150"
           step="1"
           :value="volume"
           @input="updateVolume"
         >
-        <output for="sound-lab-volume">{{ volume }}%</output>
+        <output for="sound-lab-volume">{{ volume }}{{ volume > 100 ? '% boost' : '%' }}</output>
       </label>
       <span class="sound-lab__status" role="status" aria-live="polite">{{ status }}</span>
     </section>
@@ -224,6 +224,11 @@
 import {markRaw} from 'vue'
 import {noteForKeyboardCode} from '@/audio/core.mjs'
 import {createRealtimeSynth, DEFAULT_VOLUME, normalizeVolume} from '@/audio/engine.mjs'
+import {
+  registerSoundController,
+  unregisterSoundController,
+  updateSoundSession
+} from '@/audio/sessionState.mjs'
 import {MidiInputSession} from '@/audio/midi.mjs'
 import {SOUND_VARIANTS} from '@/audio/presets.mjs'
 import {createExclusiveTabLease} from '@/audio/tabLease.mjs'
@@ -309,6 +314,7 @@ export default {
     }
   },
   mounted() {
+    registerSoundController(this)
     this.tabLease = markRaw(createExclusiveTabLease('playtronica-settings-sound-lab'))
     this.keyDownHandler = event => this.handleKeyDown(event)
     this.keyUpHandler = event => this.handleKeyUp(event)
@@ -320,6 +326,8 @@ export default {
     document.addEventListener('visibilitychange', this.visibilityHandler)
   },
   beforeUnmount() {
+    unregisterSoundController(this)
+    updateSoundSession({running: false, volume: this.volume})
     window.removeEventListener('keydown', this.keyDownHandler)
     window.removeEventListener('keyup', this.keyUpHandler)
     window.removeEventListener('blur', this.blurHandler)
@@ -336,8 +344,12 @@ export default {
     })
   },
   async beforeRouteLeave(to, from, next) {
-    void to
     void from
+    if (this.revealMode && to.path === this.revealProfile.settingsRoute) {
+      this.releaseHeldKeyboard()
+      next()
+      return
+    }
     if (!this.engine && !this.midi) {
       next()
       return
@@ -364,11 +376,16 @@ export default {
           volume: this.volume,
           onStateChange: state => this.handleAudioContextState(state)
         }))
-        this.midi = markRaw(new MidiInputSession(this.engine, event => this.handleMidiState(event)))
+        this.midi = markRaw(new MidiInputSession(
+          this.engine,
+          event => this.handleMidiState(event),
+          {sysex: this.revealMode && this.revealProfile.id === 'biotron'}
+        ))
       }
       if (await this.engine.resume() !== 'running') throw new Error('Audio could not start.')
       this.midi?.setEnabled(true)
       this.audioState = 'running'
+      updateSoundSession({running: true, volume: this.volume})
       this.status = 'Sound ready'
       return this.engine
     },
@@ -402,6 +419,7 @@ export default {
       if (!midiFailed) this.midi = null
       if (!audioFailed) this.engine = null
       this.audioState = audioFailed ? 'error' : 'closed'
+      updateSoundSession({running: audioFailed, volume: this.volume})
       this.resetVoiceUi()
       this.releaseBlocked = midiFailed || audioFailed
       if (midiFailed && audioFailed) this.status = 'Audio and MIDI did not release. Press Stop again.'
@@ -442,6 +460,7 @@ export default {
       this.volume = normalizeVolume(event?.target?.value)
       this.engine?.setVolume(this.volume)
       saveVolume(this.volume)
+      updateSoundSession({volume: this.volume})
     },
     play(note, source = 'screen') {
       if (this.engine?.state === 'running') {
@@ -463,6 +482,8 @@ export default {
     },
     releaseScreenKey(note) { this.release(note) },
     handleKeyDown(event) {
+      const target = event.target
+      if (target?.isContentEditable || ['INPUT', 'SELECT', 'TEXTAREA'].includes(target?.tagName)) return
       const note = noteForKeyboardCode(event.code)
       if (note === null || event.repeat || this.heldCodes.has(event.code)) return
       event.preventDefault()
@@ -625,6 +646,7 @@ export default {
     handleAudioContextState(state) {
       if (!this.engine || state === 'running') return
       if (state === 'closed') {
+        updateSoundSession({running: false, volume: this.volume})
         this.pauseInputs('Audio stopped unexpectedly — press Stop & release')
         this.audioState = 'closed'
         this.releaseBlocked = true
@@ -634,6 +656,7 @@ export default {
         ? 'Paused in background — press Start sound'
         : 'Audio paused — press Start sound')
       this.audioState = 'suspended'
+      updateSoundSession({running: false, volume: this.volume})
     },
     async handleVisibility() {
       if (!document.hidden || !this.engine) return

@@ -6,6 +6,7 @@ import "bootstrap/js/dist/modal"
 import "bootstrap/dist/css/bootstrap.min.css"
 import HomeComponent from "@/components/HomeComponent.vue";
 import '@pwa-entry'
+import {soundSessionState, stopPersistentSound} from '@/audio/sessionState.mjs'
 
 const betaBuild = process.env.VUE_APP_BIOTRON_PWA_BETA === 'true'
 const ScalaPage = () => import(/* webpackChunkName: "scala" */ '@/components/ExtraPage/ScalaPage.vue')
@@ -77,5 +78,12 @@ const router = createRouter({
     linkActiveClass: 'active',
     routes
 })
+
+if (betaBuild) {
+    router.beforeEach(async (to, from) => {
+        if (from.path !== '/biotron' || to.path === '/biotron/play' || !soundSessionState.running) return true
+        return await stopPersistentSound()
+    })
+}
 
 createApp(App).use(router).mount('#app')

@@ -1,23 +1,13 @@
 import {clamp, makeNoteKey, midiNoteToFrequency, VoiceLedger} from './core.mjs'
 import {SOUND_VARIANTS, validatePreset} from './presets.mjs'
+import {normalizeVolume, volumeToGain} from './volume.mjs'
+export {DEFAULT_VOLUME, normalizeVolume, volumeToGain} from './volume.mjs'
 
 const SILENCE = 0.0001
 const VOICE_LEVEL = 0.22
 const VELOCITY_FLOOR = 0.72
 const PRECOMPRESSOR_GAIN = 6
-const MAX_OUTPUT_GAIN = 2.5
-
-export const DEFAULT_VOLUME = 70
-
-export function normalizeVolume(input) {
-  if (input === null || input === undefined || input === '') return DEFAULT_VOLUME
-  return Math.round(clamp(Number(input), 0, 100, DEFAULT_VOLUME))
-}
-
-export function volumeToGain(input) {
-  const normalized = normalizeVolume(input) / 100
-  return normalized * normalized * MAX_OUTPUT_GAIN
-}
+const SOFT_CEILING = 0.95
 
 function makeSoftCeilingCurve() {
   const curve = new Float32Array(2049)
@@ -34,7 +24,7 @@ function makeSoftCeilingCurve() {
     const progress3 = progress2 * progress
     const output = (2 * progress3 - 3 * progress2 + 1) * 0.8
       + (progress3 - 2 * progress2 + progress) * 0.2
-      + (-2 * progress3 + 3 * progress2) * 0.97
+      + (-2 * progress3 + 3 * progress2) * SOFT_CEILING
     curve[index] = sign * output
   }
   return curve

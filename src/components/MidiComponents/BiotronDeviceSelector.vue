@@ -34,6 +34,8 @@
 
 <script>
   import {buildSettingsQuery, parseSettingsResponse} from "@/biotron/settingsReadback.mjs";
+  import {requestSharedMidiAccess} from "@/audio/midiAccess.mjs";
+  import {soundSessionState, stopPersistentSound} from "@/audio/sessionState.mjs";
 
   const portIdentity = (port) => [port.manufacturer || "", port.name || ""].join("\u0000");
   // 123 is reserved for persisted-settings readback in firmware protocol v1.
@@ -41,19 +43,8 @@
   const RECALIBRATE_WAITING = 1;
   const RECALIBRATE_MEASURING = 2;
   const RECALIBRATE_READY = 3;
-  let midiAccessPromise = null;
-
   const requestMidiAccess = () => {
-    if (!navigator.requestMIDIAccess) {
-      return Promise.reject(new Error("Web MIDI is not supported by this browser."));
-    }
-    if (!midiAccessPromise) {
-      midiAccessPromise = navigator.requestMIDIAccess({sysex: true}).catch((error) => {
-        midiAccessPromise = null;
-        throw error;
-      });
-    }
-    return midiAccessPromise;
+    return requestSharedMidiAccess({sysex: true});
   };
 
   export default {
@@ -248,6 +239,11 @@
         this.clearRecalibrationRequest();
         this.clearSettingsReadbackRequest(new Error("MIDI device changed."));
         this.midiError = "";
+        if (soundSessionState.running && !await stopPersistentSound()) {
+          this.connecting = false;
+          this.midiError = "Sound could not release the MIDI port. Return to Play and press Stop & release, then retry.";
+          return;
+        }
         if (this.midiAccess) this.midiAccess.onstatechange = null;
 
         const device = this.selectedDevice;
@@ -421,7 +417,14 @@
       if (this.midiAccess) this.midiAccess.onstatechange = null;
       // An in-flight lifecycle operation observes operationId and closes its
       // device. Avoid racing it with a second close from the unmount hook.
-      if (!this.connecting) this.closeDevice(this.selectedDevice);
+      if (!this.connecting) {
+        const device = this.selectedDevice;
+        if (device?.input) device.input.onmidimessage = null;
+        // Play and Settings share the same SysEx-enabled MIDI access. Keep the
+        // input open only while the persistent sound session owns it.
+        if (soundSessionState.running && device) this.closeDevice({output: device.output});
+        else this.closeDevice(device);
+      }
     }
   }
 </script>

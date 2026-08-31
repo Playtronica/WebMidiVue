@@ -1,4 +1,5 @@
 import {parseMidiMessage} from './core.mjs'
+import {requestSharedMidiAccess} from './midiAccess.mjs'
 
 export function describeMidiAccessError(error) {
   if (error?.name === 'NotAllowedError') {
@@ -11,13 +12,14 @@ export function describeMidiAccessError(error) {
 }
 
 export class MidiInputSession {
-  constructor(engine, onState = () => {}) {
+  constructor(engine, onState = () => {}, options = {}) {
     this.engine = engine
     this.onState = onState
     this.access = null
     this.input = null
     this.enabled = true
     this.closed = false
+    this.sysex = Boolean(options.sysex)
     // Late permission/open completions must never reacquire a released port.
     this.operationId = 0
     this.pendingConnect = null
@@ -34,10 +36,9 @@ export class MidiInputSession {
   async requestAccess(operationId = this.operationId) {
     this.assertActive(operationId)
     if (!this.access) {
-      if (!globalThis.navigator?.requestMIDIAccess) throw new Error('Web MIDI needs current Chrome or Edge on desktop.')
       let access
       try {
-        access = await globalThis.navigator.requestMIDIAccess({sysex: false})
+        access = await requestSharedMidiAccess({sysex: this.sysex})
       } catch (error) {
         this.assertActive(operationId)
         throw new Error(describeMidiAccessError(error))

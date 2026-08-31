@@ -57,7 +57,11 @@
   <div class="wrapper">
     <div class="m-2 content ">
       <CompatibilityGate :route="$route">
-        <router-view></router-view>
+        <router-view v-slot="{ Component }">
+          <KeepAlive include="DeviceFirstPlay">
+            <component :is="Component" />
+          </KeepAlive>
+        </router-view>
       </CompatibilityGate>
 
     </div>

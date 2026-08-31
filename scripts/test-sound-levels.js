@@ -73,8 +73,8 @@ const server = http.createServer((request, response) => {
         render(`${preset.name} dense chord`, preset, [36, 40, 43, 47, 52, 55, 59, 64], 127, quality))))
       const maximumDenseChords = await Promise.all(qualities.flatMap(quality => SOUND_VARIANTS.map(preset =>
         render(`${preset.name} maximum-volume dense chord`, preset,
-          [36, 40, 43, 47, 52, 55, 59, 64], 127, quality, 100))))
-      const volumeSweep = await Promise.all([0, 50, 70, 100].map(volume =>
+          [36, 40, 43, 47, 52, 55, 59, 64], 127, quality, 150))))
+      const volumeSweep = await Promise.all([0, 50, 70, 100, 150].map(volume =>
         render(`volume ${volume}`, SOUND_VARIANTS[0], [72], 100, 'standard', volume)))
       return {singleNotes, quietBiotronNotes, denseChords, maximumDenseChords, volumeSweep}
     })
@@ -97,10 +97,12 @@ const server = http.createServer((request, response) => {
     assert(Math.min(...metrics.denseChords.map(metric => metric.peak)) >= 0.35,
       `quietest dense chord peak is unexpectedly low: ${Math.min(...metrics.denseChords.map(metric => metric.peak))}`)
     assert(metrics.volumeSweep[0].peak < 0.001, `volume zero peak is ${metrics.volumeSweep[0].peak}`)
-    assert(metrics.volumeSweep[3].rms > metrics.volumeSweep[1].rms,
-      `maximum-volume RMS ${metrics.volumeSweep[3].rms} did not exceed 50% RMS ${metrics.volumeSweep[1].rms}`)
-    assert(metrics.volumeSweep[3].peak <= 0.98,
-      `maximum-volume peak ${metrics.volumeSweep[3].peak} exceeds 0.98`)
+    assert(metrics.volumeSweep[4].rms > metrics.volumeSweep[3].rms,
+      `150% boost RMS ${metrics.volumeSweep[4].rms} did not exceed 100% RMS ${metrics.volumeSweep[3].rms}`)
+    assert(metrics.volumeSweep[4].peak <= 0.98,
+      `150% boost peak ${metrics.volumeSweep[4].peak} exceeds 0.98`)
+    assert(metrics.volumeSweep[2].rms >= 0.19,
+      `default-volume RMS ${metrics.volumeSweep[2].rms} is below the loudness floor`)
     assert(Math.max(...metrics.maximumDenseChords.map(metric => metric.peak)) <= 0.98,
       `maximum-volume dense chord peak is ${Math.max(...metrics.maximumDenseChords.map(metric => metric.peak))}`)
     console.log(`Sound levels verified: ${JSON.stringify(metrics)}`)

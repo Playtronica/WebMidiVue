@@ -179,7 +179,8 @@ async function controllerVersion(page) {
   await page.getByRole('button', {name: 'Hear Biotron'}).click()
   await page.locator('.sound-lab[data-reveal-stage="settling"][data-audio-state="running"]').waitFor()
   assert.strictEqual(await page.evaluate(() => window.__midiRequestCount), 1, 'first-play did not use exactly one MIDI permission request')
-  assert.strictEqual(await page.evaluate(() => window.__midiRequestOptions[0].sysex), false, 'first-play requested unnecessary SysEx access')
+  assert.strictEqual(await page.evaluate(() => window.__midiRequestOptions[0].sysex), true,
+    'first-play did not establish the shared SysEx access required for uninterrupted Settings')
   for (const note of [92, 91, 92, 91]) {
     await page.evaluate(value => window.__emitFirstPlayMidi([0x91, value, 90]), note)
     await page.evaluate(value => window.__emitFirstPlayMidi([0x81, value, 0]), note)
@@ -201,8 +202,9 @@ async function controllerVersion(page) {
   await page.getByRole('button', {name: 'Stop & release'}).click()
   await page.goto(`${origin}/#/biotron`, {waitUntil: 'load'})
   await page.getByText(/Offline — Settings are available/i).waitFor({state: 'visible', timeout: 10000})
-  await waitFor(() => page.evaluate(() => window.__midiRequestCount === 2), 'Settings did not request its separate SysEx permission')
-  assert.strictEqual(await page.evaluate(() => window.__midiRequestOptions[1].sysex), true, 'Settings did not request SysEx after first-play released input-only MIDI')
+  await waitFor(() => page.evaluate(() => window.__midiRequestCount === 1), 'Settings did not retain first-play MIDI access')
+  assert.deepStrictEqual(await page.evaluate(() => window.__midiRequestOptions.map(options => options.sysex)),
+    [true], 'Settings did not reuse first-play SysEx access')
   console.log('2/7 full Chrome restart, first-play reveal, cached Sound route and any-layout keyboard with network disabled verified')
 
   const sendButton = page.getByRole('button', {name: /Apply and verify|Send to Device/i})
