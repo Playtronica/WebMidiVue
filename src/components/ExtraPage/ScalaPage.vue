@@ -20,7 +20,7 @@
 
 import DeviceSelector from "@/components/MidiComponents/DeviceSelector.vue";
 import FileDropArea from "@/components/MidiComponents/FileDropArea.vue";
-import { sleep } from "@/assets/js/SysExCommand"
+import {withMidiWriteSession} from "@/assets/js/timing.mjs"
 
 export default  {
   components: {
@@ -32,15 +32,15 @@ export default  {
   },
   methods: {
     /* eslint-disable */
-    loadFile(e) {
+    async loadFile(e) {
       let lst = e.split("\n")
       if (!lst[0].includes(".scl")) return
       let ind = lst.lastIndexOf("!")
       let count = parseInt(lst[ind - 1])
       let cents = lst.slice(ind + 1, ind + count + 1)
-      this.convertCentsString(cents, count)
+      await this.convertCentsString(cents, count)
     },
-    loadUrl() {
+    async loadUrl() {
       if (!this.url.includes("/tuningsystem")) return
       let cents = this.url.substring(this.url.lastIndexOf("/tuningsystem/") + "/tuningsystem/".length)
       let delimiter = cents.substring(7, 8)
@@ -59,9 +59,9 @@ export default  {
 
       lst = lst.slice(1)
       lst.push("2r1")
-      this.convertCentsString(lst, lst.length, "r")
+      await this.convertCentsString(lst, lst.length, "r")
     },
-    convertCentsString(cents, count, delimiter="/") {
+    async convertCentsString(cents, count, delimiter="/") {
       for (let i = 0; i < count; i++) {
         if (cents[i].includes(delimiter)) {
           let d_m = cents[i].split(delimiter)
@@ -70,33 +70,30 @@ export default  {
         else cents[i] = parseInt(cents[i])
       }
 
-      this.sendCents(cents)
+      await this.sendCents(cents)
     },
-    sendCents(lst) {
+    async sendCents(lst) {
       if (!this.device) return
-      let start_scala_message = [0xF0, 0x0B, 0x14, 0x0D, 0x01, 0xF7]
-      this.device.send(start_scala_message)
-      console.log(start_scala_message)
+      const device = this.device
+      await withMidiWriteSession(device, () => this.device, async output => {
+        const startMessage = [0xF0, 0x0B, 0x14, 0x0D, 0x01, 0xF7]
+        output.send(startMessage)
 
-      let message = []
-      for (const number of lst) {
-        message = [0xF0, 0x0B, 0x14, 0x0D, 0x01]
-        for (let _ = 0; _ < Math.floor(number / 0x7F); _++) {
-          message.push(0x7F)
+        for (const number of lst) {
+          const message = [0xF0, 0x0B, 0x14, 0x0D, 0x01]
+          for (let _ = 0; _ < Math.floor(number / 0x7F); _++) {
+            message.push(0x7F)
+          }
+          if (number % 0x7F !== 0) {
+            message.push(number % 0x7F)
+          }
+          message.push(0xF7)
+          output.send(message)
+          await output.wait(1000)
         }
-        if (number % 0x7F !== 0) {
-          message.push(number % 0x7F)
-        }
-        message.push(0xF7)
-        this.device.send(message)
-        console.log(message)
-        sleep(1000);
-      }
 
-      let stop_message = [0xF0, 0x0B, 0x14, 0x0D, 0x7F, 0xF7]
-      this.device.send(stop_message)
-      console.log(stop_message)
-
+        output.send([0xF0, 0x0B, 0x14, 0x0D, 0x7F, 0xF7])
+      })
     }
 
   },
@@ -106,6 +103,9 @@ export default  {
       device: null,
     }
   },
+  beforeUnmount() {
+    this.device = null
+  }
 }
 </script>
 

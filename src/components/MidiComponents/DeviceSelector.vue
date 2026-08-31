@@ -8,9 +8,6 @@
 </template>
 
 <script>
-// eslint-disable-next-line no-unused-vars
-  import {sleep} from "@/assets/js/SysExCommand";
-
   export default {
     props: {
       regexName: {
@@ -34,27 +31,30 @@
         midiOut: {},
         versions: {},
         currentMidiNum: 0,
-        updateTimeout: null
+        midiAccess: null,
+        versionTimeouts: []
       }
     },
     methods: {
-      midiReady(midi) {
-
+      async midiReady(midi) {
+        this.midiAccess = midi
         midi.onstatechange = (event) => {
-          this.initDevices(event.target)
+          this.initDevices(event.target).catch(error => console.log('Could not refresh MIDI devices', error))
         };
-        this.initDevices(midi);
+        await this.initDevices(midi);
       },
-      initDevices(midi) {
+      async initDevices(midi) {
+        this.clearVersionTimeouts()
         this.midiIn = {};
         this.midiOut = {};
         this.versions = {};
 
         const inputs = midi.inputs.values();
         for (let input = inputs.next(); input && !input.done; input = inputs.next()) {
-          if (input.value.name.match(this.regexName))
+          if (input.value.name.match(this.regexName)) {
             this.midiIn[input.id] = input.value;
             input.value.onmidimessage = (event) => this.handleMidiMessage(event);
+          }
         }
 
         let midi_output_id = 0;
@@ -62,8 +62,7 @@
         for (let output = outputs.next(); output && !output.done; output = outputs.next()) {
           if (output.value.name.match(this.regexName)) {
             this.midiOut[midi_output_id] = output.value
-            output.value.send([])
-            sleep(100)
+            await output.value.open()
             midi_output_id++;
           }
         }
@@ -73,14 +72,17 @@
         if (!this.checkVersionsFlag) return;
 
         for (const [key, midi_output] of Object.entries(this.midiOut)) {
-          setTimeout(() => {
-                midi_output.send([240, 20, 13, 126, key, 247])
-                sleep(100)
+          const timeout = setTimeout(() => {
+            if (midi_output.state !== 'disconnected' && midi_output.connection !== 'closed') {
+              midi_output.send([240, 20, 13, 126, Number(key), 247])
+            }
           }, 3000)
+          this.versionTimeouts.push(timeout)
         }
-
-
-
+      },
+      clearVersionTimeouts() {
+        for (const timeout of this.versionTimeouts) clearTimeout(timeout)
+        this.versionTimeouts = []
       },
       handleMidiMessage(event) {
         const [start_sys_ex, flag_byte, num_com, id_of_output, x, y, z, end_sys_ex] = event.data;
@@ -94,15 +96,20 @@
         }
       },
       deviceChanged() {
-        console.log(this.currentMidiNum)
         this.$emit("device_changed", this.midiOut[this.currentMidiNum])
       }
     },
     mounted() {
         navigator.requestMIDIAccess({sysex: true})
-            .then(
-                (midi) => this.midiReady(midi),
-                (err) => console.log('Something went wrong', err));
+            .then((midi) => this.midiReady(midi))
+            .catch((err) => console.log('Something went wrong', err));
+    },
+    beforeUnmount() {
+      this.clearVersionTimeouts()
+      if (this.midiAccess) this.midiAccess.onstatechange = null
+      for (const input of Object.values(this.midiIn)) input.onmidimessage = null
+      for (const output of Object.values(this.midiOut)) output.close?.().catch(() => {})
+      this.$emit("device_changed", undefined)
     }
   }
 </script>

@@ -78,7 +78,7 @@
 
 <script>
 
-import { sleep } from "@/assets/js/SysExCommand"
+import {withMidiWriteSession} from "@/assets/js/timing.mjs"
 import { saveAs } from '@progress/kendo-file-saver';
 import FileDropArea from "@/components/MidiComponents/FileDropArea.vue";
 import GroupOfCommands from "@/components/MidiComponents/GroupOfCommands.vue";
@@ -91,6 +91,7 @@ import {ScalesCommandsData, ScalesDb} from "@/components/ScalesPage/ScalesIDB";
 import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
 import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
 import ColorPicker from "@/components/MidiComponents/ColorPicker.vue";
+import {createListenerScope} from "@/assets/js/ListenerScope.mjs";
 
 
 
@@ -121,37 +122,36 @@ export default  {
   },
   methods: {
     async change_data_loader() {
-      if (!this.device) return
-      sleep(100)
-       this.is_loading = true;
-       this.forceRerender++;
-
-      setTimeout(function () {
+      if (!this.device || this.is_loading) return
+      const device = this.device
+      this.is_loading = true;
+      this.forceRerender++;
+      try {
+        await withMidiWriteSession(device, () => this.device, async output => {
+          await output.wait(100)
+          await this.sendData(output)
+        })
+      } finally {
         this.is_loading = false;
         this.forceRerender++;
-      }.bind(this),3000)
-
-      setTimeout(function () {
-        this.sendData()
-      }.bind(this),10)
-
+      }
     },
 
-    async sendData() {
-      if (this.device) {
-        this.device.send([240, 11, 20, 13, 126, 247]);
-        sleep(100);
+    async sendData(output) {
+      if (output) {
+        output.send([240, 11, 20, 13, 126, 247]);
+        await output.wait(100);
         let extraComp = []
 
         extraComp.push("plantBpm");
         for (let comm in this.commands_data) {
           if (!extraComp.includes(comm)) {
-            this.commands_data[comm].sendToMidi(this.device)
-            sleep(100);
+            this.commands_data[comm].sendToMidi(output)
+            await output.wait(100);
           }
         }
-        sleep(100);
-        this.device.send([240, 11, 20, 13, 126, 247]);
+        await output.wait(100);
+        output.send([240, 11, 20, 13, 126, 247]);
       }
     },
 
@@ -253,19 +253,20 @@ export default  {
 
   },
   mounted() {
-    document.addEventListener( 'keyup', event => {
+    this.listenerScope = createListenerScope()
+    this.listenerScope.on(document, 'keyup', event => {
       if (event.code === 'Enter' && !this.is_loading) this.change_data_loader();
     })
-    document.addEventListener( 'PatchChanged', async () => {
+    this.listenerScope.on(document, 'PatchChanged', async () => {
       await this.loadData();
       this.forceRerender++;
     })
-    document.addEventListener("PatchSave",  async (ev) => {
+    this.listenerScope.on(document, "PatchSave", async (ev) => {
       this.db.savePatch(localStorage.getItem(this.id), ev.detail)
       this.patches = await this.db.getPatch()
       this.patchRerender++;
     })
-    document.addEventListener( 'PatchDelete', async () => {
+    this.listenerScope.on(document, 'PatchDelete', async () => {
       this.db.deletePatch(parseInt(localStorage.getItem(this.id)))
       localStorage.setItem(this.id, "1")
       this.patches = await this.db.getPatch()
@@ -273,6 +274,10 @@ export default  {
       this.forceRerender++;
     })
 
+  },
+  beforeUnmount() {
+    this.device = null
+    this.listenerScope?.clear()
   }
 
 }

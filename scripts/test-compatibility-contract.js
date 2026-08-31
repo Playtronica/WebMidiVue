@@ -1,0 +1,43 @@
+const assert = require('assert')
+const fs = require('fs')
+const path = require('path')
+
+const read = file => fs.readFileSync(path.resolve(__dirname, '..', file), 'utf8')
+const main = read('src/main.js')
+const app = read('src/App.vue')
+const webpack = read('vue.config.js')
+
+const midiRoutes = new Map([
+  ['/biotron', 'Biotron'], ['/touchme', 'TouchMe'], ['/touchme/test', 'TouchMe'],
+  ['/touchme/standalone', 'TouchMe'], ['/playtron', 'Playtron'],
+  ['/playtron/test', 'Playtron'], ['/scales', 'Scales'], ['/scales/test', 'Scales'],
+  ['/biotron/update', 'Biotron'], ['/scala', 'Playtronica device'], ['/circle', 'Circle']
+])
+
+const deviceMetaHelper = main.slice(main.indexOf('const deviceMeta'), main.indexOf('const playMeta'))
+assert(deviceMetaHelper.includes('requiresMidi: true'), 'shared device metadata must require Web MIDI')
+assert(deviceMetaHelper.includes('requiresDesktop: true'), 'shared device metadata must require desktop')
+assert(deviceMetaHelper.includes('requiresChromium: true'), 'shared device metadata must require the supported Chromium path')
+assert(main.includes("const playMeta = productName => ({...deviceMeta(productName), requiresAudio: true})"),
+  'shared Play metadata must add Web Audio')
+
+for (const [route, product] of midiRoutes) {
+  const line = main.split('\n').find(candidate =>
+    candidate.includes(`{ path: '${route}'`) || candidate.includes(`{ path: "${route}"`))
+  assert(line, `${route} route is missing`)
+  assert(line.includes(`meta: deviceMeta('${product}')`), `${route} must use deviceMeta('${product}')`)
+}
+
+const firstPlay = main.slice(main.indexOf("path: '/biotron/play'"), main.indexOf("routes.push({path: '/sound'"))
+assert(firstPlay.includes("meta: {...playMeta('Biotron'), firstPlay: true}"),
+  'Biotron Play must use the shared MIDI, desktop and audio requirements')
+
+const soundRoute = main.split('\n').find(line => line.includes("routes.push({path: '/sound'"))
+assert(soundRoute.includes('requiresAudio: true'), 'Sound must block when Web Audio is unavailable')
+assert(!soundRoute.includes('requiresMidi: true'), 'Sound must preserve its audio-only keyboard fallback')
+
+assert(app.includes('<CompatibilityGate :route="$route">'), 'every beta route must pass through one compatibility gate')
+assert(webpack.includes("'src/components/CompatibilityGate.vue'"), 'beta must use the real compatibility gate')
+assert(webpack.includes("'src/components/DisabledCompatibilityGate.vue'"), 'normal production must use the no-op gate')
+
+console.log('Compatibility contract verified: every device route fails closed; Sound keeps audio-only fallback.')
