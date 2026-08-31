@@ -19,7 +19,6 @@ const biotronSelectorUsers = vueFiles
   .map(relative)
   .sort()
 const expected = [
-  'BiotronPage/BiotronPage.vue',
   'BiotronPage/BiotronPageUpdated.vue',
   'BiotronPage/BiotronUpdatePage.vue'
 ]
