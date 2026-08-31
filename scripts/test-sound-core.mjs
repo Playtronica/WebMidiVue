@@ -18,7 +18,7 @@ import {
   validateRevealProfile
 } from '../src/audio/revealProfiles.mjs'
 import {detectSoundCapabilities, soundCapabilityMessage} from '../src/audio/capabilities.mjs'
-import {BIOTRON_CALIBRATION, BiotronCalibrationTracker} from '../src/audio/biotronCalibration.mjs'
+import {BIOTRON_CALIBRATION, biotronVoiceLevel, BiotronCalibrationTracker} from '../src/audio/biotronCalibration.mjs'
 import {DEFAULT_VOLUME, normalizeVolume, volumeToGain} from '../src/audio/engine.mjs'
 import {
   buildCompatibilityIssue,
@@ -57,12 +57,17 @@ test('MIDI note-on, velocity-zero note-off and panic are accepted', () => {
 test('Biotron calibration recognizes the soft cue and legacy 91/92 pattern', () => {
   const tracker = new BiotronCalibrationTracker()
   const note = (value, velocity = 90) => ({type: 'note-on', channel: 1, note: value, velocity})
-  assert.equal(tracker.observe(note(79, 42), 0), 'candidate')
-  assert.equal(tracker.observe(note(76, 42), 500), 'candidate')
-  assert.equal(tracker.observe(note(72, 42), 1000), 'candidate')
-  assert.equal(tracker.observe(note(67, 42), 1600), 'calibrating')
+  assert.equal(tracker.observe(note(64, 22), 0), 'candidate')
+  assert.equal(tracker.observe(note(65, 24), 500), 'candidate')
+  assert.equal(tracker.observe(note(67, 26), 1000), 'candidate')
+  assert.equal(tracker.observe(note(72, 28), 1500), 'calibrating')
   assert.equal(tracker.calibrating, true)
-  assert.equal(BIOTRON_CALIBRATION.quietCompletionMs, 900)
+  assert.equal(BIOTRON_CALIBRATION.quietCompletionMs, 1100)
+  assert.equal(biotronVoiceLevel(note(64, 22)), BIOTRON_CALIBRATION.localLevel)
+  assert.equal(biotronVoiceLevel(note(64, 23)), 1)
+  assert.equal(biotronVoiceLevel(note(64, 22)), 0.08)
+  assert.equal(biotronVoiceLevel(note(50, 75)), 1)
+  assert.equal(biotronVoiceLevel({type: 'note-on', channel: 2, note: 50, velocity: 75}), 0.25)
 
   tracker.reset()
   assert.equal(tracker.observe(note(92), 0), 'candidate')
@@ -81,15 +86,18 @@ test('Biotron calibration recognizes the soft cue and legacy 91/92 pattern', () 
 
 test('MIDI state exposes the parsed event without exposing SysEx access', () => {
   const states = []
+  const played = []
   const engine = {
     activeVoiceCount: 1,
-    noteOn() {},
+    context: {currentTime: 3},
+    noteOn(...args) { played.push(args) },
     noteOff() {},
     panic() {}
   }
-  const session = new MidiInputSession(engine, state => states.push(state))
+  const session = new MidiInputSession(engine, state => states.push(state), {voiceLevel: () => 0.4})
   session.input = {id: 'biotron-music'}
   session.onMessage({data: [0x91, 64, 100]})
+  assert.deepEqual(played, [['biotron-music', 1, 64, 100, 3, 0.4]])
   assert.deepEqual(states, [{
     type: 'voices',
     count: 1,

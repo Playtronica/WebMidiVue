@@ -232,7 +232,7 @@ import {
 import {MidiInputSession} from '@/audio/midi.mjs'
 import {SOUND_VARIANTS} from '@/audio/presets.mjs'
 import {createExclusiveTabLease} from '@/audio/tabLease.mjs'
-import {BIOTRON_CALIBRATION, BiotronCalibrationTracker} from '@/audio/biotronCalibration.mjs'
+import {BIOTRON_CALIBRATION, biotronVoiceLevel, BiotronCalibrationTracker} from '@/audio/biotronCalibration.mjs'
 import {getRevealProfile, selectRevealInput} from '@/audio/revealProfiles.mjs'
 import {detectSoundCapabilities, soundCapabilityMessage} from '@/audio/capabilities.mjs'
 import DeviceTaskNav from '@/components/DeviceTaskNav.vue'
@@ -376,11 +376,10 @@ export default {
           volume: this.volume,
           onStateChange: state => this.handleAudioContextState(state)
         }))
-        this.midi = markRaw(new MidiInputSession(
-          this.engine,
-          event => this.handleMidiState(event),
-          {sysex: this.revealMode && this.revealProfile.id === 'biotron'}
-        ))
+        const biotron = this.revealMode && this.revealProfile.id === 'biotron'
+        this.midi = markRaw(new MidiInputSession(this.engine, event => this.handleMidiState(event), {
+          sysex: biotron, voiceLevel: biotron ? biotronVoiceLevel : undefined
+        }))
       }
       if (await this.engine.resume() !== 'running') throw new Error('Audio could not start.')
       this.midi?.setEnabled(true)
@@ -659,10 +658,9 @@ export default {
       updateSoundSession({running: false, volume: this.volume})
     },
     async handleVisibility() {
-      if (!document.hidden || !this.engine) return
-      this.pauseInputs('Paused in background — press Start sound')
-      try { await this.engine.context.suspend() } catch (error) { void error }
-      this.audioState = 'suspended'
+      this.releaseHeldKeyboard()
+      if (document.hidden || !this.engine || this.engine.context.state !== 'suspended') return
+      try { await this.ensureEngine() } catch (error) { void error }
     }
   }
 }

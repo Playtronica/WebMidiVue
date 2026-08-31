@@ -73,7 +73,7 @@ function smoothTo(param, target, now, seconds = 0.025) {
 }
 
 class Voice {
-  constructor(context, destination, preset, frequency, velocity, when, quality, onEnded) {
+  constructor(context, destination, preset, frequency, velocity, levelScale, when, quality, onEnded) {
     this.context = context
     this.preset = preset
     this.onEnded = onEnded
@@ -89,7 +89,7 @@ class Voice {
 
     const normalizedVelocity = clamp(velocity / 127, 0, 1, 0.7)
     const velocityLevel = VELOCITY_FLOOR + (1 - VELOCITY_FLOOR) * normalizedVelocity ** 0.7
-    const level = velocityLevel * VOICE_LEVEL
+    const level = velocityLevel * VOICE_LEVEL * clamp(levelScale, 0, 1, 1)
     this.addOscillator(preset.waveA, frequency, 0, 1, when)
     if (quality === 'standard' && preset.mixB > 0) {
       this.addOscillator(preset.waveB, frequency, preset.detune, preset.mixB, when)
@@ -263,7 +263,7 @@ export class SynthEngine {
     while (this.retiring.length > this.voiceLimit) this.retiring.shift()?.hardDispose(when)
   }
 
-  noteOn(sourceId, channel, note, velocity = 100, when = this.context.currentTime) {
+  noteOn(sourceId, channel, note, velocity = 100, when = this.context.currentTime, levelScale = 1) {
     const time = Math.max(this.context.currentTime, Number.isFinite(when) ? when : this.context.currentTime)
     const key = makeNoteKey(sourceId, channel, note)
     const claim = this.ledger.claim(key, time)
@@ -272,7 +272,7 @@ export class SynthEngine {
       this.voices.delete(claim.victimKey)
     }
     const voice = new Voice(this.context, this.input, this.preset, midiNoteToFrequency(note),
-      clamp(velocity, 1, 127, 100), time, this.quality, () => {
+      clamp(velocity, 1, 127, 100), levelScale, time, this.quality, () => {
         if (this.voices.get(key) === voice) this.voices.delete(key)
         this.retiring = this.retiring.filter(item => item !== voice)
         this.ledger.remove(key, claim.token)

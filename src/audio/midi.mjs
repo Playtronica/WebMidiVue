@@ -20,6 +20,7 @@ export class MidiInputSession {
     this.enabled = true
     this.closed = false
     this.sysex = Boolean(options.sysex)
+    this.voiceLevel = typeof options.voiceLevel === 'function' ? options.voiceLevel : () => 1
     // Late permission/open completions must never reacquire a released port.
     this.operationId = 0
     this.pendingConnect = null
@@ -138,7 +139,8 @@ export class MidiInputSession {
     if (!this.enabled) return
     const message = parseMidiMessage(event.data)
     const source = this.input?.id || 'midi'
-    if (message.type === 'note-on') this.engine.noteOn(source, message.channel, message.note, message.velocity)
+    if (message.type === 'note-on') this.engine.noteOn(source, message.channel, message.note, message.velocity,
+      this.engine.context?.currentTime, this.voiceLevel(message))
     else if (message.type === 'note-off') this.engine.noteOff(source, message.channel, message.note)
     else if (message.type === 'panic') this.engine.panic()
     this.onState({type: 'voices', count: this.engine.activeVoiceCount, message})
