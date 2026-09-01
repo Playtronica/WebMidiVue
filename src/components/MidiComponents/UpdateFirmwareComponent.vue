@@ -1,19 +1,21 @@
 <script>
 import {compareFirmwareVersions, GetLatestFirmware, LoadFirmware} from "@/assets/js/LoadFirmware";
 
+const testTarget = process.env.VUE_APP_BIOTRON_FIRMWARE_TARGET || ''
+
 export default {
   data() {
     return {
       isOnline: navigator.onLine,
       updateError: '',
-      latestFirmware: null,
+      latestFirmware: testTarget ? {version: testTarget, internal: true} : null,
       checkingFirmware: false
     }
   },
   mounted() {
     window.addEventListener('online', this.syncOnlineStatus)
     window.addEventListener('offline', this.syncOnlineStatus)
-    if (this.versionAware && this.currentVersion) this.refreshFirmwareStatus()
+    if (this.versionAware && this.currentVersion && !this.latestFirmware) this.refreshFirmwareStatus()
   },
   beforeUnmount() {
     window.removeEventListener('online', this.syncOnlineStatus)
@@ -26,7 +28,7 @@ export default {
       if (this.isOnline && this.versionAware && this.currentVersion && !this.latestFirmware) this.refreshFirmwareStatus()
     },
     async refreshFirmwareStatus() {
-      if (!this.isOnline || this.checkingFirmware) return
+      if (!this.isOnline || this.checkingFirmware || this.latestFirmware?.internal) return
       this.checkingFirmware = true
       try {
         this.latestFirmware = await GetLatestFirmware(this.repo)
@@ -48,22 +50,14 @@ export default {
   },
 
   props: {
-      repo: {
-        type: String
-      },
+      repo: String,
       text: {
         type: String,
         default: "Update Firmware",
       },
       device: Object,
-      currentVersion: {
-        type: String,
-        default: ''
-      },
-      versionAware: {
-        type: Boolean,
-        default: false
-      }
+      currentVersion: {type: String, default: ''},
+      versionAware: {type: Boolean, default: false}
   },
   watch: {
     currentVersion(value) {
@@ -71,6 +65,9 @@ export default {
     }
   },
   computed: {
+    candidateUpdateRequired() {
+      return Boolean(this.latestFirmware?.internal && this.updateAvailable)
+    },
     updateAvailable() {
       return Boolean(this.currentVersion && this.latestFirmware?.version &&
           compareFirmwareVersions(this.latestFirmware.version, this.currentVersion) > 0)
@@ -81,6 +78,7 @@ export default {
     buttonText() {
       if (this.checkingFirmware) return 'Checking firmware…'
       if (this.versionAware && !this.currentVersion) return 'Connect to check firmware'
+      if (this.candidateUpdateRequired) return `Installed ${this.currentVersion} · Test ${this.latestFirmware.version} required`
       if (this.noUpdateNeeded) return `Firmware ${this.currentVersion} ✓`
       if (this.updateAvailable) return `Update to ${this.latestFirmware.version}`
       return this.text
@@ -101,9 +99,14 @@ export default {
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <p v-if="noUpdateNeeded" class="alert alert-success mb-0">
-            Firmware {{ currentVersion }} is already current. The public release is {{ latestFirmware.version }}.
-            No download or update is needed.
+          <p v-if="candidateUpdateRequired" class="alert alert-warning mb-0">
+            This internal test requires firmware {{ latestFirmware.version }}. Installed: {{ currentVersion }}.
+            The public updater is intentionally disabled here because it currently offers a different release.
+            Use only the exact beta test package from the candidate card.
+          </p>
+          <p v-else-if="noUpdateNeeded" class="alert alert-success mb-0">
+            Firmware {{ currentVersion }} is current for {{ latestFirmware.internal ? 'this internal test' : 'the public release' }}.
+            No update is needed.
           </p>
           <p v-else-if="updateAvailable">
             After clicking on "Update", you will get a file with the .uf2 extension and the device will switch to boot mode.
@@ -122,7 +125,7 @@ export default {
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button v-if="updateAvailable" type="button" class="btn btn-primary" :disabled="!isOnline || !device"
+          <button v-if="updateAvailable && !candidateUpdateRequired" type="button" class="btn btn-primary" :disabled="!isOnline || !device"
                   @click="updateFirmware">
             Update</button>
         </div>
@@ -130,7 +133,3 @@ export default {
     </div>
   </div>
 </template>
-
-<style scoped>
-
-</style>
