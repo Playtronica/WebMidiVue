@@ -6,27 +6,17 @@ export {DEFAULT_VOLUME, normalizeVolume, volumeToGain} from './volume.mjs'
 const SILENCE = 0.0001
 const VOICE_LEVEL = 0.22
 const VELOCITY_FLOOR = 0.72
-const PRECOMPRESSOR_GAIN = 6
+const COMPRESSOR_MAKEUP_GAIN = 3.4
 const SOFT_CEILING = 0.95
+const CEILING_DRIVE = 4
 const ZERO_FADE_SECONDS = 0.008
 
 function makeSoftCeilingCurve() {
   const curve = new Float32Array(2049)
+  const normalization = SOFT_CEILING / Math.tanh(CEILING_DRIVE)
   for (let index = 0; index < curve.length; index += 1) {
     const input = index / (curve.length - 1) * 2 - 1
-    const sign = Math.sign(input)
-    const magnitude = Math.abs(input)
-    if (magnitude <= 0.8) {
-      curve[index] = input
-      continue
-    }
-    const progress = (magnitude - 0.8) / 0.2
-    const progress2 = progress * progress
-    const progress3 = progress2 * progress
-    const output = (2 * progress3 - 3 * progress2 + 1) * 0.8
-      + (progress3 - 2 * progress2 + progress) * 0.2
-      + (-2 * progress3 + 3 * progress2) * SOFT_CEILING
-    curve[index] = sign * output
+    curve[index] = Math.tanh(input * CEILING_DRIVE) * normalization
   }
   return curve
 }
@@ -199,6 +189,7 @@ export class SynthEngine {
     this.compressor = context.createDynamicsCompressor()
     this.master = context.createGain()
     this.output = context.createGain()
+    this.ceilingInput = context.createGain()
     this.ceiling = context.createWaveShaper()
     this.filter.type = 'lowpass'
     this.dry.gain.value = 0.86
@@ -210,8 +201,9 @@ export class SynthEngine {
     this.compressor.ratio.value = 12
     this.compressor.attack.value = 0.001
     this.compressor.release.value = 0.16
-    this.master.gain.value = PRECOMPRESSOR_GAIN
+    this.master.gain.value = COMPRESSOR_MAKEUP_GAIN
     this.output.gain.value = volumeToGain(this.volume)
+    this.ceilingInput.gain.value = 1 / CEILING_DRIVE
     this.ceiling.curve = makeSoftCeilingCurve()
     this.ceiling.oversample = this.quality === 'standard' ? '2x' : 'none'
     this.input.connect(this.filter)
@@ -225,8 +217,10 @@ export class SynthEngine {
       this.convolver.buffer = makeImpulse(context)
       this.filter.connect(this.convolver).connect(this.reverbWet).connect(this.headroom)
     }
-    this.headroom.connect(this.master).connect(this.compressor)
-      .connect(this.output).connect(this.ceiling).connect(context.destination)
+    // Keep every user volume level inside the compressor. Boosting after it
+    // drove ordinary notes into the ceiling and made their tails sound clipped.
+    this.headroom.connect(this.output).connect(this.compressor).connect(this.master)
+      .connect(this.ceilingInput).connect(this.ceiling).connect(context.destination)
   }
 
   get activeVoiceCount() { return this.voices.size }

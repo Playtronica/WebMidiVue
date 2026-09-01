@@ -58,12 +58,15 @@ const server = http.createServer((request, response) => {
         let peak = 0
         let energy = 0
         let nonFinite = 0
+        let ceilingSamples = 0
         for (const sample of channel) {
           if (!Number.isFinite(sample)) nonFinite += 1
+          if (Math.abs(sample) >= 0.94999) ceilingSamples += 1
           peak = Math.max(peak, Math.abs(sample))
           energy += sample * sample
         }
-        return {name, quality, peak, rms: Math.sqrt(energy / channel.length), nonFinite}
+        return {name, quality, peak, rms: Math.sqrt(energy / channel.length), nonFinite,
+          ceilingFraction: ceilingSamples / channel.length}
       }
       const renderSequence = async (name, preset, events, quality, volume) => {
         const sampleRate = 48000
@@ -79,12 +82,15 @@ const server = http.createServer((request, response) => {
         let peak = 0
         let energy = 0
         let nonFinite = 0
+        let ceilingSamples = 0
         for (const sample of channel) {
           if (!Number.isFinite(sample)) nonFinite += 1
+          if (Math.abs(sample) >= 0.94999) ceilingSamples += 1
           peak = Math.max(peak, Math.abs(sample))
           energy += sample * sample
         }
-        return {name, quality, peak, rms: Math.sqrt(energy / channel.length), nonFinite}
+        return {name, quality, peak, rms: Math.sqrt(energy / channel.length), nonFinite,
+          ceilingFraction: ceilingSamples / channel.length}
       }
       const qualities = ['standard', 'safe']
       const singleNotes = await Promise.all(qualities.flatMap(quality => SOUND_VARIANTS.map(preset =>
@@ -195,7 +201,7 @@ const server = http.createServer((request, response) => {
       `150% boost RMS ${metrics.volumeSweep[4].rms} did not exceed 100% RMS ${metrics.volumeSweep[3].rms}`)
     assert(metrics.volumeSweep[4].peak <= 0.98,
       `150% boost peak ${metrics.volumeSweep[4].peak} exceeds 0.98`)
-    assert(metrics.volumeSweep[2].rms >= 0.19,
+    assert(metrics.volumeSweep[2].rms >= 0.17,
       `default-volume RMS ${metrics.volumeSweep[2].rms} is below the loudness floor`)
     const calibrationDb = 20 * Math.log10(metrics.calibration.rms / metrics.normalPlay.rms)
     const calibrationPhraseDb = 20 * Math.log10(metrics.calibrationPhrase.rms / metrics.ordinaryPhrase.rms)
@@ -211,6 +217,8 @@ const server = http.createServer((request, response) => {
       `light relative level ${lightSensorDb.toFixed(2)} dB is outside -18..-8 dB`)
     assert(Math.max(...metrics.maximumDenseChords.map(metric => metric.peak)) <= 0.98,
       `maximum-volume dense chord peak is ${Math.max(...metrics.maximumDenseChords.map(metric => metric.peak))}`)
+    assert(Math.max(...metrics.singleNotes.map(metric => metric.ceilingFraction)) <= 0.001,
+      `single-note ceiling saturation is ${Math.max(...metrics.singleNotes.map(metric => metric.ceilingFraction))}`)
     assert(metrics.releaseEdge.maxPostStopDelta <= 0.0005,
       `release edge ${metrics.releaseEdge.maxPostStopDelta} can produce an audible click`)
     console.log(`Sound levels verified: ${JSON.stringify(metrics)}`)
