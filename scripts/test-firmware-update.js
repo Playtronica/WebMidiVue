@@ -45,7 +45,7 @@ async function run({ online, response }) {
   assert.strictEqual(compareFirmwareVersions('v1.8.2', '1.8.2'), 0)
   assert.strictEqual(compareFirmwareVersions('1.8.2', '1.9.3'), -1)
   const betaEnvironment = fs.readFileSync('.env.biotron-beta', 'utf8')
-  assert.match(betaEnvironment, /^VUE_APP_BIOTRON_FIRMWARE_TARGET=1\.9\.7$/m)
+  assert.match(betaEnvironment, /^VUE_APP_BIOTRON_FIRMWARE_TARGET=1\.9\.8$/m)
   const updateComponent = fs.readFileSync('src/components/MidiComponents/UpdateFirmwareComponent.vue', 'utf8')
   assert.match(updateComponent, /Installed \$\{this\.currentVersion\} · Test \$\{this\.latestFirmware\.version\} required/)
   assert.match(updateComponent, /public updater is intentionally disabled/i)
