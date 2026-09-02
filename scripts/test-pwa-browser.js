@@ -75,7 +75,7 @@ async function openProfile(online, denyMidiOnce = false) {
         }
         if (window.__respondSettings && message[0] === 0xf0 && message[3] === 123 && message.length === 7) {
           const response = [
-            0xf0, 0x0b, 123, 1, 1, 1, message[5], 1,
+            0xf0, 0x14, 0x0d, 123, 1, 1, 1, message[5], 1,
             7, 0, 0, 0, 0, 7, 0, 0, 0, 0, ...persistedValues, 0xf7
           ]
           setTimeout(() => input.onmidimessage?.({data: Uint8Array.from(response)}), 0)

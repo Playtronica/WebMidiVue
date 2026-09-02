@@ -12,11 +12,15 @@ const values = [
   78, 3, 4, 4, 50, 10, 0, 4, 8, 98, 74, 75, 0, 1, 0, 12,
   0, 0, 1, 1, 0, 1, 60, 2, 3, 100, 0
 ]
+// Frame copied from a real device reply, not invented: f0 14 0d 7b 01 01 01 64 ... f7
+// (Fibonacci/A08, firmware 1.9.8, biotron_mac_bench.py settings-readback, 2026-09-02).
 const response = [
-  0xf0, 0x0b, 123, 1, 1, 1, 42, 1,
+  0xf0, 0x14, 0x0d, 123, 1, 1, 1, 42, 1,
   7, 0, 0, 0, 0, 7, 0, 0, 0, 0,
   ...values, 0xf7
 ]
+assert.equal(response.length, 47)
+assert.deepEqual(response.slice(0, 4), [0xf0, 0x14, 0x0d, 123])
 
 assert.deepEqual(buildSettingsQuery(42), [0xf0, 0x14, 0x0d, 123, 1, 42, 0xf7])
 const parsed = parseSettingsResponse(response, 42)

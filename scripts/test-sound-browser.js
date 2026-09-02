@@ -380,8 +380,10 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
             persistedValues[1] = (bpm >> 7) & 0x7f
           }
           if (message.length === 7 && message[0] === 0xf0 && message[3] === 123) {
+            // Envelope copied from a real 1.9.8 device reply (47 bytes, f0 14 0d 7b …),
+            // not invented — an invented frame is what hid this bug until 2026-09-02.
             const response = [
-              0xf0, 0x0b, 123, 1, 1, 1, message[5], 1,
+              0xf0, 0x14, 0x0d, 123, 1, 1, 1, message[5], 1,
               7, 0, 0, 0, 0, 7, 0, 0, 0, 0, ...persistedValues, 0xf7
             ]
             setTimeout(() => input.onmidimessage?.({data: Uint8Array.from(response)}), 0)

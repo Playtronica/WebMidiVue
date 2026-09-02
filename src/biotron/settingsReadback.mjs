@@ -26,19 +26,19 @@ function decodeU35(bytes) {
 
 export function parseSettingsResponse(input, expectedRequestId) {
   const data = Array.from(input || [])
-  if (data.length !== 46 || data[0] !== 0xf0 || data[1] !== 0x0b ||
-      data[2] !== SETTINGS_QUERY_ID || data[45] !== 0xf7) return null
+  if (data.length !== 47 || data[0] !== 0xf0 || data[1] !== 0x14 ||
+      data[2] !== 0x0d || data[3] !== SETTINGS_QUERY_ID || data[46] !== 0xf7) return null
   if (data.slice(1, -1).some(byte => !Number.isInteger(byte) || byte < 0 || byte > 0x7f)) return null
-  if (data[3] !== SETTINGS_PROTOCOL_VERSION || data[4] !== SETTINGS_SCHEMA_VERSION ||
-      data[5] !== SETTINGS_SOURCE_PERSISTED || data[6] !== u7(expectedRequestId)) return null
+  if (data[4] !== SETTINGS_PROTOCOL_VERSION || data[5] !== SETTINGS_SCHEMA_VERSION ||
+      data[6] !== SETTINGS_SOURCE_PERSISTED || data[7] !== u7(expectedRequestId)) return null
 
-  const flags = data[7]
+  const flags = data[8]
   return {
     valid: Boolean(flags & 1),
     dirty: Boolean(flags & 2),
-    dirtyGeneration: decodeU35(data.slice(8, 13)),
-    persistedGeneration: decodeU35(data.slice(13, 18)),
-    values: data.slice(18, 45)
+    dirtyGeneration: decodeU35(data.slice(9, 14)),
+    persistedGeneration: decodeU35(data.slice(14, 19)),
+    values: data.slice(19, 46)
   }
 }
 
