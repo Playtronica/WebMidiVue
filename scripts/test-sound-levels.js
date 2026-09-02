@@ -92,6 +92,73 @@ const server = http.createServer((request, response) => {
         return {name, quality, peak, rms: Math.sqrt(energy / channel.length), nonFinite,
           ceilingFraction: ceilingSamples / channel.length}
       }
+      const sampleRate = 48000
+      // Distortion of the whole master chain on a steady tone, measured as THD+N
+      // against the fitted 440 Hz fundamental.
+      const toneDistortion = async (amplitude, volume, quality) => {
+        const seconds = 1.5
+        const context = new OfflineAudioContext(1, sampleRate * seconds, sampleRate)
+        const engine = new SynthEngine(context, {preset: SOUND_VARIANTS[0], quality, volume})
+        const osc = context.createOscillator()
+        const gain = context.createGain()
+        osc.frequency.value = 440
+        gain.gain.value = amplitude
+        osc.connect(gain).connect(engine.input)
+        osc.start(0); osc.stop(seconds)
+        const channel = (await context.startRendering()).getChannelData(0)
+        const from = Math.round(sampleRate * 0.8), to = Math.round(sampleRate * 1.3)
+        let a = 0, b = 0, total = 0, peak = 0
+        for (let i = from; i < to; i++) {
+          const t = i / sampleRate, s = channel[i]
+          a += s * Math.sin(2 * Math.PI * 440 * t)
+          b += s * Math.cos(2 * Math.PI * 440 * t)
+          total += s * s
+          peak = Math.max(peak, Math.abs(s))
+        }
+        const n = to - from
+        a = 2 * a / n; b = 2 * b / n
+        const fundamental = (a * a + b * b) / 2 * n
+        return {amplitude, volume, quality, peak: Number(peak.toFixed(4)),
+          thdPercent: Number((100 * Math.sqrt(Math.max(0, total - fundamental) / Math.max(fundamental, 1e-12))).toFixed(2))}
+      }
+
+      // Fast repeated notes. Effects off so an attack cannot be confused with an
+      // echo; every note is measured in its own known window, no onset guessing.
+      const fastStream = async (notesPerSecond, seconds, quality, volume) => {
+        const preset = {...SOUND_VARIANTS[0], mixB: 0, delayWet: 0, reverbWet: 0}
+        const gap = 1 / notesPerSecond
+        const count = Math.floor(seconds * notesPerSecond)
+        const total = seconds + preset.release + 0.5
+        const context = new OfflineAudioContext(1, Math.ceil(sampleRate * total), sampleRate)
+        const engine = new SynthEngine(context, {preset, quality, volume})
+        const pitches = [60, 64, 67, 71, 72, 67, 64, 60]
+        const times = []
+        for (let i = 0; i < count; i++) {
+          const at = 0.1 + i * gap
+          times.push(at)
+          engine.noteOn('fast', 0, pitches[i % pitches.length], 100, at)
+          engine.noteOff('fast', 0, pitches[i % pitches.length], at + gap * 0.6)
+        }
+        const channel = (await context.startRendering()).getChannelData(0)
+        const attackPeak = at => {
+          const from = Math.round(at * sampleRate)
+          const to = Math.min(channel.length, from + Math.round(Math.min(gap, 0.05) * sampleRate))
+          let peak = 0
+          for (let i = from; i < to; i++) peak = Math.max(peak, Math.abs(channel[i]))
+          return peak
+        }
+        const peaks = times.map(attackPeak)
+        const reference = Math.max(...peaks) || 1e-9
+        const ratios = peaks.map(peak => peak / reference)
+        const sorted = ratios.slice().sort((x, y) => x - y)
+        return {notesPerSecond, quality, notes: count,
+          loudestAttack: Number(reference.toFixed(4)),
+          silentNotes: ratios.filter(ratio => ratio < 0.15).length,
+          weakNotes: ratios.filter(ratio => ratio < 0.4).length,
+          minRatio: Number(sorted[0].toFixed(3)),
+          medianRatio: Number(sorted[Math.floor(sorted.length / 2)].toFixed(3))}
+      }
+
       const qualities = ['standard', 'safe']
       const singleNotes = await Promise.all(qualities.flatMap(quality => SOUND_VARIANTS.map(preset =>
         render(preset.name, preset, [72], 100, quality))))
@@ -172,10 +239,15 @@ const server = http.createServer((request, response) => {
         }
       }
       const releaseEdge = await renderReleaseEdge()
+      const toneDistortions = []
+      for (const amplitude of [0.05, 0.1, 0.2]) toneDistortions.push(await toneDistortion(amplitude, 70, 'standard'))
+      const fastStreams = []
+      for (const rate of [4, 8, 12, 16, 20, 25]) fastStreams.push(await fastStream(rate, 2, 'standard', 70))
+      for (const rate of [4, 12]) fastStreams.push(await fastStream(rate, 2, 'safe', 70))
       return {
         singleNotes, quietBiotronNotes, denseChords, maximumDenseChords,
         volumeSweep, normalPlay, calibration, calibrationPhrase, calibration194Phrase, ordinaryPhrase,
-        legacyCalibrationPhrase, lightSensor, releaseEdge
+        legacyCalibrationPhrase, lightSensor, releaseEdge, toneDistortions, fastStreams
       }
     })
 
@@ -221,7 +293,32 @@ const server = http.createServer((request, response) => {
       `single-note ceiling saturation is ${Math.max(...metrics.singleNotes.map(metric => metric.ceilingFraction))}`)
     assert(metrics.releaseEdge.maxPostStopDelta <= 0.0005,
       `release edge ${metrics.releaseEdge.maxPostStopDelta} can produce an audible click`)
+    // Distortion ratchet. Peak alone cannot fail: the soft ceiling caps output at
+    // SOFT_CEILING, so `peak < 0.98` is structurally always true. THD+N is what a
+    // listener actually calls clipping, so that is what is gated here.
+    const quietTone = metrics.toneDistortions[0]
+    const loudTone = metrics.toneDistortions[1]
+    assert(quietTone.thdPercent <= 4,
+      `quiet-tone distortion is ${quietTone.thdPercent}% (was 3.15% on 2026-09-02)`)
+    assert(loudTone.thdPercent <= 11,
+      `ordinary loud-note distortion is ${loudTone.thdPercent}% (was 9.92% on 2026-09-02)`)
+
+    // Fast-play articulation. At the calm rate every note must be heard; the
+    // faster rates are reported, and the known gap is tracked as JTBD E07.
+    const calmStream = metrics.fastStreams.find(stream => stream.notesPerSecond === 4 && stream.quality === 'standard')
+    assert(calmStream.silentNotes === 0,
+      `${calmStream.silentNotes} of ${calmStream.notes} notes are inaudible at 4 notes/s`)
+    assert(calmStream.weakNotes <= 1,
+      `${calmStream.weakNotes} of ${calmStream.notes} notes are weak at 4 notes/s`)
+    for (const stream of metrics.fastStreams) {
+      assert(Number.isFinite(stream.loudestAttack) && stream.loudestAttack > 0,
+        `${stream.notesPerSecond} notes/s produced no audible attack at all`)
+    }
     console.log(`Sound levels verified: ${JSON.stringify(metrics)}`)
+    console.log('Distortion (THD+N): ' + metrics.toneDistortions
+      .map(tone => `peak ${tone.peak} -> ${tone.thdPercent}%`).join(', '))
+    console.log('Fast play: ' + metrics.fastStreams
+      .map(stream => `${stream.notesPerSecond}/s ${stream.quality}: ${stream.silentNotes}/${stream.notes} inaudible, loudest ${stream.loudestAttack}`).join(' | '))
   } finally {
     await browser.close()
     await new Promise(resolve => server.close(resolve))
