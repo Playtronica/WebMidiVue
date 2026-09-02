@@ -64,6 +64,7 @@
             :device="this.device"
             :current-version="firmwareVersion"
             :version-aware="betaBuild"
+            @check_firmware="checkFirmware"
         />
       </div>
 
@@ -459,15 +460,17 @@ export default  {
         return
       }
       if (!this.page_is_inited) return
-      await this.loadPersistedSettings(device)
+      this.settingsState = "connecting"
+      this.settingsMessage = "Checking Biotron firmware…"
     },
     async handleFirmwareVersion(event) {
       if (!this.device || event?.outputId !== this.device.id) return
       this.firmwareVersion = event.version
-      if (this.betaBuild && this.settingsState === "error") {
+      if (this.betaBuild && ["connecting", "error"].includes(this.settingsState)) {
         await this.loadPersistedSettings(this.device)
       }
     },
+    checkFirmware() { this.$refs.deviceSelector?.requestFirmwareVersion() },
     async readPersistedSettingsWithRetry(device, attempts = 3) {
       let lastError
       for (let attempt = 0; attempt < attempts; attempt++) {
@@ -806,39 +809,15 @@ export default  {
 
 <style scoped>
 
-.calibration-control {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  min-height: 44px;
-}
-
-.calibration-control__status {
-  color: #52606d;
-  line-height: 1.35;
-}
-
+.calibration-control { display: flex; align-items: center; gap: .75rem; min-height: 44px; }
+.calibration-control__status { color: #52606d; line-height: 1.35; }
 .calibration-control__status--active::before {
-  content: "";
-  display: inline-block;
-  width: .65rem;
-  height: .65rem;
-  margin-right: .45rem;
-  border-radius: 50%;
-  background: #6a5acd;
+  content: ""; display: inline-block; width: .65rem; height: .65rem;
+  margin-right: .45rem; border-radius: 50%; background: #6a5acd;
   animation: calibration-pulse .8s ease-in-out infinite alternate;
 }
-
-@keyframes calibration-pulse {
-  to { opacity: .35; transform: scale(.72); }
-}
-
-@media (max-width: 575.98px) {
-  .calibration-control { align-items: stretch; flex-direction: column; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .calibration-control__status--active::before { animation: none; }
-}
+@keyframes calibration-pulse { to { opacity: .35; transform: scale(.72); } }
+@media (max-width: 575.98px) { .calibration-control { align-items: stretch; flex-direction: column; } }
+@media (prefers-reduced-motion: reduce) { .calibration-control__status--active::before { animation: none; } }
 
 </style>

@@ -94,6 +94,17 @@ export class MidiInputSession {
     this.onState({type: 'connected', input: input.name || 'MIDI input'})
   }
 
+  async sendToPairedOutput(data) {
+    if (!this.access || !this.input) throw new Error('Connect the MIDI input first.')
+    const outputs = [...this.access.outputs.values()].filter(port => port.state !== 'disconnected' &&
+      ['name', 'manufacturer'].every(key => (port[key] || '') === (this.input[key] || '')))
+    if (outputs.length !== 1) throw new Error('Biotron control port could not be matched safely.')
+    const output = outputs[0]
+    await output.open()
+    try { output.send(data) }
+    finally { await output.close() }
+  }
+
   async release() {
     await this.invalidatePendingConnect()
     await this.releaseCurrent()

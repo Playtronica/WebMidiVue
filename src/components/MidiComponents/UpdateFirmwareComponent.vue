@@ -6,6 +6,7 @@ const internalFirmware = target ? {version: target, internal: true,
   name: process.env.VUE_APP_BIOTRON_FIRMWARE_NAME, url: process.env.VUE_APP_BIOTRON_FIRMWARE_URL,
   sha256: process.env.VUE_APP_BIOTRON_FIRMWARE_SHA256, size: Number(process.env.VUE_APP_BIOTRON_FIRMWARE_SIZE)} : null
 export default {
+  emits: ['check_firmware'],
   props: {repo: String, device: Object, currentVersion: {type: String, default: ''},
     versionAware: {type: Boolean, default: false}, text: {type: String, default: 'Update Firmware'}},
   data: () => ({online: navigator.onLine, latest: internalFirmware, phase: 'idle', message: '', error: '',
@@ -17,7 +18,7 @@ export default {
     busy() { return ['preparing', 'booting', 'writing', 'reconnecting'].includes(this.phase) },
     buttonText() {
       if (this.checking) return 'Checking firmware…'
-      if (this.versionAware && !this.currentVersion) return 'Connect to check firmware'
+      if (this.versionAware && !this.currentVersion) return 'Check firmware'
       if (this.current) return `Firmware ${this.currentVersion} ✓`
       if (this.available) return `Update to ${this.latest.version}`
       return this.text
@@ -86,8 +87,10 @@ export default {
 }
 </script>
 <template>
-  <button data-bs-toggle="modal" data-bs-target="#UpdateConf" class="btn btn-primary" :class="$attrs.class"
-          :disabled="checking || current || (versionAware && !currentVersion)">{{ buttonText }}</button>
+  <button v-if="versionAware && !currentVersion" type="button" class="btn btn-primary" :class="$attrs.class"
+          :disabled="!device" @click="$emit('check_firmware')">{{ buttonText }}</button>
+  <button v-else data-bs-toggle="modal" data-bs-target="#UpdateConf" class="btn btn-primary" :class="$attrs.class"
+          :disabled="checking || current">{{ buttonText }}</button>
   <div class="modal fade" id="UpdateConf" tabindex="-1" aria-labelledby="firmware-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
       <div class="modal-header"><h5 class="modal-title" id="firmware-title">Update firmware</h5>

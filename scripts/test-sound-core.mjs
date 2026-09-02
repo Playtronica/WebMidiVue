@@ -88,9 +88,13 @@ test('Biotron calibration recognizes the soft cue and legacy 91/92 pattern', () 
   })
 
   assert.deepEqual(parseBiotronCalibrationState(
-    parseMidiMessage([0xf0, 0x0b, 125, 0, 1, 0xf7])), {nonce: 0, state: 'measuring'})
+    parseMidiMessage([0xf0, 0x0b, 125, 0, 1, 0xf7])), {nonce: 0, state: 'waiting'})
   assert.deepEqual(parseBiotronCalibrationState(
-    parseMidiMessage([0xf0, 0x0b, 125, 42, 2, 0xf7])), {nonce: 42, state: 'ready'})
+    parseMidiMessage([0xf0, 0x0b, 125, 42, 2, 0xf7])), {nonce: 42, state: 'measuring'})
+  assert.deepEqual(parseBiotronCalibrationState(
+    parseMidiMessage([0xf0, 0x0b, 125, 42, 3, 0xf7])), {nonce: 42, state: 'ready'})
+  assert.equal(parseBiotronCalibrationState(
+    parseMidiMessage([0xf0, 0x0b, 125, 42, 0, 0xf7])), null)
   assert.equal(parseBiotronCalibrationState(parseMidiMessage([0xf0, 0x0b, 124, 0, 1, 0xf7])), null)
 
   tracker.reset()
@@ -120,6 +124,21 @@ test('MIDI state exposes the parsed event without exposing SysEx access', () => 
     count: 1,
     message: {type: 'note-on', channel: 1, note: 64, velocity: 100}
   }])
+})
+
+test('Biotron recalibration writes only to the exact paired output and releases it', async () => {
+  const sent = []
+  const output = {
+    id: 'out-1', name: 'Biotron Port 1', manufacturer: 'Playtronica', state: 'connected',
+    connection: 'closed', async open() { this.connection = 'open' },
+    send(data) { sent.push([...data]) }, async close() { this.connection = 'closed' }
+  }
+  const session = new MidiInputSession({panic() {}}, () => {}, {sysex: true})
+  session.input = {id: 'in-1', name: output.name, manufacturer: output.manufacturer}
+  session.access = {outputs: new Map([[output.id, output]])}
+  await session.sendToPairedOutput([0xf0, 0x14, 0x0d, 125, 7, 0xf7])
+  assert.deepEqual(sent, [[0xf0, 0x14, 0x0d, 125, 7, 0xf7]])
+  assert.equal(output.connection, 'closed')
 })
 
 test('voice ledger never exceeds its cap', () => {

@@ -64,6 +64,7 @@ const arrayBuffer = buffer => buffer.buffer.slice(buffer.byteOffset, buffer.byte
   const updateComponent = fs.readFileSync('src/components/MidiComponents/UpdateFirmwareComponent.vue', 'utf8')
   assert.match(updateComponent, /Downloading and checking firmware/)
   assert.match(updateComponent, /Choose RPI-RP2 & install/)
+  assert.match(updateComponent, /@click="\$emit\('check_firmware'\)"/)
   assert.doesNotMatch(updateComponent, /public updater is intentionally disabled/i)
   await testComponentStateMachine(updateComponent)
 

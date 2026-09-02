@@ -536,6 +536,9 @@ export default {
         this.resetCalibration()
         this.revealStage = 'settling'
         this.status = this.revealProfile.settlingStatus
+        if (this.revealProfile.id === 'biotron') {
+          await this.midi.sendToPairedOutput([0xf0, 0x14, 0x0d, 125, Date.now() % 127 + 1, 0xf7])
+        }
       } catch (error) {
         failure = error.message || `${this.revealProfile.productName} could not start.`
         await this.stop()

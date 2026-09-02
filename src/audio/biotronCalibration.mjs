@@ -17,8 +17,8 @@ const matchesCue = (message, index, contract, profiles = contract.cueVelocityPro
 export function parseBiotronCalibrationState(message) {
   const data = message?.type === 'system-exclusive' ? message.data : null
   if (!Array.isArray(data) || data.length !== 6 || data[0] !== 0xf0 || data[1] !== 0x0b ||
-      data[2] !== 125 || data[5] !== 0xf7 || data[4] > 2) return null
-  return {nonce: data[3] & 0x7f, state: ['waiting', 'measuring', 'ready'][data[4]]}
+      data[2] !== 125 || data[5] !== 0xf7 || data[4] < 1 || data[4] > 3) return null
+  return {nonce: data[3] & 0x7f, state: ['waiting', 'measuring', 'ready'][data[4] - 1]}
 }
 
 export function biotronVoiceLevel(message, contract = BIOTRON_CALIBRATION, calibrating = false) {

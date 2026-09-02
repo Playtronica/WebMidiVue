@@ -88,6 +88,15 @@ async function delayedQueryIsCancelled() {
   assert.strictEqual(JSON.stringify(second.output.sent), JSON.stringify([[240, 20, 13, 126, 1, 247]]))
 }
 
+async function firmwareQueryCanBeRetriedImmediately() {
+  const selected = {input: port('in-1'), output: port('out-1')}
+  const target = instance({selectedDevice: selected, currentMidiNum: 0})
+  assert.strictEqual(target.requestFirmwareVersion(), true)
+  assert.strictEqual(JSON.stringify(selected.output.sent), JSON.stringify([[240, 20, 13, 126, 0, 247]]))
+  target.released = true
+  assert.strictEqual(target.requestFirmwareVersion(), false)
+}
+
 async function reconnectOpenFailure() {
   const output = port('out-1', 'Biotron', { async open() { this.openCalls++; throw new Error('owned by DAW') } })
   const midi = { inputs: new Map(), outputs: new Map([['out-1', output]]), onstatechange: null }
@@ -259,6 +268,7 @@ async function versionReplyUpdatesStatusAndParentContract() {
 ;(async () => {
   await releaseFailureStaysVisible()
   await delayedQueryIsCancelled()
+  await firmwareQueryCanBeRetriedImmediately()
   await reconnectOpenFailure()
   await permissionDenialIsActionableAndRetryable()
   await missingDeviceIsActionable()

@@ -359,12 +359,15 @@
         this.updateTimeout = setTimeout(() => {
           this.updateTimeout = null;
           if (operationId !== this.operationId || this.released || this.selectedDevice !== device) return;
-          try {
-            device.output.send([240, 20, 13, 126, this.currentMidiNum, 247]);
-          } catch (err) {
-            if (operationId === this.operationId) this.midiError = "Could not query the selected device.";
-          }
-        }, 3000);
+          this.requestFirmwareVersion();
+        }, 120);
+      },
+      requestFirmwareVersion() {
+        if (!this.checkVersionsFlag || !this.selectedDevice || this.released) return false;
+        try {
+          this.selectedDevice.output.send([240, 20, 13, 126, this.currentMidiNum, 247]);
+          return true;
+        } catch (err) { this.midiError = "Could not query the selected device."; return false; }
       },
       handleMidiMessage(event, operationId) {
         if (operationId !== this.operationId || this.released) return;

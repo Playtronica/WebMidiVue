@@ -228,9 +228,9 @@ async function controllerVersion(page) {
   const calibrateButton = page.getByRole('button', {name: /Calibrate plant again/i})
   await waitFor(() => calibrateButton.isEnabled(), 'recalibration control did not become available')
   await calibrateButton.click()
-  const recalibrationRequest = await page.evaluate(() => window.__midiSent.find(message =>
+  const recalibrationRequest = await page.evaluate(() => window.__midiSent.filter(message =>
     JSON.stringify(message.slice(0, 4)) === JSON.stringify([0xf0, 0x14, 0x0d, 125])
-  ))
+  ).at(-1))
   assert(recalibrationRequest, 'recalibration SysEx was not sent')
   const calibrationNonce = recalibrationRequest[4]
   await page.evaluate(nonce => window.__emitSettingsMidi([0xf0, 0x0b, 125, nonce, 1, 0xf7]), calibrationNonce)
