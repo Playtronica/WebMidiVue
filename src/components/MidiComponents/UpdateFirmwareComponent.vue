@@ -1,135 +1,109 @@
 <script>
-import {compareFirmwareVersions, GetLatestFirmware, LoadFirmware} from "@/assets/js/LoadFirmware";
-
-const testTarget = process.env.VUE_APP_BIOTRON_FIRMWARE_TARGET || ''
-
+import {bootDevice} from '@/assets/js/SysExCommand'
+import {compareFirmwareVersions, GetLatestFirmware, LoadFirmware, prepareFirmware, writeFirmware} from '@/assets/js/LoadFirmware'
+const target = process.env.VUE_APP_BIOTRON_FIRMWARE_TARGET
+const internalFirmware = target ? {version: target, internal: true,
+  name: process.env.VUE_APP_BIOTRON_FIRMWARE_NAME, url: process.env.VUE_APP_BIOTRON_FIRMWARE_URL,
+  sha256: process.env.VUE_APP_BIOTRON_FIRMWARE_SHA256, size: Number(process.env.VUE_APP_BIOTRON_FIRMWARE_SIZE)} : null
 export default {
-  data() {
-    return {
-      isOnline: navigator.onLine,
-      updateError: '',
-      latestFirmware: testTarget ? {version: testTarget, internal: true} : null,
-      checkingFirmware: false
-    }
+  props: {repo: String, device: Object, currentVersion: {type: String, default: ''},
+    versionAware: {type: Boolean, default: false}, text: {type: String, default: 'Update Firmware'}},
+  data: () => ({online: navigator.onLine, latest: internalFirmware, phase: 'idle', message: '', error: '',
+    prepared: null, checking: false, reconnectTimer: null}),
+  computed: {
+    available() { return Boolean(this.currentVersion && this.latest?.version && compareFirmwareVersions(this.latest.version, this.currentVersion) > 0) },
+    current() { return Boolean(this.currentVersion && this.latest?.version && !this.available) },
+    internal() { return Boolean(this.latest?.internal) },
+    busy() { return ['preparing', 'booting', 'writing', 'reconnecting'].includes(this.phase) },
+    buttonText() {
+      if (this.checking) return 'Checking firmware…'
+      if (this.versionAware && !this.currentVersion) return 'Connect to check firmware'
+      if (this.current) return `Firmware ${this.currentVersion} ✓`
+      if (this.available) return `Update to ${this.latest.version}`
+      return this.text
+    },
+    actionText() {
+      if (!this.internal) return 'Update'
+      return {idle: 'Download & verify', 'preflight-error': 'Try again', prepared: 'Restart Biotron',
+        'select-drive': 'Choose RPI-RP2 & install'}[this.phase] || ''
+    },
+    actionDisabled() { return this.busy || !this.online || (this.phase !== 'select-drive' && !this.device) }
   },
   mounted() {
-    window.addEventListener('online', this.syncOnlineStatus)
-    window.addEventListener('offline', this.syncOnlineStatus)
-    if (this.versionAware && this.currentVersion && !this.latestFirmware) this.refreshFirmwareStatus()
+    window.addEventListener('online', this.syncOnline)
+    window.addEventListener('offline', this.syncOnline)
+    if (this.versionAware && this.currentVersion && !this.latest) this.refresh()
   },
   beforeUnmount() {
-    window.removeEventListener('online', this.syncOnlineStatus)
-    window.removeEventListener('offline', this.syncOnlineStatus)
+    window.removeEventListener('online', this.syncOnline); window.removeEventListener('offline', this.syncOnline)
+    clearTimeout(this.reconnectTimer)
   },
+  watch: {currentVersion(value) {
+    if (this.versionAware && value && !this.latest) this.refresh()
+    if (this.phase === 'reconnecting' && value === this.latest?.version) {
+      clearTimeout(this.reconnectTimer); this.prepared = null; this.phase = 'complete'
+      this.message = `Firmware ${value} is installed and verified.`
+    }
+  }},
   methods: {
-    syncOnlineStatus() {
-      this.isOnline = navigator.onLine
-      if (this.isOnline) this.updateError = ''
-      if (this.isOnline && this.versionAware && this.currentVersion && !this.latestFirmware) this.refreshFirmwareStatus()
+    syncOnline() { this.online = navigator.onLine; if (this.online) this.error = '' },
+    async refresh() {
+      if (!this.online || this.checking) return
+      this.checking = true
+      try { this.latest = await GetLatestFirmware(this.repo); this.error = '' }
+      catch (error) { this.error = error.message }
+      finally { this.checking = false }
     },
-    async refreshFirmwareStatus() {
-      if (!this.isOnline || this.checkingFirmware || this.latestFirmware?.internal) return
-      this.checkingFirmware = true
-      try {
-        this.latestFirmware = await GetLatestFirmware(this.repo)
-        this.updateError = ''
-      } catch (error) {
-        this.updateError = error.message
-      } finally {
-        this.checkingFirmware = false
+    async runStep() {
+      this.error = ''
+      if (!this.internal) {
+        try { await LoadFirmware(this.repo, this.device) } catch (error) { this.error = error.message }
+        return
       }
-    },
-    async updateFirmware() {
-      this.updateError = ''
       try {
-        await LoadFirmware(this.repo, this.device)
+        if (['idle', 'preflight-error'].includes(this.phase)) {
+          if (!window.showDirectoryPicker) throw new Error('Automatic installation requires current Chrome or Edge on a desktop computer.')
+          this.phase = 'preparing'; this.message = 'Downloading and checking firmware…'
+          this.prepared = await prepareFirmware(this.latest); this.phase = 'prepared'
+          this.message = `Firmware ${this.latest.version} is verified. Biotron has not restarted yet.`
+        } else if (this.phase === 'prepared') {
+          this.phase = 'booting'; this.message = 'Restarting Biotron in update mode…'; await bootDevice(this.device)
+          this.phase = 'select-drive'; this.message = 'Choose the RPI-RP2 drive to install the verified firmware.'
+        } else if (this.phase === 'select-drive') {
+          this.phase = 'writing'; await writeFirmware(this.prepared, this.latest); this.phase = 'reconnecting'
+          this.message = `Firmware copied. Waiting for Biotron ${this.latest.version}…`
+          this.reconnectTimer = setTimeout(() => {
+            if (this.phase !== 'reconnecting') return
+            this.phase = 'verification-error'; this.error = 'Expected firmware did not reconnect. Reconnect USB and check its version before retrying.'
+          }, 30000)
+        }
       } catch (error) {
-        this.updateError = error.message
+        if (error?.name === 'AbortError') { this.phase = 'select-drive'; this.message = 'No drive selected. Choose RPI-RP2 when ready.'; return }
+        this.error = error.message; this.phase = ['idle', 'preparing', 'preflight-error'].includes(this.phase) ? 'preflight-error' : `${this.phase}-error`
       }
-    }
-  },
-
-  props: {
-      repo: String,
-      text: {
-        type: String,
-        default: "Update Firmware",
-      },
-      device: Object,
-      currentVersion: {type: String, default: ''},
-      versionAware: {type: Boolean, default: false}
-  },
-  watch: {
-    currentVersion(value) {
-      if (this.versionAware && value && !this.latestFirmware) this.refreshFirmwareStatus()
-    }
-  },
-  computed: {
-    candidateUpdateRequired() {
-      return Boolean(this.latestFirmware?.internal && this.updateAvailable)
-    },
-    updateAvailable() {
-      return Boolean(this.currentVersion && this.latestFirmware?.version &&
-          compareFirmwareVersions(this.latestFirmware.version, this.currentVersion) > 0)
-    },
-    noUpdateNeeded() {
-      return Boolean(this.currentVersion && this.latestFirmware?.version && !this.updateAvailable)
-    },
-    buttonText() {
-      if (this.checkingFirmware) return 'Checking firmware…'
-      if (this.versionAware && !this.currentVersion) return 'Connect to check firmware'
-      if (this.candidateUpdateRequired) return `Installed ${this.currentVersion} · Test ${this.latestFirmware.version} required`
-      if (this.noUpdateNeeded) return `Firmware ${this.currentVersion} ✓`
-      if (this.updateAvailable) return `Update to ${this.latestFirmware.version}`
-      return this.text
     }
   }
 }
 </script>
-
 <template>
   <button data-bs-toggle="modal" data-bs-target="#UpdateConf" class="btn btn-primary" :class="$attrs.class"
-          :disabled="checkingFirmware || noUpdateNeeded || (versionAware && !currentVersion)">{{buttonText}}</button>
-
-  <div class="modal fade" id="UpdateConf" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLabel">Update Firmware</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <p v-if="candidateUpdateRequired" class="alert alert-warning mb-0">
-            This internal test requires firmware {{ latestFirmware.version }}. Installed: {{ currentVersion }}.
-            The public updater is intentionally disabled here because it currently offers a different release.
-            Use only the exact beta test package from the candidate card.
-          </p>
-          <p v-else-if="noUpdateNeeded" class="alert alert-success mb-0">
-            Firmware {{ currentVersion }} is current for {{ latestFirmware.internal ? 'this internal test' : 'the public release' }}.
-            No update is needed.
-          </p>
-          <p v-else-if="updateAvailable">
-            After clicking on "Update", you will get a file with the .uf2 extension and the device will switch to boot mode.
-            The device will be displayed as removable media (like a USB flash drive).
-            You should transfer the resulting .uf2 file to the removable media that appeared.
-          </p>
-          <h6 v-if="updateAvailable" style="color: red">ATTENTION</h6>
-          <p v-if="updateAvailable">Chrome cannot silently write to a removable USB drive. Continue only if you are ready to move the downloaded file to RPI-RP2.</p>
-          <p v-if="!currentVersion && !checkingFirmware" class="alert alert-warning mb-0">
-            Connect Biotron and wait for its firmware version before updating.
-          </p>
-          <p v-if="!isOnline" class="alert alert-warning mb-0" role="status">
-            Firmware updates require an internet connection. Device settings remain available offline.
-          </p>
-          <p v-if="updateError" class="alert alert-danger mb-0" role="alert">{{ updateError }}</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button v-if="updateAvailable && !candidateUpdateRequired" type="button" class="btn btn-primary" :disabled="!isOnline || !device"
-                  @click="updateFirmware">
-            Update</button>
-        </div>
+          :disabled="checking || current || (versionAware && !currentVersion)">{{ buttonText }}</button>
+  <div class="modal fade" id="UpdateConf" tabindex="-1" aria-labelledby="firmware-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="firmware-title">Update firmware</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+      <div class="modal-body">
+        <p v-if="available">Installed: {{ currentVersion }}. Available: {{ latest.version }}.</p>
+        <p v-if="internal && available">The browser verifies the complete file before restarting Biotron, then writes it directly to the update drive.</p>
+        <p v-if="internal && available" class="small text-muted">Chrome or Edge will ask you to choose <strong>RPI-RP2</strong>. This safety confirmation cannot be skipped.</p>
+        <p v-if="current" class="alert alert-success mb-0">Firmware {{ currentVersion }} is current.</p>
+        <p v-if="!online" class="alert alert-warning mb-0">Connect to the internet for firmware updates. Settings remain available offline.</p>
+        <p v-if="error" class="alert alert-danger mb-0" role="alert">{{ error }}</p>
+        <p v-if="message" class="alert alert-info mb-0" role="status" aria-live="polite">{{ message }}</p>
       </div>
-    </div>
+      <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button v-if="available && actionText" type="button" class="btn btn-primary" :disabled="actionDisabled" @click="runStep">{{ actionText }}</button>
+        <button v-if="busy" type="button" class="btn btn-primary" disabled>Working…</button></div>
+    </div></div>
   </div>
 </template>

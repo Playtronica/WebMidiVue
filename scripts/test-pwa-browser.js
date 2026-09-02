@@ -289,11 +289,13 @@ async function controllerVersion(page) {
   console.log(`3/7 offline Biotron detection, nonce-bound recalibration and non-blocking SysEx write verified (max event-loop gap ${heartbeatMaxGap.toFixed(1)} ms)`)
 
   await page.evaluate(() => window.__emitSettingsMidi([0xf0, 0x0b, 126, 0, 1, 9, 3, 0xf7]))
-  await page.getByRole('button', { name: /Installed 1\.9\.3 · Test 1\.9\.8 required/i }).click()
-  await page.getByText(/internal test requires firmware 1\.9\.8/i).waitFor({state: 'visible', timeout: 5000})
-  await page.getByText(/Firmware updates require an internet connection/i).waitFor({state: 'visible', timeout: 5000})
-  const update = page.locator('.modal.show').getByRole('button', { name: 'Update', exact: true })
-  assert.strictEqual(await update.count(), 0, 'firmware action was offered without a verified newer release')
+  await page.getByRole('button', {name: 'Update to 1.9.8'}).click()
+  await page.getByText(/Installed: 1\.9\.3\. Available: 1\.9\.8\./i).waitFor({state: 'visible', timeout: 5000})
+  await page.getByText(/Connect to the internet for firmware updates/i).waitFor({state: 'visible', timeout: 5000})
+  const update = page.locator('.modal.show').getByRole('button', {name: 'Download & verify', exact: true})
+  assert.strictEqual(await update.isDisabled(), true, 'firmware preparation was enabled offline')
+  assert.strictEqual(await page.evaluate(() => window.__midiSent.some(message => message[3] === 127)), false,
+    'offline firmware action entered BOOT')
   console.log('4/7 offline firmware guard verified')
 
   await context.setOffline(false)

@@ -251,12 +251,10 @@ function loadVolume() {
   try { return normalizeVolume(window.localStorage?.getItem(VOLUME_STORAGE_KEY)) }
   catch (error) { void error; return DEFAULT_VOLUME }
 }
-
 function saveVolume(volume) {
   try { window.localStorage?.setItem(VOLUME_STORAGE_KEY, String(volume)) }
   catch (error) { void error }
 }
-
 export default {
   name: 'SoundLab',
   components: {CompatibilityNotice, DeviceTaskNav},
@@ -573,6 +571,9 @@ export default {
       }
       else if (event.type === 'release-error') this.status = 'MIDI release failed — retry Stop'
       else if (event.type === 'voices') {
+        if (event.message?.type === 'panic') {
+          window.cancelAnimationFrame(this.voiceFrame); this.voiceFrame = null; this.pendingVoiceCount = this.voiceCount = 0; return
+        }
         if (this.revealMode) this.handleRevealMessage(event.message)
         this.pendingVoiceCount = event.count
         if (this.voiceFrame === null) {

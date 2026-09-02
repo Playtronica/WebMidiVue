@@ -223,7 +223,7 @@ export class SynthEngine {
       .connect(this.ceilingInput).connect(this.ceiling).connect(context.destination)
   }
 
-  get activeVoiceCount() { return this.voices.size }
+  get activeVoiceCount() { return [...this.ledger.entries.values()].filter(entry => entry.state === 'active').length }
   get connectedVoiceCount() { return this.voices.size + this.retiring.length }
   get state() { return this.context.state }
 

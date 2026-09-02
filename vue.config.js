@@ -40,6 +40,14 @@ module.exports = {
     if (!biotronBeta) {
       config.plugins.delete('pwa')
       config.plugins.delete('workbox')
+    } else {
+      config.plugin('copy').tap(args => {
+        args[0].patterns.push({
+          from: path.resolve(__dirname, 'beta-assets/firmware'),
+          to: path.resolve(__dirname, 'dist/firmware')
+        })
+        return args
+      })
     }
   },
   pwa: {
@@ -78,7 +86,7 @@ module.exports = {
       navigateFallback: 'index.html',
       // Vue CLI excludes install icons by default; cache them explicitly so the
       // installed app remains complete when the first offline launch occurs.
-      exclude: [/\.map$/, /favicon\.ico$/, /^manifest.*\.js?$/]
+      exclude: [/\.map$/, /favicon\.ico$/, /^manifest.*\.js?$/, /^firmware\//]
     }
   }
 }
