@@ -27,6 +27,7 @@ const biotron = validateRevealProfile(Object.freeze({
   productName: 'Biotron',
   inputNameTokens: Object.freeze(['biotron']),
   preferredInputTokens: Object.freeze(['port 1', 'midi 1']),
+  secondaryInputTokens: Object.freeze(['midiin', 'port 2', 'midi 2']),
   eyebrow: 'Plant music · beta',
   title: 'Meet Biotron',
   promise: 'It turns tiny electrical changes through a plant into music.',
@@ -60,17 +61,14 @@ const inputText = input => [input?.manufacturer, input?.name]
 
 export function selectRevealInput(inputs, profile) {
   validateRevealProfile(profile)
-  const candidates = inputs.filter(input => {
-    const text = inputText(input)
-    return profile.inputNameTokens.some(token => text.includes(token.toLowerCase()))
-  })
+  const hasToken = (input, tokens) => tokens.some(token => inputText(input).includes(token.toLowerCase()))
+  const candidates = inputs.filter(input => hasToken(input, profile.inputNameTokens))
   if (candidates.length === 1) return candidates[0]
-
-  const preferred = candidates.filter(input => {
-    const text = inputText(input)
-    return profile.preferredInputTokens.some(token => text.includes(token.toLowerCase()))
-  })
+  const preferred = candidates.filter(input => hasToken(input, profile.preferredInputTokens))
   if (preferred.length === 1) return preferred[0]
+  // One unit's second cable (Windows: 'MIDIIN2 (Biotron)'; Mac: 'Port 2') is not a second unit.
+  const primary = candidates.filter(input => !hasToken(input, profile.secondaryInputTokens || []))
+  if (candidates.length > 1 && primary.length === 1) return primary[0]
   if (!candidates.length) {
     throw new Error(`${profile.productName} was not found. Check the USB data cable, then try again.`)
   }

@@ -190,6 +190,17 @@ test('reveal input selection is stable for two cables and blocks two devices', (
     /More than one Biotron music input/
   )
   assert.throws(() => selectRevealInput([unrelated], profile), /Biotron was not found/)
+  // Windows (Sergey, 2026-09-03): Chrome names the two cables of one unit
+  // 'Biotron' and 'MIDIIN2 (Biotron)'. That is one device, not two.
+  const winMusic = {id: 'w-1', manufacturer: 'Playtronica', name: 'Biotron'}
+  const winService = {id: 'w-2', manufacturer: 'Playtronica', name: 'MIDIIN2 (Biotron)'}
+  assert.equal(selectRevealInput([winService, winMusic], profile), winMusic)
+  assert.equal(selectRevealInput([unrelated, winService, winMusic], profile), winMusic)
+  // Two real units on Windows still block: two bare 'Biotron' inputs.
+  assert.throws(
+    () => selectRevealInput([winMusic, {...winMusic, id: 'w-3'}, winService], profile),
+    /More than one Biotron music input/
+  )
 })
 
 test('sound capabilities fail closed without hiding the audio-only fallback', () => {
