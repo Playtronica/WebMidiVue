@@ -156,10 +156,11 @@ export class MidiInputSession {
   onMessage(event) {
     if (!this.enabled) return
     const message = parseMidiMessage(event.data)
-    trace('in', [...event.data].slice(0, 12))
+    const level = message.type === 'note-on' ? this.voiceLevel(message) : undefined
+    trace('in', level === undefined ? [...event.data].slice(0, 12) : {bytes: [...event.data], level})
     const source = this.input?.id || 'midi'
     if (message.type === 'note-on') this.engine.noteOn(source, message.channel, message.note, message.velocity,
-      this.engine.context?.currentTime, this.voiceLevel(message))
+      this.engine.context?.currentTime, level)
     else if (message.type === 'note-off') this.engine.noteOff(source, message.channel, message.note)
     else if (message.type === 'panic') this.engine.panic()
     this.onState({type: 'voices', count: this.engine.activeVoiceCount, message})
