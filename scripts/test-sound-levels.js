@@ -46,13 +46,13 @@ const server = http.createServer((request, response) => {
       const {SynthEngine} = await import('/src/audio/engine.mjs')
       const {SOUND_VARIANTS} = await import('/src/audio/presets.mjs')
       const {BIOTRON_CALIBRATION} = await import('/src/audio/biotronCalibration.mjs')
-      const render = async (name, preset, notes, velocity, quality, volume, levelScale = 1) => {
+      const render = async (name, preset, notes, velocity, quality, volume, levelScale = 1, noteOffAt = 0.55) => {
         const sampleRate = 48000
         const seconds = 3
         const context = new OfflineAudioContext(2, sampleRate * seconds, sampleRate)
         const engine = new SynthEngine(context, {preset, quality, volume})
         for (const note of notes) engine.noteOn('level-test', 0, note, velocity, 0.05, levelScale)
-        for (const note of notes) engine.noteOff('level-test', 0, note, 0.55)
+        for (const note of notes) engine.noteOff('level-test', 0, note, noteOffAt)
         const rendered = await context.startRendering()
         const channel = rendered.getChannelData(0)
         let peak = 0
@@ -186,6 +186,8 @@ const server = http.createServer((request, response) => {
       const volumeSweep = await Promise.all([0, 50, 70, 100, 150].map(volume =>
         render(`volume ${volume}`, SOUND_VARIANTS[0], [72], 100, 'standard', volume)))
       const normalPlay = await render('normal Biotron play', SOUND_VARIANTS[0], [64], 98, 'safe', 70, 1)
+      // Real plant notes measured 2026-09-03: 8–29 ms long (noteOffPercent 16 at 469 BPM).
+      const plantNote = await render('27 ms plant note', SOUND_VARIANTS[0], [64], 98, 'safe', 70, 1, 0.05 + 0.027)
       const calibration = await render('quiet calibration', SOUND_VARIANTS[0], [64], 24,
         'safe', 70, BIOTRON_CALIBRATION.localLevel)
       const calibrationEvents = [
@@ -265,7 +267,7 @@ const server = http.createServer((request, response) => {
       return {
         singleNotes, quietBiotronNotes, denseChords, maximumDenseChords,
         volumeSweep, normalPlay, calibration, calibrationPhrase, calibration194Phrase, ordinaryPhrase,
-        legacyCalibrationPhrase, lightSensor, releaseEdge, toneDistortions, fastStreams, declared
+        legacyCalibrationPhrase, lightSensor, releaseEdge, toneDistortions, fastStreams, declared, plantNote
       }
     })
 
@@ -311,6 +313,11 @@ const server = http.createServer((request, response) => {
       `single-note ceiling saturation is ${Math.max(...metrics.singleNotes.map(metric => metric.ceilingFraction))}`)
     assert(metrics.releaseEdge.maxPostStopDelta <= 0.0005,
       `release edge ${metrics.releaseEdge.maxPostStopDelta} can produce an audible click`)
+    // A 27 ms plant note must reach the level of a held note: the attack (70 ms) is
+    // allowed to finish before the release starts. Before 2026-09-03 it peaked far lower.
+    assert(metrics.plantNote.peak >= 0.8 * metrics.normalPlay.peak,
+      `27 ms plant note peaks at ${metrics.plantNote.peak.toFixed(3)} vs held ${metrics.normalPlay.peak.toFixed(3)}`)
+    console.log(`Plant note 27 ms: peak ${metrics.plantNote.peak.toFixed(3)} vs held ${metrics.normalPlay.peak.toFixed(3)}`)
     // Distortion ratchet. Peak alone cannot fail: the soft ceiling caps output at
     // SOFT_CEILING, so `peak < 0.98` is structurally always true. THD+N is what a
     // listener actually calls clipping, so that is what is gated here.

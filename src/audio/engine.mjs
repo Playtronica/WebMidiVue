@@ -69,6 +69,7 @@ class Voice {
     this.addVibrato(when)
     this.gain.gain.setValueAtTime(SILENCE, when)
     this.gain.gain.exponentialRampToValueAtTime(Math.max(SILENCE, level), when + preset.attack)
+    this.attackEnd = when + preset.attack
   }
 
   addOscillator(type, frequency, detune, mix, when) {
@@ -113,6 +114,8 @@ class Voice {
   release(when) {
     if (this.ended || this.releaseScheduled) return
     this.releaseScheduled = true
+    // Biotron plant notes are ~27 ms; a Note Off before the attack completes waits for it.
+    when = Math.max(when, this.attackEnd)
     const end = when + this.preset.release
     holdAndFadeToZero(this.gain.gain, when, end)
     this.stopAt(end + 0.025)
