@@ -1,144 +1,31 @@
 import {Db} from "@/assets/js/PresetsIDB";
 import {SysExCommand} from "@/assets/js/SysExCommand";
 
-export let BiotronCommandsData = new Map(Object.entries({
-    "plantBpm": new SysExCommand( {
-        name: "plantBpm",
-        number_command: 0,
-        max_value: 1000,
-        sendable: true,
-        custom_fold: (arr, val) => {
-            for (let i = 0; i < Math.floor(val / 127); i++) {
-                arr.push(127)
-            }
+const fold127 = (arr, val) => {
+    for (let i = 0; i < Math.floor(val / 127); i++) arr.push(127)
+    arr.push(val % 127)
+}
+const foldMinusOne = (arr, val) => { arr.push(val - 1) }
 
-            arr.push(val % 127)
-        }
-    }),
-    "lightBpm": new SysExCommand( {
-        name: "lightBpm",
-        number_command: 9,
-        max_value: 30
-    }),
-    "noteOffPercent": new SysExCommand({
-        name: "noteOffPercent",
-        number_command: 12,
-        max_value: 100
-    }),
-    "noteDistance": new SysExCommand({
-        name: "noteDistance",
-        number_command: 1,
-        max_value: 100
-    }),
-    "firstValue": new SysExCommand({
-        name: "firstValue",
-        number_command: 2,
-        max_value: 100
-    }),
-    "smoothness": new SysExCommand({
-        name: "smoothness",
-        number_command: 3,
-        max_value: 99
-    }),
-    "scale": new SysExCommand( {
-        name: "scale",
-        number_command: 4,
-    }),
-    "minPlantVelocity": new SysExCommand({
-        name: "minPlantVelocity",
-        number_command: 15,
-    }),
-    "maxPlantVelocity": new SysExCommand({
-        name: "maxPlantVelocity",
-        number_command: 5,
-    }),
-    "minLightVelocity": new SysExCommand({
-        name: "minLightVelocity",
-        number_command: 17,
-    }),
-    "maxLightVelocity": new SysExCommand({
-        name: "maxLightVelocity",
-        number_command: 6,
-    }),
-    "randomness": new SysExCommand({
-        name: "randomness",
-        number_command: 10,
-    }),
-    "same_note_plant": new SysExCommand({
-        name: "same_note_plant",
-        number_command: 11,
-        max_value: 10
-    }),
-    "same_note_light": new SysExCommand({
-        name: "same_note_light",
-        number_command: 24,
-        max_value: 10
-    }),
-    "range_light_note": new SysExCommand({
-        name: "range_light_note",
-        number_command: 13,
-        max_value: 36
-    }),
-    "light_pitch_mode": new SysExCommand({
-        name: "light_pitch_mode",
-        number_command: 19,
-        sendable: true,
-    }),
-    "plant_no_velocity": new SysExCommand({
-        name: "plant_no_velocity",
-        number_command: 22,
-    }),
-    "light_no_velocity": new SysExCommand({
-        name: "light_no_velocity",
-        number_command: 23,
-    }),
-    "randomPlantVelocity": new SysExCommand({
-        name: "randomPlantVelocity",
-        number_command: 16,
-    }),
-    "randomLightVelocity": new SysExCommand({
-        name: "randomLightVelocity",
-        number_command: 18,
-    }),
-    "performance": new SysExCommand({
-        name: "performance",
-        number_command: 21,
-    }),
-    "middle_plant_note": new SysExCommand({
-        name: "middle_plant_note",
-        number_command: 25,
-        min_value: 60,
-        max_value: 72,
-    }),
-    "plant_midi_channel": new SysExCommand({
-        name: "plant_midi_channel",
-        number_command: [127, 0],
-        max_value: 16,
-        min_value: 1,
-        custom_fold:  (arr, val) => {
-            arr.push(val - 1);
-        }
-    }),
-    "light_midi_channel": new SysExCommand({
-        name: "light_midi_channel",
-        number_command: [127, 1],
-        max_value: 16,
-        min_value: 1,
-        custom_fold: (arr, val) => {
-            arr.push(val - 1);
-        }
-    }),
-    "swing_first_note_percent": new SysExCommand({
-        name: "swing_first_note_percent",
-        number_command: 26,
-        max_value: 100,
-        min_value: 1,
-    }),
-    "button_mode_state": new SysExCommand({
-        name: "button_mode_state",
-        number_command: 27,
-    })
-}))
+// key → [number_command, max_value, min_value, custom_fold]; omitted = SysExCommand defaults
+// (max 127, min 0, sendable true). The key is the command name: save/load presets rely on it.
+const BIOTRON_COMMANDS = {
+    plantBpm: [0, 1000, undefined, fold127], lightBpm: [9, 30], noteOffPercent: [12, 100],
+    noteDistance: [1, 100], firstValue: [2, 100], smoothness: [3, 99], scale: [4],
+    minPlantVelocity: [15], maxPlantVelocity: [5], minLightVelocity: [17], maxLightVelocity: [6],
+    randomness: [10], same_note_plant: [11, 10], same_note_light: [24, 10], range_light_note: [13, 36],
+    light_pitch_mode: [19], plant_no_velocity: [22], light_no_velocity: [23],
+    randomPlantVelocity: [16], randomLightVelocity: [18], performance: [21],
+    middle_plant_note: [25, 72, 60], plant_midi_channel: [[127, 0], 16, 1, foldMinusOne],
+    light_midi_channel: [[127, 1], 16, 1, foldMinusOne], swing_first_note_percent: [26, 100, 1],
+    button_mode_state: [27],
+}
+export let BiotronCommandsData = new Map(Object.entries(BIOTRON_COMMANDS).map(
+    ([name, [number_command, max_value, min_value, custom_fold]]) => [name, new SysExCommand({
+        name, number_command,
+        ...(max_value !== undefined && {max_value}), ...(min_value !== undefined && {min_value}),
+        ...(custom_fold && {custom_fold}),
+    })]))
 
 
 const fast_role_preset = {

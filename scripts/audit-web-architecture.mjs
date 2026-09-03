@@ -60,7 +60,7 @@ const limits = {
   sleepCalls: 0,
   unmanagedListenerFiles: 0,
   sourceFiles: 64,
-  sourceLines: 10050,
+  sourceLines: 9960,
   largestProductFileLines: 850
 }
 const violations = [
