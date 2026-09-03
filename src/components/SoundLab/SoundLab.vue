@@ -538,6 +538,11 @@ export default {
         this.status = this.revealProfile.settlingStatus
         if (this.revealProfile.id === 'biotron') {
           await this.midi.sendToPairedOutput([0xf0, 0x14, 0x0d, 125, Date.now() % 127 + 1, 0xf7])
+          // No calibration state within 15 s means no plant signal (clips off): say so instead of pulsing forever.
+          window.clearTimeout(this.revealWatchdog)
+          this.revealWatchdog = window.setTimeout(() => {
+            if (this.revealStage === 'settling') Object.assign(this, {revealStage: 'intro', status: `No plant signal in 15 s. ${this.revealProfile.introInstruction}`})
+          }, 15000)
         }
       } catch (error) {
         failure = error.message || `${this.revealProfile.productName} could not start.`
@@ -588,7 +593,7 @@ export default {
       }
     },
     clearCalibrationTimers() {
-      [this.calibrationCandidateTimer, this.calibrationFinishTimer].forEach(id => window.clearTimeout(id))
+      [this.calibrationCandidateTimer, this.calibrationFinishTimer, this.revealWatchdog].forEach(id => window.clearTimeout(id))
       this.calibrationCandidateTimer = this.calibrationFinishTimer = null
     },
     resetCalibration() {

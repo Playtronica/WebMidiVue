@@ -745,6 +745,12 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'closed')
     await page.getByRole('link', {name: 'Play', exact: true}).click()
     await page.locator('.sound-lab[data-reveal-stage="intro"][data-audio-state="closed"][data-tab-lease="free"]').waitFor()
+    // No-clips watchdog (Sergey, 2026-09-03): with a device that never answers the
+    // calibration request, Hear Biotron must stop pulsing and return to intro within 15 s.
+    await page.getByRole('button', {name: 'Hear Biotron'}).click()
+    await page.locator('.sound-lab[data-reveal-stage="settling"]').waitFor()
+    await page.locator('.sound-lab[data-reveal-stage="intro"]').waitFor({timeout: 20000})
+    assert((await page.locator('.sound-lab').innerText()).includes('No plant signal in 15 s'))
     await verifyCapabilityFallbacks(browser, origin)
     assert.deepStrictEqual(errors, [])
     if (realtimeSoak) writeSoakEvidence('PASS', 'suite-complete', realtimeSoak)

@@ -16,7 +16,7 @@
         Reconnect settings
       </button>
       <small class="text-muted">
-        {{ released ? "The selected MIDI port is free for Reaper, Ableton, or another app." : "Windows may allow only one app to use a MIDI port. Release the selected device before opening your DAW." }}
+        {{ released ? "The selected MIDI port is free for Reaper, Ableton, or another app. Sound in this tab stays off until you reconnect." : "Windows may allow only one app to use a MIDI port. Release the selected device before opening your DAW." }}
       </small>
     </div>
     <button
