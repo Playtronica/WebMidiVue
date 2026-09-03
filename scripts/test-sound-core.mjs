@@ -148,8 +148,8 @@ test('voice ledger never exceeds its cap', () => {
 })
 
 test('sound designer ships exactly six bounded variants', () => {
-  assert.equal(SOUND_VARIANTS.length, 6)
-  assert.equal(new Set(SOUND_VARIANTS.map(preset => preset.name)).size, 6)
+  assert.equal(SOUND_VARIANTS.length, 7)
+  assert.equal(new Set(SOUND_VARIANTS.map(preset => preset.name)).size, 7)
   for (const preset of SOUND_VARIANTS) {
     assert.deepEqual(validatePreset(preset), preset)
     assert.ok(preset.delayFeedback <= 0.72)

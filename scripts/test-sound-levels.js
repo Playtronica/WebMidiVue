@@ -127,8 +127,8 @@ const server = http.createServer((request, response) => {
       // retire queue dispose voices before they sounded and reported "inaudible"
       // notes that never happen live (2026-09-03). The honest question is
       // masking: is the new attack louder than the tails still ringing under it?
-      const fastStream = async (notesPerSecond, seconds, quality, volume) => {
-        const preset = {...SOUND_VARIANTS[0], mixB: 0, delayWet: 0, reverbWet: 0}
+      const fastStream = async (notesPerSecond, seconds, quality, volume, base = SOUND_VARIANTS[0]) => {
+        const preset = {...base, mixB: 0, delayWet: 0, reverbWet: 0}
         const gap = 1 / notesPerSecond
         const count = Math.floor(seconds * notesPerSecond)
         const quantum = 128 / sampleRate
@@ -162,7 +162,9 @@ const server = http.createServer((request, response) => {
         const attacks = onsets.map((at, i) => peakBetween(at, at + (i ? window : Math.round((preset.attack + 0.03) * sampleRate))))
         const tails = onsets.map(at => peakBetween(at - Math.round(0.01 * sampleRate), at))
         const masked = onsets.slice(1).filter((_, i) => tails[i + 1] > 0.8 * attacks[i + 1]).length
-        return {notesPerSecond, quality, notes: count,
+        const clear = onsets.slice(1).filter((_, i) => attacks[i + 1] >= 2 * tails[i + 1]).length
+        return {notesPerSecond, quality, notes: count, name: base.name, clearUpTo: base.clearUpTo,
+          clearPercent: Math.round(100 * clear / Math.max(1, onsets.length - 1)),
           // "did not start" is absolute: nothing audible in the attack window. A relative
           // threshold flagged the first note, whose window has no ringing tails under it.
           silentNotes: attacks.filter(peak => peak < 0.02).length,
@@ -256,10 +258,14 @@ const server = http.createServer((request, response) => {
       const fastStreams = []
       for (const rate of [4, 8, 12, 16, 20, 25]) fastStreams.push(await fastStream(rate, 2, 'standard', 70))
       for (const rate of [4, 12]) fastStreams.push(await fastStream(rate, 2, 'safe', 70))
+      // Every preset is rendered at the articulation limit it declares.
+      const declared = []
+      // clearUpTo 0 means a pad: it never separates attacks and is not gated.
+      for (const preset of SOUND_VARIANTS.filter(item => item.clearUpTo > 0)) declared.push(await fastStream(preset.clearUpTo, preset.clearUpTo < 4 ? 6 : 2, 'standard', 70, preset))
       return {
         singleNotes, quietBiotronNotes, denseChords, maximumDenseChords,
         volumeSweep, normalPlay, calibration, calibrationPhrase, calibration194Phrase, ordinaryPhrase,
-        legacyCalibrationPhrase, lightSensor, releaseEdge, toneDistortions, fastStreams
+        legacyCalibrationPhrase, lightSensor, releaseEdge, toneDistortions, fastStreams, declared
       }
     })
 
@@ -322,6 +328,13 @@ const server = http.createServer((request, response) => {
       assert.strictEqual(stream.silentNotes, 0,
         `${stream.silentNotes} of ${stream.notes} notes did not start at ${stream.notesPerSecond} notes/s (${stream.quality})`)
     }
+    // Articulation contract: at the rate a preset declares, at least 90% of new
+    // attacks must be 6 dB above the tails still ringing under them (dry render).
+    for (const stream of metrics.declared) {
+      assert(stream.clearPercent >= 90,
+        `${stream.name} declares clearUpTo ${stream.clearUpTo} notes/s but only ${stream.clearPercent}% of attacks are clear there`)
+    }
+    console.log('Articulation: ' + metrics.declared.map(stream => `${stream.name} ${stream.clearUpTo}/s → ${stream.clearPercent}% clear`).join(' | '))
     console.log(`Sound levels verified: ${JSON.stringify(metrics)}`)
     console.log('Distortion (THD+N): ' + metrics.toneDistortions
       .map(tone => `peak ${tone.peak} -> ${tone.thdPercent}%`).join(', '))
