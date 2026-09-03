@@ -114,9 +114,9 @@
             class="sound-lab__variant"
             :class="{'sound-lab__variant--active': index === currentVariant}"
             :aria-pressed="index === currentVariant"
-            :aria-label="`Sound ${index + 1}`"
+            :aria-label="preset.name"
             @click="chooseVariant(index)"
-          ><span>{{ index + 1 }}</span></button>
+          ><span>{{ preset.name }}</span></button>
         </div>
       </section>
     </template>
@@ -172,10 +172,10 @@
           class="sound-lab__variant"
           :class="{'sound-lab__variant--active': index === currentVariant}"
           :aria-pressed="index === currentVariant"
-          :aria-label="`Sound ${index + 1}`"
+          :aria-label="preset.name"
           @click="chooseVariant(index)"
         >
-          <span>{{ index + 1 }}</span>
+          <span>{{ preset.name }}</span>
         </button>
       </div>
     </section>
@@ -450,7 +450,7 @@ export default {
     chooseVariant(index) {
       this.currentVariant = index
       this.engine?.applyPreset(this.variants[index])
-      this.status = `Sound ${index + 1} selected`
+      this.status = `${this.variants[index].name} selected`
     },
     updateVolume(event) {
       this.volume = normalizeVolume(event?.target?.value)

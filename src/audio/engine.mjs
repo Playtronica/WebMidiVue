@@ -283,8 +283,9 @@ export class SynthEngine {
 
   panic(when = this.context.currentTime) {
     const time = Math.max(this.context.currentTime, Number.isFinite(when) ? when : this.context.currentTime)
-    for (const voice of this.voices.values()) voice.hardDispose(time)
-    for (const voice of this.retiring) voice.hardDispose(time)
+    // CC123 arrives at every calibration start: fade in 8 ms instead of a hard cut (the click Sergey hears).
+    for (const voice of this.voices.values()) voice.forceStop(time)
+    for (const voice of this.retiring) voice.forceStop(time)
     this.voices.clear()
     this.retiring = []
     this.ledger.clear()

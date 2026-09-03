@@ -21,12 +21,11 @@ export function parseBiotronCalibrationState(message) {
   return {nonce: data[3] & 0x7f, state: ['waiting', 'measuring', 'ready'][data[4] - 1]}
 }
 
+// Only the firmware's explicit calibration state (125) makes notes quiet. Guessing the cue
+// by pitch and velocity muted real plant notes (64 @ velocity 64 matched a profile, 2026-09-03).
 export function biotronVoiceLevel(message, contract = BIOTRON_CALIBRATION, calibrating = false) {
   if (message?.type !== 'note-on') return 1
-  const cue = contract.cue.some((note, index) => note === message.note &&
-    matchesCue(message, index, contract))
-  const legacy = contract.legacyNotes.includes(message.note) && message.velocity === contract.legacyVelocity
-  if (calibrating || cue || legacy) return contract.localLevel
+  if (calibrating) return contract.localLevel
   return message.channel === contract.lightChannel ? contract.lightLevel : 1
 }
 

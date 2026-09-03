@@ -66,9 +66,9 @@ test('Biotron calibration recognizes the soft cue and legacy 91/92 pattern', () 
   assert.equal(tracker.observe(note(72, 24), 1500), 'calibrating')
   assert.equal(tracker.calibrating, true)
   assert.equal(BIOTRON_CALIBRATION.quietCompletionMs, 1100)
-  assert.equal(biotronVoiceLevel(note(64, 24)), BIOTRON_CALIBRATION.localLevel)
+  assert.equal(biotronVoiceLevel(note(64, 24)), 1)  // cue pitch+velocity alone never mutes
   assert.equal(biotronVoiceLevel(note(64, 63)), 1)
-  assert.equal(biotronVoiceLevel(note(64, 24)), 0.025)
+  assert.equal(biotronVoiceLevel(note(64, 24), BIOTRON_CALIBRATION, true), 0.025)
   assert.equal(biotronVoiceLevel(note(50, 75)), 1)
   assert.equal(biotronVoiceLevel(note(50, 75), BIOTRON_CALIBRATION, true), 0.025)
   assert.equal(biotronVoiceLevel({type: 'note-on', channel: 2, note: 50, velocity: 75}),
