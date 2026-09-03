@@ -57,6 +57,12 @@ const fullRange = {...commands, maxPlantVelocity: {value: 127}}
 assert.equal(settingsVectorFromCommands(fullRange)[9], 127)
 assert(!settingsVectorsEqual(values, [...values.slice(0, -1), 1]))
 
+for (const bpm of [0, 127, 128, 16383]) {
+  const bpmVector = settingsVectorFromCommands({...commands, plantBpm: {value: bpm}})
+  assert.equal(bpmVector[0], bpm & 0x7f, `bpm ${bpm} low byte`)
+  assert.equal(bpmVector[1], (bpm >> 7) & 0x7f, `bpm ${bpm} high byte`)
+}
+
 const commandSource = readFileSync(new URL('../src/assets/js/SysExCommand.js', import.meta.url), 'utf8')
 assert(!commandSource.includes('val % 127'), 'MIDI value 127 must never wrap to zero')
 assert(commandSource.includes('Math.min(127'), 'outgoing MIDI data must be clamped to the 7-bit maximum')

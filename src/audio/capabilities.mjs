@@ -1,8 +1,7 @@
 export function detectSoundCapabilities(runtime = globalThis) {
   return Object.freeze({
     audio: typeof (runtime.AudioContext || runtime.webkitAudioContext) === 'function',
-    midi: typeof runtime.navigator?.requestMIDIAccess === 'function',
-    tabIsolation: typeof runtime.navigator?.locks?.request === 'function'
+    midi: typeof runtime.navigator?.requestMIDIAccess === 'function'
   })
 }
 

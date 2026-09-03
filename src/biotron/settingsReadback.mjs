@@ -44,7 +44,7 @@ export function parseSettingsResponse(input, expectedRequestId) {
 
 export function settingsVectorFromCommands(commands) {
   const bpm = Math.max(0, Math.min(16383, Math.round(Number(commands.plantBpm.value) || 0)))
-  const values = [bpm & 0x7f, (Number(commands.plantBpm.value) >> 7) & 0x7f]
+  const values = [bpm & 0x7f, (bpm >> 7) & 0x7f]
   for (const name of FIELD_NAMES) values.push(u7(commands[name].value))
   return values
 }

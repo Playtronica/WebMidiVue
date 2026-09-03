@@ -1,6 +1,3 @@
-export const MIDI_MIN = 0
-export const MIDI_MAX = 127
-
 // Physical positions keep the instrument playable in every keyboard layout.
 export const KEYBOARD_CODE_TO_NOTE = Object.freeze({
   KeyA: 60, KeyW: 61, KeyS: 62, KeyE: 63, KeyD: 64, KeyF: 65, KeyT: 66,
@@ -15,7 +12,7 @@ export function clamp(value, min, max, fallback = min) {
   return Math.min(max, Math.max(min, number))
 }
 
-export const normalizeMidiByte = value => Math.round(clamp(value, MIDI_MIN, MIDI_MAX, MIDI_MIN))
+export const normalizeMidiByte = value => Math.round(clamp(value, 0, 127, 0))
 export const midiNoteToFrequency = note => 440 * 2 ** ((normalizeMidiByte(note) - 69) / 12)
 export const makeNoteKey = (sourceId, channel, note) =>
   `${String(sourceId || 'unknown')}:${normalizeMidiByte(channel) & 0x0f}:${normalizeMidiByte(note)}`

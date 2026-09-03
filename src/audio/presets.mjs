@@ -25,7 +25,7 @@ export function validatePreset(input = {}) {
   })
 }
 
-const rawGlassFlutes = [
+export const SOUND_VARIANTS = Object.freeze([
   {name:'Clear Glass',waveA:'sine',waveB:'triangle',detune:2,mixB:.12,attack:.07,release:.52,cutoff:7200,resonance:.7,pitchStartCents:-18,pitchGlideSeconds:.08,vibratoRate:5.6,vibratoDepth:8,delayTime:.19,delayFeedback:.08,delayWet:.04,reverbWet:.12,clearUpTo:2},
   {name:'Soft Glass',waveA:'sine',waveB:'triangle',detune:3,mixB:.08,attack:.16,release:.72,cutoff:5100,resonance:.45,pitchStartCents:-10,pitchGlideSeconds:.1,vibratoRate:5.1,vibratoDepth:6,delayTime:.23,delayFeedback:.08,delayWet:.04,reverbWet:.16,clearUpTo:0},
   {name:'Breath Glass',waveA:'triangle',waveB:'sine',detune:7,mixB:.22,attack:.12,release:.68,cutoff:8800,resonance:.35,pitchStartCents:-24,pitchGlideSeconds:.12,vibratoRate:5.8,vibratoDepth:10,delayTime:.27,delayFeedback:.1,delayWet:.06,reverbWet:.18,clearUpTo:0},
@@ -33,6 +33,4 @@ const rawGlassFlutes = [
   {name:'Glass Room',waveA:'sine',waveB:'triangle',detune:9,mixB:.14,attack:.1,release:.9,cutoff:7600,resonance:.6,pitchStartCents:-20,pitchGlideSeconds:.1,vibratoRate:5.4,vibratoDepth:9,delayTime:.31,delayFeedback:.22,delayWet:.14,reverbWet:.25,clearUpTo:0},
   {name:'Electric Glass',waveA:'triangle',waveB:'square',detune:11,mixB:.1,attack:.035,release:.46,cutoff:9800,resonance:2.2,pitchStartCents:-90,pitchGlideSeconds:.14,vibratoRate:7.6,vibratoDepth:24,delayTime:.17,delayFeedback:.16,delayWet:.1,reverbWet:.1,clearUpTo:3},
   {name:'Pluck',waveA:'sine',waveB:'triangle',detune:2,mixB:.12,attack:.005,release:.09,cutoff:7200,resonance:.7,pitchStartCents:0,pitchGlideSeconds:0,vibratoRate:0,vibratoDepth:0,delayTime:.19,delayFeedback:.08,delayWet:0,reverbWet:.06,clearUpTo:20}
-]
-
-export const SOUND_VARIANTS = Object.freeze(rawGlassFlutes.map(validatePreset))
+].map(validatePreset))

@@ -8,14 +8,13 @@ export function delay(milliseconds) {
 class MidiWriteCancelled extends Error {}
 
 export async function withMidiWriteSession(device, getCurrentDevice, write) {
-  const isActive = () => Boolean(
-    device &&
-    getCurrentDevice() === device &&
-    device.state !== 'disconnected' &&
-    device.connection !== 'closed'
-  )
   const assertActive = () => {
-    if (!isActive()) throw new MidiWriteCancelled()
+    if (!(
+      device &&
+      getCurrentDevice() === device &&
+      device.state !== 'disconnected' &&
+      device.connection !== 'closed'
+    )) throw new MidiWriteCancelled()
   }
   const output = {
     send(message) {

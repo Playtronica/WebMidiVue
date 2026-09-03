@@ -21,24 +21,6 @@ function makeSoftCeilingCurve() {
   return curve
 }
 
-function makeImpulse(context, seconds = 0.45) {
-  const length = Math.max(1, Math.round(context.sampleRate * seconds))
-  const buffer = context.createBuffer(2, length, context.sampleRate)
-  let seed = 0x51f15e
-  const random = () => {
-    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0
-    return seed / 0x100000000
-  }
-  for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
-    const data = buffer.getChannelData(channel)
-    for (let index = 0; index < data.length; index += 1) {
-      const envelope = (1 - index / data.length) ** 2.5
-      data[index] = (random() * 2 - 1) * envelope * 0.55
-    }
-  }
-  return buffer
-}
-
 function holdAndFadeToZero(param, now, endTime) {
   if (typeof param.cancelAndHoldAtTime === 'function') param.cancelAndHoldAtTime(now)
   else {
@@ -214,7 +196,21 @@ export class SynthEngine {
     if (this.quality === 'standard') {
       this.convolver = context.createConvolver()
       this.reverbWet = context.createGain()
-      this.convolver.buffer = makeImpulse(context)
+      const impulseLength = Math.max(1, Math.round(context.sampleRate * 0.45))
+      const impulseBuffer = context.createBuffer(2, impulseLength, context.sampleRate)
+      let impulseSeed = 0x51f15e
+      const impulseRandom = () => {
+        impulseSeed = (Math.imul(impulseSeed, 1664525) + 1013904223) >>> 0
+        return impulseSeed / 0x100000000
+      }
+      for (let channel = 0; channel < impulseBuffer.numberOfChannels; channel += 1) {
+        const data = impulseBuffer.getChannelData(channel)
+        for (let index = 0; index < data.length; index += 1) {
+          const envelope = (1 - index / data.length) ** 2.5
+          data[index] = (impulseRandom() * 2 - 1) * envelope * 0.55
+        }
+      }
+      this.convolver.buffer = impulseBuffer
       this.filter.connect(this.convolver).connect(this.reverbWet).connect(this.headroom)
     }
     // Keep every user volume level inside the compressor. Boosting after it

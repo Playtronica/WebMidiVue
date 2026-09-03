@@ -209,16 +209,16 @@ test('sound capabilities fail closed without hiding the audio-only fallback', ()
     AudioContext,
     navigator: {requestMIDIAccess() {}, locks: {request() {}}}
   })
-  assert.deepEqual(full, {audio: true, midi: true, tabIsolation: true})
+  assert.deepEqual(full, {audio: true, midi: true})
   assert.equal(soundCapabilityMessage(full), '')
 
   const audioOnly = detectSoundCapabilities({AudioContext, navigator: {}})
-  assert.deepEqual(audioOnly, {audio: true, midi: false, tabIsolation: false})
+  assert.deepEqual(audioOnly, {audio: true, midi: false})
   assert.match(soundCapabilityMessage(audioOnly), /Computer-keyboard sound works/i)
   assert.match(soundCapabilityMessage(audioOnly, {requiresMidi: true}), /cannot hear your device/i)
 
   const unsupported = detectSoundCapabilities({navigator: {requestMIDIAccess() {}}})
-  assert.deepEqual(unsupported, {audio: false, midi: true, tabIsolation: false})
+  assert.deepEqual(unsupported, {audio: false, midi: true})
   assert.match(soundCapabilityMessage(unsupported), /Sound is not available/i)
 })
 
