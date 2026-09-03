@@ -11,6 +11,13 @@ export function describeMidiAccessError(error) {
   return error?.message || 'MIDI could not start. Reconnect the device, then try again.'
 }
 
+// Beta-only evidence trail: last 400 MIDI/stage events, copied by a tester with `copy(__biotronTrace)`
+// in the console or read by the CDP harness. Bytes and stages only, no names or IDs.
+export function trace(kind, data) {
+  const log = globalThis.__biotronTrace || (globalThis.__biotronTrace = [])
+  if (log.push({t: Math.round(performance.now()), kind, data}) > 400) log.shift()
+}
+
 export class MidiInputSession {
   constructor(engine, onState = () => {}, options = {}) {
     this.engine = engine
@@ -101,7 +108,7 @@ export class MidiInputSession {
     if (outputs.length !== 1) throw new Error('Biotron control port could not be matched safely.')
     const output = outputs[0]
     await output.open()
-    try { output.send(data) }
+    try { output.send(data); trace('out', [...data]) }
     finally { await output.close() }
   }
 
@@ -149,6 +156,7 @@ export class MidiInputSession {
   onMessage(event) {
     if (!this.enabled) return
     const message = parseMidiMessage(event.data)
+    trace('in', [...event.data].slice(0, 12))
     const source = this.input?.id || 'midi'
     if (message.type === 'note-on') this.engine.noteOn(source, message.channel, message.note, message.velocity,
       this.engine.context?.currentTime, this.voiceLevel(message))

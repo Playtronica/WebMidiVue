@@ -225,7 +225,7 @@ import {markRaw} from 'vue'
 import {noteForKeyboardCode} from '@/audio/core.mjs'
 import {createRealtimeSynth, DEFAULT_VOLUME, normalizeVolume} from '@/audio/engine.mjs'
 import {registerSoundController, soundSessionState, unregisterSoundController, updateSoundSession} from '@/audio/sessionState.mjs'
-import {MidiInputSession} from '@/audio/midi.mjs'
+import {trace, MidiInputSession} from '@/audio/midi.mjs'
 import {SOUND_VARIANTS} from '@/audio/presets.mjs'
 import {createExclusiveTabLease} from '@/audio/tabLease.mjs'
 import {BIOTRON_CALIBRATION, biotronVoiceLevel, BiotronCalibrationTracker, parseBiotronCalibrationState} from '@/audio/biotronCalibration.mjs'
@@ -352,6 +352,7 @@ export default {
     if (this.releaseBlocked) next(false)
     else next()
   },
+  watch: {revealStage(stage) { trace('stage', stage) }},
   methods: {
     async acquireTabLease() {
       if (await this.tabLease.acquire()) {
