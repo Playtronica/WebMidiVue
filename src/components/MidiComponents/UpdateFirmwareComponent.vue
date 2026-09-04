@@ -5,7 +5,7 @@ const target = process.env.VUE_APP_BIOTRON_FIRMWARE_TARGET
 const internalFirmware = target ? {version: target, internal: true,
   name: process.env.VUE_APP_BIOTRON_FIRMWARE_NAME, url: process.env.VUE_APP_BIOTRON_FIRMWARE_URL,
   sha256: process.env.VUE_APP_BIOTRON_FIRMWARE_SHA256, size: Number(process.env.VUE_APP_BIOTRON_FIRMWARE_SIZE)} : null
-const PICK = 'Choose the drive RPI-RP2 (Mac: left sidebar · Windows: This PC), then press Select.'
+const PICK = '💾 Choose drive RPI-RP2 → Select. 🍎 Mac: left sidebar · 🪟 Windows: This PC.'
 export default {
   emits: ['check_firmware'],
   props: {repo: String, device: Object, currentVersion: {type: String, default: ''},
@@ -22,15 +22,15 @@ export default {
     busy() { return ['preparing', 'booting', 'writing', 'reconnecting'].includes(this.phase) },
     buttonText() {
       if (this.checking) return 'Checking firmware…'
-      if (this.versionAware && !this.currentVersion) return this.device ? 'Check firmware' : 'Biotron in update mode?'
+      if (this.versionAware && !this.currentVersion) return this.device ? 'Check firmware' : '💾 Biotron shows as RPI-RP2?'
       if (this.current) return `Firmware ${this.currentVersion} ✓`
       if (this.available) return `Update to ${this.latest.version}`
       return this.text
     },
     actionText() {
       if (!this.internal) return 'Update'
-      return {idle: 'Download & verify', 'preflight-error': 'Try again', prepared: 'Restart Biotron',
-        'select-drive': 'Choose RPI-RP2 & install'}[this.phase] || ''
+      return {idle: '⬇️ Download & check', 'preflight-error': '🔁 Try again', prepared: '🔄 Restart Biotron',
+        'select-drive': '💾 Choose RPI-RP2 → install'}[this.phase] || ''
     },
     actionDisabled() { return this.busy || !this.online || (this.internal ? this.phase === 'prepared' && !this.device : !this.device) }
   },
@@ -47,7 +47,7 @@ export default {
     if (this.versionAware && value && !this.latest) this.refresh()
     if (this.phase === 'reconnecting' && value === this.latest?.version) {
       clearTimeout(this.reconnectTimer); this.prepared = null; this.phase = 'complete'
-      this.message = `Firmware ${value} is installed and verified.`
+      this.message = `🎉 Firmware ${value} installed and verified.`
     }
   }},
   methods: {
@@ -68,22 +68,22 @@ export default {
       try {
         if (['idle', 'preflight-error'].includes(this.phase)) {
           if (!window.showDirectoryPicker) throw new Error('Automatic installation requires current Chrome or Edge on a desktop computer.')
-          this.phase = 'preparing'; this.message = 'Downloading and checking firmware…'
+          this.phase = 'preparing'; this.message = '⬇️ Downloading and checking firmware…'
           this.prepared = await prepareFirmware(this.latest); this.phase = this.device ? 'prepared' : 'select-drive'
-          this.message = `Firmware ${this.latest.version} is verified. ${this.device ? 'Biotron has not restarted yet.' : PICK}`
+          this.message = `✅ Firmware ${this.latest.version} checked. ${this.device ? 'Biotron not restarted yet.' : PICK}`
         } else if (this.phase === 'prepared') {
-          this.phase = 'booting'; this.message = 'Restarting Biotron in update mode…'; await bootDevice(this.device)
-          this.phase = 'select-drive'; this.message = `Biotron is now the RPI-RP2 drive. ${PICK}`
+          this.phase = 'booting'; this.message = '🔄 Restarting Biotron…'; await bootDevice(this.device)
+          this.phase = 'select-drive'; this.message = `🔄 Biotron is now drive RPI-RP2. ${PICK}`
         } else if (this.phase === 'select-drive') {
           this.phase = 'writing'; await writeFirmware(this.prepared, this.latest); this.phase = 'reconnecting'
-          this.message = `Firmware copied. Waiting for Biotron ${this.latest.version}…`
+          this.message = `📤 Copied. ⏳ Waiting for Biotron ${this.latest.version}…`
           this.reconnectTimer = setTimeout(() => {
             if (this.phase !== 'reconnecting') return
             this.phase = 'verification-error'; this.error = 'Expected firmware did not reconnect. Reconnect USB and check its version before retrying.'
           }, 30000)
         }
       } catch (error) {
-        if (error?.name === 'AbortError') { this.phase = 'select-drive'; this.message = `No drive selected. ${PICK}`; return }
+        if (error?.name === 'AbortError') { this.phase = 'select-drive'; this.message = `❌ No drive chosen. ${PICK}`; return }
         if (this.phase === 'writing') { this.phase = 'select-drive'; this.error = error.message; return }
         this.error = error.message; this.phase = ['idle', 'preparing', 'preflight-error'].includes(this.phase) ? 'preflight-error' : `${this.phase}-error`
       }
@@ -98,13 +98,13 @@ export default {
           :disabled="checking || current">{{ buttonText }}</button>
   <div class="modal fade" id="UpdateConf" tabindex="-1" aria-labelledby="firmware-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title" id="firmware-title">Update firmware</h5>
+      <div class="modal-header"><h5 class="modal-title" id="firmware-title">💾 Update firmware</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
       <div class="modal-body">
-        <p v-if="available">Installed: {{ currentVersion }}. Available: {{ latest.version }}.</p>
-        <p v-if="recovery">No Biotron over MIDI. Is the drive <strong>RPI-RP2</strong> on your computer? Then install firmware {{ latest.version }} now.</p>
-        <p v-if="internal && ready">The file is checked first. Then you choose the RPI-RP2 drive.</p>
-        <p v-if="internal && ready" class="small text-muted">{{ pick }} Mac tip: ⌘⇧G, then /Volumes/RPI-RP2.</p>
+        <p v-if="available">📟 Now: {{ currentVersion }} → ✨ New: {{ latest.version }}</p>
+        <p v-if="recovery">🔌 No Biotron over MIDI. 💾 Drive <strong>RPI-RP2</strong> on your computer? → Install {{ latest.version }} now.</p>
+        <p v-if="internal && ready">✅ File is checked first. 💾 Then you choose drive RPI-RP2.</p>
+        <p v-if="internal && ready" class="small text-muted">{{ pick }} 🍎 Tip: ⌘⇧G → /Volumes/RPI-RP2</p>
         <p v-if="current" class="alert alert-success mb-0">Firmware {{ currentVersion }} is current.</p>
         <p v-if="!online" class="alert alert-warning mb-0">Connect to the internet for firmware updates. Settings remain available offline.</p>
         <p v-if="error" class="alert alert-danger mb-0" role="alert">{{ error }}</p>
@@ -112,7 +112,7 @@ export default {
       </div>
       <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
         <button v-if="ready && actionText" type="button" class="btn btn-primary" :disabled="actionDisabled" @click="runStep">{{ actionText }}</button>
-        <button v-if="busy" type="button" class="btn btn-primary" disabled>Working…</button></div>
+        <button v-if="busy" type="button" class="btn btn-primary" disabled>⏳ Working…</button></div>
     </div></div>
   </div>
 </template>

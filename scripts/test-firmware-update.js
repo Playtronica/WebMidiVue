@@ -63,14 +63,14 @@ const arrayBuffer = buffer => buffer.buffer.slice(buffer.byteOffset, buffer.byte
   assert.match(betaEnvironment, /^VUE_APP_BIOTRON_FIRMWARE_SIZE=110592$/m)
   const updateComponent = fs.readFileSync('src/components/MidiComponents/UpdateFirmwareComponent.vue', 'utf8')
   assert.match(updateComponent, /Downloading and checking firmware/)
-  assert.match(updateComponent, /Choose RPI-RP2 & install/)
+  assert.match(updateComponent, /💾 Choose RPI-RP2 → install/)
   assert.match(updateComponent, /@click="\$emit\('check_firmware'\)"/)
   // F2 (2026-09-04): the folder picker opens in Documents; the drive must be named before and during the step.
-  assert.match(updateComponent, /Choose the drive RPI-RP2 \(Mac: left sidebar · Windows: This PC\), then press Select/)
-  assert.match(updateComponent, /<p v-if="internal && ready" class="small text-muted">\{\{ pick \}\} Mac tip: ⌘⇧G, then \/Volumes\/RPI-RP2\.<\/p>/)
+  assert.match(updateComponent, /💾 Choose drive RPI-RP2 → Select\. 🍎 Mac: left sidebar · 🪟 Windows: This PC\./)
+  assert.match(updateComponent, /<p v-if="internal && ready" class="small text-muted">\{\{ pick \}\} 🍎 Tip: ⌘⇧G → \/Volumes\/RPI-RP2<\/p>/)
   // F3 (2026-09-04): page reloaded while Biotron sits in update mode — no MIDI, only the RPI-RP2 drive.
-  assert.match(updateComponent, /Biotron in update mode\?/)
-  assert.match(updateComponent, /<p v-if="recovery">No Biotron over MIDI\. Is the drive <strong>RPI-RP2<\/strong> on your computer\?/)
+  assert.match(updateComponent, /💾 Biotron shows as RPI-RP2\?/)
+  assert.match(updateComponent, /<p v-if="recovery">🔌 No Biotron over MIDI\. 💾 Drive <strong>RPI-RP2<\/strong> on your computer\?/)
   assert.doesNotMatch(updateComponent, /public updater is intentionally disabled/i)
   await testComponentStateMachine(updateComponent)
 
@@ -242,7 +242,7 @@ async function testComponentStateMachine(componentSource) {
     }
     return instance
   }
-  const drive = /Choose the drive RPI-RP2 \(Mac: left sidebar · Windows: This PC\), then press Select\./
+  const drive = /💾 Choose drive RPI-RP2 → Select\. 🍎 Mac: left sidebar · 🪟 Windows: This PC\./
 
   // Normal path: Biotron answers over MIDI with 1.9.7 — verify, restart, choose drive, write, reconnect.
   const instance = build({device: 'selected-midi-output', currentVersion: '1.9.7'})
@@ -265,16 +265,16 @@ async function testComponentStateMachine(componentSource) {
   // F3: page opened while Biotron is already in update mode — no MIDI device, no version, drive RPI-RP2 present.
   calls.length = 0
   const lost = build({device: null, currentVersion: ''})
-  assert.strictEqual(lost.buttonText, 'Biotron in update mode?')
+  assert.strictEqual(lost.buttonText, '💾 Biotron shows as RPI-RP2?')
   assert.strictEqual(lost.recovery, true)
   assert.strictEqual(lost.ready, true)
   assert.strictEqual(lost.actionDisabled, false)
-  assert.strictEqual(lost.actionText, 'Download & verify')
+  assert.strictEqual(lost.actionText, '⬇️ Download & check')
   await lost.runStep()
   assert.strictEqual(lost.phase, 'select-drive')
   assert.match(lost.message, drive)
   assert.deepStrictEqual(calls.map(call => call[0]), ['prepare'])
-  assert.strictEqual(lost.actionText, 'Choose RPI-RP2 & install')
+  assert.strictEqual(lost.actionText, '💾 Choose RPI-RP2 → install')
   await lost.runStep()
   assert.strictEqual(lost.phase, 'reconnecting')
   assert.deepStrictEqual(calls.map(call => call[0]), ['prepare', 'write', 'timer'])
@@ -294,7 +294,7 @@ async function testComponentStateMachine(componentSource) {
   await retry.runStep()
   assert.strictEqual(retry.phase, 'select-drive')
   assert.strictEqual(retry.error, '')
-  assert.match(retry.message, /^No drive selected\. Choose the drive RPI-RP2/)
+  assert.match(retry.message, /^❌ No drive chosen\. 💾 Choose drive RPI-RP2/)
   writeFailure = new Error('Select the RPI-RP2 drive. No file was written.')
   await retry.runStep()
   assert.strictEqual(retry.phase, 'select-drive')
