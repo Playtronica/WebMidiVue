@@ -223,7 +223,7 @@
 <script>
 import {markRaw} from 'vue'
 import {noteForKeyboardCode} from '@/audio/core.mjs'
-import {createRealtimeSynth, DEFAULT_VOLUME, normalizeVolume} from '@/audio/engine.mjs'
+import {createRealtimeElementarySynth as createRealtimeSynth, DEFAULT_VOLUME, normalizeVolume} from '@/audio/elementary/engine.mjs'
 import {registerSoundController, soundSessionState, unregisterSoundController, updateSoundSession} from '@/audio/sessionState.mjs'
 import {trace, MidiInputSession} from '@/audio/midi.mjs'
 import {SOUND_VARIANTS} from '@/audio/presets.mjs'
@@ -378,6 +378,19 @@ export default {
         }))
         try { if (navigator.audioSession) navigator.audioSession.type = 'playback' } catch (error) { void error }
       }
+      // Загрузка звукового рантайма — отдельный кусок сборки. На медленной сети
+      // или слабом устройстве это заметная пауза: показываем, что идёт работа,
+      // и через 1.2 с честно говорим, что дело в скорости, а не в приборе.
+      let slowTimer = null
+      await this.engine.ensureReady(stage => {
+        if (stage === 'loading') {
+          this.status = 'Loading the sound engine…'
+          slowTimer = window.setTimeout(() => { this.status = 'Still loading the sound engine — slow connection, it is cached after the first time.' }, 1200)
+        }
+        if (stage === 'starting') this.status = 'Starting sound…'
+        // Статус после готовности ставит вызывающий: у страницы звука нет профиля знакомства.
+        if (stage === 'ready') window.clearTimeout(slowTimer)
+      })
       if (await this.engine.resume() !== 'running') throw new Error('Audio could not start.')
       this.midi?.setEnabled(true)
       this.audioState = 'running'

@@ -1,7 +1,8 @@
 // Elementary adapter matching SynthEngine's interface (../engine.mjs) so it
 // can later replace it (SIMPLICITY-CONTRACT: replaces, does not live next to
-// it). Owns the WebRenderer and the 16-voice pool of live refs; the DSP
-// itself lives in patch.mjs (pure) and the voice-stealing bookkeeping in
+// it). Owns the WebRenderer and the pool of live refs (4 voices in 'safe'
+// quality, 8 in 'standard' — same cap as ../engine.mjs's voiceLimit); the
+// DSP itself lives in patch.mjs (pure) and the voice-stealing bookkeeping in
 // voices.mjs (delegates to VoiceLedger).
 //
 // Rendering strategy (revised 2026-09-04 after studying chromatone/elements,
@@ -17,7 +18,6 @@
 // ref resets it to its creation-time value, not whatever a later setter()
 // call moved it to (measured 2026-09-04, see _resyncRefs()).
 import {el} from '@elemaudio/core'
-import WebRenderer from '@elemaudio/web-renderer'
 import {clamp, makeNoteKey, midiNoteToFrequency} from '../core.mjs'
 import {SOUND_VARIANTS, validatePreset} from '../presets.mjs'
 import {normalizeVolume} from '../volume.mjs'
@@ -28,7 +28,7 @@ import {normalizeVolume} from '../volume.mjs'
 // сейчас beta17 у команды, и volume.mjs умрёт вместе с ним.
 const attenuation = value => (normalizeVolume(value) / 100) ** 2
 import {voice as voicePatch, master as masterPatch} from './patch.mjs'
-import {VoicePool, VOICE_POOL_SIZE} from './voices.mjs'
+import {VoicePool} from './voices.mjs'
 
 export {DEFAULT_VOLUME, normalizeVolume} from '../volume.mjs'
 
@@ -41,24 +41,45 @@ export class ElementarySynthEngine {
     this.context = context
     this.ownsContext = Boolean(options.ownsContext)
     this.quality = options.quality === 'safe' ? 'safe' : 'standard'
-    this.pool = new VoicePool(VOICE_POOL_SIZE)
+    // Same cap as ../engine.mjs's voiceLimit (safe=4, standard=8): fewer
+    // concurrent voices is what "Low CPU" means. There the limit shrinks the
+    // ledger so old Voice objects get disposed sooner; here it shrinks the
+    // ref pool itself, since Elementary renders every created ref on every
+    // block whether its gate is open or not — an unused ref is not free.
+    this.poolSize = this.quality === 'safe' ? 4 : 8
+    this.pool = new VoicePool(this.poolSize)
     this.preset = validatePreset(options.preset || SOUND_VARIANTS[0])
     this.volume = normalizeVolume(options.volume)
-    this.core = new WebRenderer()
+    this.core = null
     this.ready = false
+    // Сообщать о состоянии контекста обязан движок: интерфейс слушает только его.
+    // Без этого страница не узнаёт, что звук пошёл, и остаётся в 'closed'.
+    this.onStateChange = typeof options.onStateChange === 'function' ? options.onStateChange : () => {}
+    this.boundStateChange = () => this.onStateChange(this.context.state)
+    this.context.addEventListener?.('statechange', this.boundStateChange)
     this._pending = []
     // Current live value of every ref. Elementary refs are write-only from
     // here (no getter), so this is what applyPreset()'s resync replays.
     this.values = {
-      gate: new Array(VOICE_POOL_SIZE).fill(0),
-      freq: new Array(VOICE_POOL_SIZE).fill(440),
-      vel: new Array(VOICE_POOL_SIZE).fill(0),
+      gate: new Array(this.poolSize).fill(0),
+      freq: new Array(this.poolSize).fill(440),
+      vel: new Array(this.poolSize).fill(0),
       volume: attenuation(this.volume)
     }
   }
 
-  async ensureReady() {
+  // Прогресс наружу: рантайм Elementary — отдельный кусок сборки (~190 КБ gzip,
+  // 92% из них — вшитые worklet и wasm). На медленной сети это заметная пауза,
+  // и человек должен видеть, что идёт работа, а не гадать.
+  async ensureReady(onProgress = () => {}) {
     if (this.ready) return
+    if (!this.core) {
+      onProgress('loading')
+      const {default: WebRenderer} = await import(
+        /* webpackChunkName: "elementary-runtime" */ '@elemaudio/web-renderer')
+      this.core = new WebRenderer()
+    }
+    onProgress('starting')
     this.node = await this.core.initialize(this.context, {
       numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1]
     })
@@ -70,6 +91,7 @@ export class ElementarySynthEngine {
     this._createRefs()
     await this._render()
     this.ready = true
+    onProgress('ready')
   }
 
   _createRefs() {
@@ -77,7 +99,7 @@ export class ElementarySynthEngine {
     this.gateRefs = []; this.gateSetters = []
     this.freqRefs = []; this.freqSetters = []
     this.velRefs = []; this.velSetters = []
-    for (let slot = 0; slot < VOICE_POOL_SIZE; slot += 1) {
+    for (let slot = 0; slot < this.poolSize; slot += 1) {
       const [gateNode, setGate] = this.core.createRef('const', {value: this.values.gate[slot]}, [])
       const [freqNode, setFreq] = this.core.createRef('const', {value: this.values.freq[slot]}, [])
       const [velNode, setVel] = this.core.createRef('const', {value: this.values.vel[slot]}, [])
@@ -93,7 +115,7 @@ export class ElementarySynthEngine {
   _buildGraph() {
     const preset = this.preset
     let sum = 0
-    for (let slot = 0; slot < VOICE_POOL_SIZE; slot += 1) {
+    for (let slot = 0; slot < this.poolSize; slot += 1) {
       sum = el.add(sum, voicePatch({
         gate: this.gateRefs[slot], freq: this.freqRefs[slot], vel: this.velRefs[slot], preset
       }))
@@ -117,7 +139,7 @@ export class ElementarySynthEngine {
   async whenIdle() { await Promise.all(this._pending); this._pending = [] }
 
   async _resyncRefs() {
-    for (let slot = 0; slot < VOICE_POOL_SIZE; slot += 1) {
+    for (let slot = 0; slot < this.poolSize; slot += 1) {
       this._track(this.freqSetters[slot]({value: this.values.freq[slot]}))
       this._track(this.velSetters[slot]({value: this.values.vel[slot]}))
       this._track(this.gateSetters[slot]({value: this.values.gate[slot]}))
@@ -181,7 +203,7 @@ export class ElementarySynthEngine {
   // release ramp is what removes the click, not a separate fast fade like
   // the legacy engine's forceStop).
   panic() {
-    for (let slot = 0; slot < VOICE_POOL_SIZE; slot += 1) {
+    for (let slot = 0; slot < this.poolSize; slot += 1) {
       this.values.gate[slot] = 0
       if (this.ready) this._track(this.gateSetters[slot]({value: 0}))
     }
@@ -189,6 +211,7 @@ export class ElementarySynthEngine {
   }
 
   async stop() {
+    this.context.removeEventListener?.('statechange', this.boundStateChange)
     this.panic()
     try {
       if (this.ownsContext && this.context.state !== 'closed') await this.context.close()

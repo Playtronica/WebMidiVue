@@ -1,9 +1,10 @@
-// Voice pool of 16 keyed constants, on top of the SAME victim rules the
-// existing engine uses (VoiceLedger in ../core.mjs: releasing before active,
-// oldest first, tie by token). We do not reimplement that decision — we
-// delegate to it and only add the slot<->key bookkeeping Elementary needs
-// (a fixed set of named constants `v{i}:gate/freq/vel`, since Elementary has
-// no per-voice objects, only a flat constant map re-rendered as a whole).
+// Voice pool of keyed constants (size set by the caller — engine.mjs passes
+// its quality-based voice cap), on top of the SAME victim rules the existing
+// engine uses (VoiceLedger in ../core.mjs: releasing before active, oldest
+// first, tie by token). We do not reimplement that decision — we delegate to
+// it and only add the slot<->key bookkeeping Elementary needs (a fixed set of
+// named constants `v{i}:gate/freq/vel`, since Elementary has no per-voice
+// objects, only a flat constant map re-rendered as a whole).
 //
 // Simplification, stated once here: Elementary's declarative graph has no
 // "voice ended" callback (no equivalent of Voice.onEnded in ../engine.mjs).
