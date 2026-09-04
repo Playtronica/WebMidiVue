@@ -58,32 +58,19 @@ const report = {
   largestFiles
 }
 
-// Замена движка звука: новый стоит рядом со старым, пока не докажет себя. Окно объявлено
-// данными, а не словами в заметке (контракт простоты, оговорка к правилу 3). Оно закрывается
-// по сроку ИЛИ в момент исчезновения умирающего файла — что раньше; после закрытия потолки
-// возвращаются к целевым, и прогон покраснеет, если сущность не удалили.
-// Потолки строк подняты на 230 сознательно (04.09.2026): перенесены авторские
-// тембры chromatone/elements и список готовых звуков (src/audio/elementary/
-// timbres.mjs). Это добавленная функция, а не разрастание — старые пресеты
-// ушли из интерфейса, а целевой потолок «после» поднят на ту же величину,
-// чтобы удаление умирающего движка по-прежнему требовалось.
-const replacementWindow = {
-  reason: 'переход движка звука на Elementary Audio (решение 2026-09-04)',
-  dying: 'src/audio/engine.mjs',
-  until: '2026-09-18',
-  during: {sourceFiles: 71, sourceLines: 10850},
-  after: {sourceFiles: 64, sourceLines: 10190}
-}
-const windowOpen = fs.existsSync(path.resolve(root, replacementWindow.dying)) &&
-  new Date() <= new Date(`${replacementWindow.until}T23:59:59Z`)
-const caps = windowOpen ? replacementWindow.during : replacementWindow.after
-
+// Потолки 71/10850 → 64/10236 (04.09.2026): окно замены движка звука закрыто —
+// src/audio/engine.mjs удалён вместе с хвостами (presets, volume, params, тембр
+// glass, voices/patch слиты в движок и тембры, мёртвый pingpong, тест уровней на
+// старом движке). Целевое «после» 64/10190 было назначено при появлении движка без
+// подсчёта его собственного размера: без звука в src/ 62 файла / 9751 строка,
+// движок на Elementary с семью звуками и мастер-цепью — 2 файла / ~500 строк.
+// Потолок строк выставлен по факту после чистки, чтобы любой рост краснел.
 const limits = {
   eagerDeviceRouteImports: 0,
   sleepCalls: 0,
   unmanagedListenerFiles: 0,
-  sourceFiles: caps.sourceFiles,
-  sourceLines: caps.sourceLines,
+  sourceFiles: 64,
+  sourceLines: 10236,
   largestProductFileLines: 850
 }
 const violations = [

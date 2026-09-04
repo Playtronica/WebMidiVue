@@ -1,5 +1,5 @@
 import {reactive} from 'vue'
-import {DEFAULT_VOLUME} from './volume.mjs'
+import {DEFAULT_VOLUME} from './core.mjs'
 export const soundSessionState = reactive({running: false, volume: DEFAULT_VOLUME, calibrating: false})
 let controller = null
 export function registerSoundController(nextController) {

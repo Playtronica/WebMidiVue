@@ -2,13 +2,15 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  DEFAULT_VOLUME,
   KEYBOARD_CODE_TO_NOTE,
   makeNoteKey,
+  normalizeVolume,
   noteForKeyboardCode,
   parseMidiMessage,
   VoiceLedger
 } from '../src/audio/core.mjs'
-import {SOUND_VARIANTS, validatePreset} from '../src/audio/presets.mjs'
+import {SOUNDS, TIMBRES, toSound} from '../src/audio/elementary/timbres.mjs'
 import {describeMidiAccessError, MidiInputSession} from '../src/audio/midi.mjs'
 import {ExclusiveTabLease} from '../src/audio/tabLease.mjs'
 import {
@@ -20,7 +22,6 @@ import {
 import {detectSoundCapabilities, soundCapabilityMessage} from '../src/audio/capabilities.mjs'
 import {BIOTRON_CALIBRATION, biotronVoiceLevel, BiotronCalibrationTracker,
   parseBiotronCalibrationState} from '../src/audio/biotronCalibration.mjs'
-import {DEFAULT_VOLUME, normalizeVolume, volumeToGain} from '../src/audio/engine.mjs'
 import {
   buildCompatibilityIssue,
   buildMidiAdvisory,
@@ -35,17 +36,13 @@ test('physical keyboard mapping is independent from typed character', () => {
   assert.notEqual(makeNoteKey('keyboard', 0, 60), makeNoteKey('midi', 0, 60))
 })
 
-test('sound volume is bounded and maps to a safe output gain', () => {
+test('sound volume is bounded', () => {
   assert.equal(DEFAULT_VOLUME, 70)
   assert.equal(normalizeVolume(null), DEFAULT_VOLUME)
   assert.equal(normalizeVolume('37'), 37)
   assert.equal(normalizeVolume(-1), 0)
   assert.equal(normalizeVolume(140), 140)
   assert.equal(normalizeVolume(200), 150)
-  assert.equal(volumeToGain(0), 0)
-  assert.equal(volumeToGain(50), 1.25)
-  assert.equal(volumeToGain(100), 5)
-  assert.equal(volumeToGain(150), 11.25)
 })
 
 test('MIDI note-on, velocity-zero note-off and panic are accepted', () => {
@@ -147,15 +144,16 @@ test('voice ledger never exceeds its cap', () => {
   assert.equal(ledger.size, 4)
 })
 
-test('sound designer ships exactly six bounded variants', () => {
-  assert.equal(SOUND_VARIANTS.length, 7)
-  assert.equal(new Set(SOUND_VARIANTS.map(preset => preset.name)).size, 7)
-  for (const preset of SOUND_VARIANTS) {
-    assert.deepEqual(validatePreset(preset), preset)
-    assert.ok(preset.delayFeedback <= 0.72)
-    assert.ok(preset.release <= 3)
-    assert.ok(preset.vibratoDepth <= 120)
+test('seven sounds, each on a known timbre, in one shape', () => {
+  assert.equal(SOUNDS.length, 7)
+  assert.equal(new Set(SOUNDS.map(sound => sound.name)).size, 7)
+  for (const sound of SOUNDS) {
+    assert.ok(TIMBRES[sound.timbre], `${sound.name} uses unknown timbre ${sound.timbre}`)
+    const normalized = toSound(sound)
+    assert.equal(normalized.name, sound.name)
+    assert.deepEqual(normalized.cv, sound.cv)
   }
+  assert.throws(() => toSound({name: 'Old preset', waveA: 'sine'}), /Unknown timbre/)
 })
 
 test('reveal profiles keep first-use copy plain and product-specific', () => {

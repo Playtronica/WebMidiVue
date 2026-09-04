@@ -1,9 +1,6 @@
-// Elementary adapter matching SynthEngine's interface (../engine.mjs) so it
-// can later replace it (SIMPLICITY-CONTRACT: replaces, does not live next to
-// it). Owns the WebRenderer and the pool of live refs (4 voices in 'safe'
-// quality, 8 in 'standard' — same cap as ../engine.mjs's voiceLimit); the
-// DSP itself lives in patch.mjs (pure) and the voice-stealing bookkeeping in
-// voices.mjs (delegates to VoiceLedger).
+// The sound engine on Elementary Audio. Owns the WebRenderer and the pool of
+// live refs (4 voices in 'safe' quality, 8 in 'standard'); the DSP lives in
+// timbres.mjs (voices and master chain), voice stealing delegates to VoiceLedger.
 //
 // Rendering strategy (revised 2026-09-04 after studying chromatone/elements,
 // Denis Starov's production Elementary synth, MIT): the graph is rendered
@@ -18,22 +15,61 @@
 // ref resets it to its creation-time value, not whatever a later setter()
 // call moved it to (measured 2026-09-04, see _resyncRefs()).
 import {el} from '@elemaudio/core'
-import {clamp, makeNoteKey, midiNoteToFrequency} from '../core.mjs'
-import {normalizeVolume} from '../volume.mjs'
-// Громкость здесь только ослабляет: 0…1 до потолка, как в chromatone/elements.
-// Прежний множитель ×5 в volume.mjs компенсировал компрессор, которого в этом
-// движке нет; с ним аккорд сплющивал динамику до 3.2 дБ (замер 2026-09-04),
-// без него держится 8.6 дБ на 16 голосах. Старый движок трогать нельзя — на нём
-// сейчас beta17 у команды, и volume.mjs умрёт вместе с ним.
+import {clamp, makeNoteKey, midiNoteToFrequency, normalizeVolume, VoiceLedger} from '../core.mjs'
+// Громкость только ослабляет: 0…1 до потолка, как в chromatone/elements. Множитель
+// ×5, компенсировавший компрессор прежнего движка, сплющивал аккорд из 16 голосов
+// до 3.2 дБ динамики (замер 2026-09-04); без него держится 8.6 дБ.
 const attenuation = value => (normalizeVolume(value) / 100) ** 2
-import {master as masterPatch} from './patch.mjs'
-import {SOUNDS, toSound, voiceBuilder} from './timbres.mjs'
-import {VoicePool} from './voices.mjs'
+import {master, SOUNDS, toSound, voiceBuilder} from './timbres.mjs'
 
-export {DEFAULT_VOLUME, normalizeVolume} from '../volume.mjs'
+export {DEFAULT_VOLUME, normalizeVolume} from '../core.mjs'
 
 // Denis Starov's chromatone/elements uses el.tau2pole(0.001) for every ref.
 const REF_SMOOTH_TAU = 0.001
+
+// Voice slots on top of the victim rules VoiceLedger already has (releasing
+// before active, oldest first, tie by token); only the slot<->key bookkeeping
+// Elementary needs is added. Its declarative graph has no "voice ended"
+// callback, so a slot is reclaimed only when a NEW note needs it and the
+// ledger picks a victim — a fixed-size voice-stealing synth with no
+// idle-voice detection.
+class VoicePool {
+  constructor(size) {
+    this.ledger = new VoiceLedger(size)
+    this.slotForKey = new Map()
+    this.nextFreshSlot = 0
+  }
+
+  get activeVoiceCount() {
+    let count = 0
+    for (const entry of this.ledger.entries.values()) if (entry.state === 'active') count += 1
+    return count
+  }
+
+  // claim(key, startedAt) -> slot; `key` comes from makeNoteKey().
+  claim(key, startedAt) {
+    const claim = this.ledger.claim(key, startedAt)
+    let slot
+    if (claim.victimKey != null) {
+      slot = this.slotForKey.get(claim.victimKey)
+      this.slotForKey.delete(claim.victimKey)
+    } else {
+      slot = this.nextFreshSlot
+      this.nextFreshSlot += 1
+    }
+    this.slotForKey.set(key, slot)
+    return slot
+  }
+
+  release(key, releasedAt) { return this.ledger.markReleased(key, releasedAt) }
+  slotFor(key) { return this.slotForKey.get(key) }
+
+  clear() {
+    this.ledger.clear()
+    this.slotForKey.clear()
+    this.nextFreshSlot = 0
+  }
+}
 
 export class ElementarySynthEngine {
   constructor(context, options = {}) {
@@ -41,15 +77,12 @@ export class ElementarySynthEngine {
     this.context = context
     this.ownsContext = Boolean(options.ownsContext)
     this.quality = options.quality === 'safe' ? 'safe' : 'standard'
-    // Same cap as ../engine.mjs's voiceLimit (safe=4, standard=8): fewer
-    // concurrent voices is what "Low CPU" means. There the limit shrinks the
-    // ledger so old Voice objects get disposed sooner; here it shrinks the
-    // ref pool itself, since Elementary renders every created ref on every
-    // block whether its gate is open or not — an unused ref is not free.
+    // "Low CPU" = fewer concurrent voices (safe=4, standard=8). The cap shrinks
+    // the ref pool itself: Elementary renders every created ref on every block
+    // whether its gate is open or not — an unused ref is not free.
     this.poolSize = this.quality === 'safe' ? 4 : 8
     this.pool = new VoicePool(this.poolSize)
-    // Звук = тембр + его настройки + мастер-цепь (sounds.mjs). Старая форма
-    // пресета принимается как тембр 'glass'.
+    // Звук = тембр + его настройки + мастер-цепь (timbres.mjs).
     this.sound = toSound(options.preset || SOUNDS[0])
     this.volume = normalizeVolume(options.volume)
     this.core = null
@@ -115,7 +148,7 @@ export class ElementarySynthEngine {
   }
 
   _buildGraph() {
-    const buildVoice = voiceBuilder(this.sound, this.quality)
+    const buildVoice = voiceBuilder(this.sound)
     let sum = 0
     for (let slot = 0; slot < this.poolSize; slot += 1) {
       sum = el.add(sum, buildVoice({
@@ -123,7 +156,7 @@ export class ElementarySynthEngine {
       }))
     }
     const probe = el.in({channel: 0})
-    return masterPatch(el.add(sum, probe), {
+    return master(el.add(sum, probe), {
       volume: this.volumeRef, fx: this.sound.fx, sampleRate: this.context.sampleRate, quality: this.quality
     })
   }
@@ -136,9 +169,8 @@ export class ElementarySynthEngine {
   // turn are not guaranteed to all land before the very next audio block —
   // only the last one queued reliably does. Realtime callers never need to
   // await this; whenIdle() exists so an offline test using
-  // context.suspend()/resume() for sample-accurate scheduling (the same
-  // technique test-sound-levels.js's fastStream() uses for the legacy
-  // engine) can wait for every queued update to actually land before resuming.
+  // context.suspend()/resume() for sample-accurate scheduling can wait for
+  // every queued update to actually land before resuming.
   _track(promise) { this._pending.push(promise); return promise }
   async whenIdle() { await Promise.all(this._pending); this._pending = [] }
 
@@ -177,7 +209,7 @@ export class ElementarySynthEngine {
   noteOn(sourceId, channel, note, velocity = 100, when = this.context.currentTime, levelScale = 1) {
     const key = makeNoteKey(sourceId, channel, note)
     const time = Number.isFinite(when) ? when : this.context.currentTime
-    const {slot} = this.pool.claim(key, time)
+    const slot = this.pool.claim(key, time)
     const normalizedVelocity = clamp(velocity, 1, 127, 100) / 127 * clamp(levelScale, 0, 1, 1)
     const freq = midiNoteToFrequency(note)
     this.values.freq[slot] = freq
@@ -202,10 +234,8 @@ export class ElementarySynthEngine {
     return true
   }
 
-  // CC123. Every voice's gate drops to 0, carried through the same ADSR
-  // release stage a normal note-off uses — click-free by construction (the
-  // release ramp is what removes the click, not a separate fast fade like
-  // the legacy engine's forceStop).
+  // CC123. Every voice's gate drops to 0 through the same ADSR release stage
+  // a normal note-off uses — click-free by construction.
   panic() {
     for (let slot = 0; slot < this.poolSize; slot += 1) {
       this.values.gate[slot] = 0
@@ -217,11 +247,7 @@ export class ElementarySynthEngine {
   async stop() {
     this.context.removeEventListener?.('statechange', this.boundStateChange)
     this.panic()
-    try {
-      if (this.ownsContext && this.context.state !== 'closed') await this.context.close()
-    } catch (error) {
-      throw error
-    }
+    if (this.ownsContext && this.context.state !== 'closed') await this.context.close()
   }
 }
 

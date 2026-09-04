@@ -16,8 +16,19 @@
  *    не пробивали потолок мастера.
  */
 import {el} from '@elemaudio/core'
-import {VOICE_LEVEL, VELOCITY_CURVE, voice as glassVoice} from './patch.mjs'
-import {validatePreset} from '../presets.mjs'
+import {srvb} from './fx/srvb.mjs'
+
+// Решение Андрея 2026-09-04: кривая 0.78 даёт ~10 дБ между velocity 24 и 100
+// (0.70 → 9.0 дБ, 0.78 → 10.0, 0.85 → 10.8) — лёгкое касание растения слышно
+// уверенно, динамика не сплющена.
+export const VELOCITY_CURVE = 0.78
+export const VOICE_LEVEL = 0.5
+// Мастер: сухой уровень, потолок линии задержки и фиксированная комната
+// ревербератора — баланс, под который выставлены все звуки.
+const FILTER_Q = 0.7
+const DRY_LEVEL = 0.86
+const DELAY_MAX_SECONDS = 0.8
+const REVERB_ROOM = Object.freeze({size: 0.35, decay: 0.5, mod: 0.2})
 
 // 15/120 BPM — авторский масштаб огибающих на спокойном темпе.
 const RATE = 0.125
@@ -113,7 +124,7 @@ export const TIMBRES = Object.freeze({
 // клавиатуру и на щипке растения звучали бы вполсилы.
 //
 // Форма звука: {name, timbre, cv, fx}. `cv` — параметры тембра (их имена
-// авторские), `fx` — общая цепь мастера (patch.mjs master()).
+// авторские), `fx` — общая цепь мастера (master() ниже).
 
 const FX_DEFAULT = Object.freeze({
   cutoff: 12000, resonance: 0.7, delayTime: 0.22, delayFeedback: 0.1, delayWet: 0.05, reverbWet: 0.12
@@ -149,22 +160,50 @@ export const SOUNDS = Object.freeze([
     fx: fx({reverbWet: 0.25, delayWet: 0.1})}
 ].map(Object.freeze))
 
-// Любой вход приводится к одной форме. Старая форма пресета (SOUND_VARIANTS
-// из ../presets.mjs) — это тембр 'glass' плюс его же поля как настройки
-// мастера: так тесты и сохранённые пресеты продолжают работать, пока старый
-// движок не удалён.
+// Звук существует в одной форме; другой вход — ошибка, а не тихий фолбэк.
 export function toSound(input) {
-  if (input && typeof input === 'object' && typeof input.timbre === 'string' && TIMBRES[input.timbre]) {
-    return Object.freeze({name: String(input.name || 'Sound').slice(0, 32), timbre: input.timbre,
-      cv: {...input.cv}, fx: {...FX_DEFAULT, ...input.fx}})
-  }
-  const preset = validatePreset(input || {})
-  return Object.freeze({name: preset.name, timbre: 'glass', cv: preset, fx: preset})
+  if (!input || !TIMBRES[input.timbre]) throw new TypeError(`Unknown timbre: ${input?.timbre}`)
+  return Object.freeze({name: String(input.name || 'Sound').slice(0, 32), timbre: input.timbre,
+    cv: {...input.cv}, fx: {...FX_DEFAULT, ...input.fx}})
 }
 
-// Как построить один голос для этого звука. Единственное место, где 'glass'
-// (наш старый тембр в patch.mjs) и авторские тембры расходятся.
-export function voiceBuilder(sound, quality = 'standard') {
-  if (sound.timbre === 'glass') return ctx => glassVoice({...ctx, preset: sound.cv, quality})
+// Как построить один голос этого звука.
+export function voiceBuilder(sound) {
   return ctx => TIMBRES[sound.timbre](ctx, sound.cv)
+}
+
+// master(sum, {volume, fx, sampleRate, quality}) — общая цепь, через которую
+// проходит сумма голосов (и зонд, подмешанный до вызова): фильтр звука, его
+// задержка и ревербератор от отфильтрованного сигнала, затем мягкий потолок
+// tanh. Без компрессора и подъёма громкости: спайк
+// (scripts/spike-elementary-gates.js) показал, что именно компрессор сплющивал
+// динамику и добавлял искажения. gate/freq/vel/volume приходят уже сглаженными
+// рефами (engine.mjs) — сглаживание живёт в создании ссылки, не в чтении.
+// `quality: 'safe'` (Low CPU) пропускает ревербератор.
+export function master(sum, {volume = 1, fx = {}, sampleRate = 44100, quality = 'standard'} = {}) {
+  const filtered = el.lowpass(num(fx.cutoff, 12000), num(fx.resonance, FILTER_Q), sum)
+  let out = el.mul(DRY_LEVEL, filtered)
+
+  const delayWet = num(fx.delayWet, 0)
+  if (delayWet > 0) {
+    const samples = Math.max(1, Math.round(num(fx.delayTime, 0.2) * sampleRate))
+    const echo = el.delay(
+      {size: Math.ceil(DELAY_MAX_SECONDS * sampleRate)},
+      el.const({key: 'master:delay:time', value: samples}),
+      num(fx.delayFeedback, 0),
+      filtered
+    )
+    out = el.add(out, el.mul(delayWet, echo))
+  }
+
+  const reverbWet = num(fx.reverbWet, 0)
+  if (quality === 'standard' && reverbWet > 0) {
+    const [left, right] = srvb(
+      {key: 'master:srvb', sampleRate, size: REVERB_ROOM.size, decay: REVERB_ROOM.decay, mod: REVERB_ROOM.mod, mix: 1},
+      filtered, filtered
+    )
+    out = el.add(out, el.mul(reverbWet * 0.5, el.add(left, right)))
+  }
+
+  return el.tanh(el.mul(out, volume))
 }

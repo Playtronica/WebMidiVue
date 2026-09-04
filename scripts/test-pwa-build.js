@@ -50,7 +50,7 @@ assert(biotronBundle, 'the beta build does not include the Biotron DAW handoff')
 assert(allJavascript.includes('Release device for DAW'), 'the Biotron lifecycle was not emitted into any route chunk')
 assert(serviceWorker.includes(`js/${biotronBundle}`), 'the lazy Biotron settings chunk is not available offline')
 assert(soundBundle, 'the beta build does not include the lazy sound lab')
-assert(read(path.join('js', soundBundle)).includes('Clear Glass'), 'the sound lab does not include six sound variants')
+assert(read(path.join('js', soundBundle)).includes('Round Bright'), 'the sound lab does not include the seven sounds')
 assert(read(path.join('js', soundBundle)).includes('Meet Biotron'), 'the beta build has no Biotron first-play reveal')
 assert(serviceWorker.includes(`js/${soundBundle}`), 'the sound lab chunk is not available offline')
 const soundGzipBytes = zlib.gzipSync(fs.readFileSync(path.join(root, 'js', soundBundle))).length

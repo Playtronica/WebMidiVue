@@ -1,11 +1,8 @@
-// Same measurements as test-sound-levels.js, driving the new Elementary
-// engine (src/audio/elementary/*) instead of the legacy one. noteOn/noteOff/
-// panic write straight to the engine's per-voice refs (no render() call —
-// see engine.mjs), but a ref's setter still applies "at the nearest block"
-// the same way render() did, so every scheduled action here still uses
-// context.suspend()/resume() around it for sample-accurate timing — exactly
-// the pattern test-sound-levels.js's fastStream() already uses for the
-// legacy engine's AudioParam automation.
+// Gates of the sound engine (src/audio/elementary/*), rendered offline.
+// noteOn/noteOff/panic write straight to the engine's per-voice refs (no
+// render() call — see engine.mjs), but a ref's setter still applies "at the
+// nearest block", so every scheduled action here uses context.suspend()/
+// resume() around it for sample-accurate timing.
 const assert = require('assert')
 const fs = require('fs')
 const http = require('http')
@@ -32,7 +29,7 @@ const entryFile = path.join(root, 'scripts/_elem-engine-entry.js')
 const bundleFile = path.join(root, 'scripts/_elem-engine-bundle.js')
 fs.writeFileSync(entryFile,
   "export {ElementarySynthEngine} from '../src/audio/elementary/engine.mjs'\n" +
-  "export {SOUND_VARIANTS} from '../src/audio/presets.mjs'\n")
+  "export {SOUNDS} from '../src/audio/elementary/timbres.mjs'\n")
 execFileSync('npx', ['--yes', 'esbuild@0.24.0', 'scripts/_elem-engine-entry.js',
   '--bundle', '--format=iife', '--global-name=__ElemEngine',
   '--outfile=scripts/_elem-engine-bundle.js', '--log-level=error'], {cwd: root})
@@ -65,7 +62,7 @@ const server = http.createServer((request, response) => {
 
     const metrics = await page.evaluate(async () => {
       const {ElementarySynthEngine} = window.__ElemEngine
-      const {SOUND_VARIANTS} = window.__ElemEngine
+      const {SOUNDS} = window.__ElemEngine
       const sampleRate = 48000
       const quantum = 128 / sampleRate
 
@@ -105,11 +102,10 @@ const server = http.createServer((request, response) => {
         return {channel: rendered.getChannelData(0), engine}
       }
 
-      const preset = SOUND_VARIANTS[0]
+      const preset = SOUNDS[0]
 
-      // 1. 27 ms plant note vs a held note (same contract as test-sound-levels.js:
-      // the attack must finish before release starts, and the note must reach
-      // the level a held note reaches).
+      // 1. 27 ms plant note vs a held note: the attack must finish before
+      // release starts, and the note must reach the level a held note reaches.
       const held = await playEvents(1.2, [
         {at: 0.05, action: e => e.noteOn('t', 0, 64, 98, 0.05, 1)},
         {at: 0.55, action: e => e.noteOff('t', 0, 64, 0.55)}
@@ -127,21 +123,13 @@ const server = http.createServer((request, response) => {
       const dynamics = {v24: +p24.toFixed(4), v100: +p100.toFixed(4), dB: +(20 * Math.log10(p100 / Math.max(p24, 1e-9))).toFixed(1)}
 
       // 3. THD of the master chain: a probe sine INTO engine.input, no notes
-      // playing — same technique as scripts/spike-elementary-gates.js. Uses
-      // the engine's default volume (70, gain ~2.45x, same as the legacy
-      // engine's default) with a moderate probe amplitude — test-sound-
-      // levels.js's toneDistortion() uses 0.05-0.2 for the same reason: a
-      // 0.5-amplitude probe at operating gain would drive the tanh ceiling
-      // far harder than any real note ever does and measure the ceiling, not
-      // the chain.
-      // Measured on a wet-free preset on purpose. Delay and reverb are part
-      // of a preset's sound, but their output is by definition not the
-      // fundamental: a modulated reverb tail lands in this integral as
-      // "distortion" (measured 2026-09-04: the same chain reads 0.02% dry and
-      // 9.2% with Clear Glass's delay+reverb). What this gate is for is the
-      // voice and master path itself — the place the legacy compressor's real
-      // distortion lived.
-      const dryPreset = {...preset, delayWet: 0, reverbWet: 0}
+      // playing — same technique as scripts/spike-elementary-gates.js, at the
+      // default volume with a moderate probe amplitude (a 0.5 probe would
+      // measure the tanh ceiling, not the chain).
+      // Measured dry on purpose: delay and reverb are part of a sound, but a
+      // modulated reverb tail is by definition not the fundamental and lands
+      // in this integral as "distortion" (2026-09-04: 0.02% dry, 9.2% wet).
+      const dryPreset = {...preset, fx: {...preset.fx, delayWet: 0, reverbWet: 0}}
       const thdContext = new OfflineAudioContext(1, Math.round(sampleRate * 1.2), sampleRate)
       const thdEngine = new ElementarySynthEngine(thdContext, {preset: dryPreset, volume: 70})
       await thdEngine.ensureReady()
@@ -176,9 +164,8 @@ const server = http.createServer((request, response) => {
         nonFinite: eightVoicesNonFinite}
 
       // Max sample-to-sample delta in a window, well after a transition,
-      // where the signal should already have decayed to near-silence. This
-      // is the same thing test-sound-levels.js's releaseEdge measures
-      // (maxPostStopDelta): a window taken *during* an active decay is
+      // where the signal should already have decayed to near-silence: a
+      // window taken *during* an active decay is
       // dominated by the carrier's own oscillation slope (a healthy ~330 Hz
       // tone has an inherent per-sample delta around 0.01-0.02, nothing to do
       // with a click); a click is what remains once the signal itself has
@@ -191,7 +178,7 @@ const server = http.createServer((request, response) => {
 
       // 5. Release not cut short: note off, then confirm the tail keeps
       // decaying (non-zero right after) and has actually settled to silence
-      // by the time the declared release (0.42 s) has elapsed, with no
+      // by the time the sound's release (Round: 0.25 s) has elapsed, with no
       // discontinuity left behind once it gets there.
       const releaseRun = await playEvents(1.2, [
         {at: 0.05, action: e => e.noteOn('t', 0, 64, 100, 0.05, 1)},
@@ -215,15 +202,14 @@ const server = http.createServer((request, response) => {
       return {plantNote, dynamics, thdPercent, eightVoices, release, panicClick}
     })
 
-    // Same thresholds as test-sound-levels.js, plus the two new ones the
-    // coordinator specified for the Elementary engine.
+    // Plant-note and click thresholds carried over from the previous engine's
+    // gates; dynamics and THD specified for this one.
     assert(metrics.plantNote.plantPeak >= 0.8 * metrics.plantNote.heldPeak,
       `27 ms plant note peaks at ${metrics.plantNote.plantPeak} vs held ${metrics.plantNote.heldPeak}`)
     assert(metrics.dynamics.dB >= 8, `dynamics ${metrics.dynamics.dB} dB is below the 8 dB floor`)
     assert(metrics.dynamics.dB <= 13, `dynamics ${metrics.dynamics.dB} dB is above the 13 dB ceiling (light touches would go inaudible)`)
     assert(metrics.thdPercent <= 3, `master-chain THD is ${metrics.thdPercent}% (gate <= 3%)`)
-    // Same reasoning as test-sound-levels.js's distortion comment: the tanh
-    // ceiling means peak alone cannot usefully fail (it structurally
+    // The tanh ceiling means peak alone cannot usefully fail (it structurally
     // approaches, but at 4-decimal rounding can print as, 1 for any hot
     // input) — an eight-voice fortissimo chord at the default volume rides
     // right up against that asymptote, which is the soft-ceiling working as

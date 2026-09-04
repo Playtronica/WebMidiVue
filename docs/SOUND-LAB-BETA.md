@@ -47,11 +47,13 @@ The engine caps active voices at 8 (4 in safe mode), caps retiring voices, suspe
   audio-only/unsupported fallbacks.
 - `src/components/SoundLab/DisabledSoundLab.vue` — production-safe alias target.
 - `src/audio/core.mjs` — MIDI parsing, any-layout keyboard map, bounded voice ledger.
-- `src/audio/engine.mjs` — dependency-free Web Audio engine.
+- `src/audio/elementary/` — the sound engine on Elementary Audio: `engine.mjs` (our
+  interface, live refs, voice slots), `timbres.mjs` (chromatone/elements timbres, the seven
+  sounds, master chain), `fx/` (reverb).
 - `src/audio/midi.mjs` — selected-input-only MIDI lifecycle.
 - `src/audio/tabLease.mjs` — one-active-window lease for audio and MIDI.
-- `src/audio/presets.mjs` — six validated Glass Flute variants.
 - `scripts/test-sound-core.mjs` — deterministic contracts and close-failure retry.
+- `scripts/test-sound-elementary.js` — offline engine gates: dynamics, THD, 27 ms plant note, clicks.
 - `scripts/test-sound-browser.js` — real Chrome/Brave audio, keyboard and fake-MIDI flow.
 - `scripts/test-production-isolation.js` — proves the synth does not leak into production.
 

@@ -14,7 +14,7 @@
     "test:firmware": "node scripts/test-firmware-update.js",
     "test:pwa:browser": "node scripts/test-pwa-browser.js",
     "test:sound": "node --test scripts/test-sound-core.mjs",
-    "test:sound:levels": "node scripts/test-sound-levels.js",
+    "test:sound:levels": "node scripts/test-sound-elementary.js",
     "test:sound:browser": "node scripts/test-sound-browser.js",
     "test:navigation": "node scripts/test-navigation-contract.js",
     "test:compatibility": "node scripts/test-compatibility-contract.js",

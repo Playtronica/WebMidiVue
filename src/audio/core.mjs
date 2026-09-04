@@ -74,11 +74,12 @@ export class VoiceLedger {
     return true
   }
 
-  remove(key, token) {
-    const entry = this.entries.get(key)
-    if (!entry || entry.token !== token) return false
-    return this.entries.delete(key)
-  }
-
   clear() { this.entries.clear() }
+}
+
+export const DEFAULT_VOLUME = 70
+// Громкость интерфейса 0…150; в ослабление её переводит движок.
+export function normalizeVolume(input) {
+  if (input === null || input === undefined || input === '') return DEFAULT_VOLUME
+  return Math.round(clamp(Number(input), 0, 150, DEFAULT_VOLUME))
 }
