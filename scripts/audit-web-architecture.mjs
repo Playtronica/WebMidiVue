@@ -38,7 +38,10 @@ const main = sources.find(({file}) => file === 'src/main.js')?.text || ''
 const sysEx = sources.find(({file}) => file === 'src/assets/js/SysExCommand.js')?.text || ''
 const unawaitedDelayFiles = sources
   .filter(({file}) => file.startsWith('src/'))
-  .filter(({text}) => text.split('\n').some(line => /\bdelay\s*\(/.test(line) && !/\bawait\s+delay\s*\(|function\s+delay\s*\(/.test(line)))
+  // Ищем незавершённый ТАЙМЕР, а не любое слово delay: el.delay / el.sdelay — это линии
+  // задержки звукового графа Elementary, они не промисы и ждать их нечем.
+  .filter(({text}) => text.split('\n').some(line =>
+    /(?<!\bel\.s?)\bdelay\s*\(/.test(line) && !/\bawait\s+delay\s*\(|function\s+delay\s*\(/.test(line)))
   .map(({file}) => file)
 const report = {
   sourceFiles: sources.filter(({file}) => file.startsWith('src/')).length,
@@ -55,12 +58,27 @@ const report = {
   largestFiles
 }
 
+// Замена движка звука: новый стоит рядом со старым, пока не докажет себя. Окно объявлено
+// данными, а не словами в заметке (контракт простоты, оговорка к правилу 3). Оно закрывается
+// по сроку ИЛИ в момент исчезновения умирающего файла — что раньше; после закрытия потолки
+// возвращаются к целевым, и прогон покраснеет, если сущность не удалили.
+const replacementWindow = {
+  reason: 'переход движка звука на Elementary Audio (решение 2026-09-04)',
+  dying: 'src/audio/engine.mjs',
+  until: '2026-09-18',
+  during: {sourceFiles: 71, sourceLines: 10600},
+  after: {sourceFiles: 64, sourceLines: 9960}
+}
+const windowOpen = fs.existsSync(path.resolve(root, replacementWindow.dying)) &&
+  new Date() <= new Date(`${replacementWindow.until}T23:59:59Z`)
+const caps = windowOpen ? replacementWindow.during : replacementWindow.after
+
 const limits = {
   eagerDeviceRouteImports: 0,
   sleepCalls: 0,
   unmanagedListenerFiles: 0,
-  sourceFiles: 64,
-  sourceLines: 9960,
+  sourceFiles: caps.sourceFiles,
+  sourceLines: caps.sourceLines,
   largestProductFileLines: 850
 }
 const violations = [

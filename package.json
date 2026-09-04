@@ -29,6 +29,8 @@
     "test:biotron": "npm run lint && npm run test:architecture && npm run test:listeners && npm run test:midi-timing && npm run test:settings-readback && npm run test:legacy-selector && npm run test:sound && npm run test:sound:levels && npm run test:navigation && npm run test:compatibility && npm run test:production-isolation && npm run build:biotron-beta && npm run test:device-scope && npm run test:midi-lifecycle && npm run test:pwa && npm run test:firmware && npm run test:sound:browser && npm run test:pwa:browser"
   },
   "dependencies": {
+    "@elemaudio/core": "^4.0.1",
+    "@elemaudio/web-renderer": "^4.0.3",
     "@fortawesome/fontawesome-free": "^6.7.2",
     "@popperjs/core": "^2.11.8",
     "@progress/kendo-file-saver": "^1.1.1",
@@ -42,9 +44,7 @@
   "devDependencies": {
     "@babel/core": "^7.12.16",
     "@babel/eslint-parser": "^7.12.16",
-    "@elemaudio/core": "^4.0.1",
     "@elemaudio/offline-renderer": "^4.0.3",
-    "@elemaudio/web-renderer": "^4.0.3",
     "@vue/cli-plugin-babel": "~5.0.0",
     "@vue/cli-plugin-eslint": "~5.0.0",
     "@vue/cli-plugin-pwa": "~5.0.0",
