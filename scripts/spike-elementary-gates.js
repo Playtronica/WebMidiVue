@@ -71,6 +71,26 @@ const server = http.createServer((q, r) => {
       res.thdMasterPercent = +(100 * Math.sqrt(Math.max(0, total - fund) / Math.max(fund, 1e-12))).toFixed(2)
       res.thdNote = 'не мерим на патче: вторая гармоника в нём намеренная'
       // 3. Полифония: 8 удержанных голосов — пик не должен схлопнуться и не должен упереться в 1.0
+      // Выживает ли динамика при полифонии и подъёме громкости? Это и есть болезнь.
+      res.dynamicsUnderLoad = []
+      for (const [n, gain] of [[1, 1], [8, 1], [8, 2.45], [16, 2.45]]) {
+        const chord = (velValue) => render(E => {
+          let sum = 0
+          for (let i = 0; i < n; i++) sum = E.add(sum, voice(gateOn('d' + i), E.const({key: 'df' + i, value: 220 * Math.pow(2, i / 12)}), v(velValue / 127)))
+          return E.tanh(E.mul(sum, gain))
+        }, 1.2)
+        const lo = peak(await chord(24)), hi = peak(await chord(100))
+        res.dynamicsUnderLoad.push({voices: n, gain, v24: +lo.toFixed(4), v100: +hi.toFixed(4), dB: +(20 * Math.log10(hi / Math.max(lo, 1e-9))).toFixed(1)})
+      }
+      res.polyScaling = []
+      for (const n of [1, 2, 4, 8, 16]) {
+        const ch = await render(E => {
+          let sum = 0
+          for (let i = 0; i < n; i++) sum = E.add(sum, voice(gateOn('p' + i), E.const({key: 'pf' + i, value: 220 * Math.pow(2, i / 12)}), v(100 / 127)))
+          return E.tanh(sum)
+        }, 1.2)
+        res.polyScaling.push({voices: n, peak: +peak(ch).toFixed(4)})
+      }
       const many = await render(E => {
         let sum = 0
         for (let i = 0; i < 8; i++) sum = E.add(sum, voice(gateOn('g' + i), E.const({key: 'f' + i, value: 220 * Math.pow(2, i / 12)}), v(100 / 127)))
