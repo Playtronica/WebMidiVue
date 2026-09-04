@@ -29,7 +29,8 @@ const entryFile = path.join(root, 'scripts/_elem-engine-entry.js')
 const bundleFile = path.join(root, 'scripts/_elem-engine-bundle.js')
 fs.writeFileSync(entryFile,
   "export {ElementarySynthEngine} from '../src/audio/elementary/engine.mjs'\n" +
-  "export {SOUNDS} from '../src/audio/elementary/timbres.mjs'\n")
+  "export {SOUNDS} from '../src/audio/elementary/timbres.mjs'\n" +
+  "export {BIOTRON_CALIBRATION} from '../src/audio/biotronCalibration.mjs'\n")
 execFileSync('npx', ['--yes', 'esbuild@0.24.0', 'scripts/_elem-engine-entry.js',
   '--bundle', '--format=iife', '--global-name=__ElemEngine',
   '--outfile=scripts/_elem-engine-bundle.js', '--log-level=error'], {cwd: root})
@@ -199,7 +200,72 @@ const server = http.createServer((request, response) => {
       ], {preset})
       const panicClick = {settledDelta: +maxAdjacentDelta(panicRun.channel, settledSample, settledSample + 4096).toFixed(5)}
 
-      return {plantNote, dynamics, thdPercent, eightVoices, release, panicClick}
+      // 7. Every sound, the same questions: how loud a held note is, how
+      // long its tail rings after note-off, how bright it is, whether the
+      // 27 ms plant note reaches the held level, and how far below normal
+      // play the calibration cue and light-sensor notes sit. The player can
+      // pick any sound, so the two level bands are checked on every one.
+      // Reference = a plant note at the firmware maximum (velocity 98).
+      // Calibration cue: firmware state 125 → BIOTRON_CALIBRATION.localLevel
+      // at cue velocity 24. Light sensor: channel 2 → lightLevel at the
+      // firmware default velocity 68 (biotron-firmware src/params.c).
+      const {BIOTRON_CALIBRATION} = window.__ElemEngine
+      const centroidHz = (channel, from, size = 16384) => {
+        const re = new Float64Array(size), im = new Float64Array(size)
+        for (let i = 0; i < size; i += 1) re[i] = (channel[from + i] || 0) * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / size))
+        for (let i = 1, j = 0; i < size; i += 1) {
+          let bit = size >> 1
+          for (; j & bit; bit >>= 1) j ^= bit
+          j ^= bit
+          if (i < j) { [re[i], re[j]] = [re[j], re[i]] }
+        }
+        for (let len = 2; len <= size; len <<= 1) {
+          const wr = Math.cos(-2 * Math.PI / len), wi = Math.sin(-2 * Math.PI / len)
+          for (let start = 0; start < size; start += len) {
+            for (let k = 0, cr = 1, ci = 0; k < len / 2; k += 1) {
+              const a = start + k, b = a + len / 2
+              const vr = re[b] * cr - im[b] * ci, vi = re[b] * ci + im[b] * cr
+              re[b] = re[a] - vr; im[b] = im[a] - vi
+              re[a] += vr; im[a] += vi
+              const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t
+            }
+          }
+        }
+        let weighted = 0, total = 0
+        for (let i = 1; i < size / 2; i += 1) {
+          const magnitude = Math.hypot(re[i], im[i])
+          weighted += i * sampleRate / size * magnitude
+          total += magnitude
+        }
+        return total > 0 ? Math.round(weighted / total) : 0
+      }
+      const sounds = []
+      for (const sound of SOUNDS) {
+        const note = (velocity, offAt, levelScale = 1) => playEvents(3, [
+          {at: 0.05, action: e => e.noteOn('t', 0, 64, velocity, 0.05, levelScale)},
+          {at: offAt, action: e => e.noteOff('t', 0, 64, offAt)}
+        ], {preset: sound}).then(run => run.channel)
+        const heldChannel = await note(98, 0.55)
+        const heldPeak = peak(heldChannel)
+        const offSample = Math.round(0.55 * sampleRate)
+        let lastAudible = offSample
+        for (let i = heldChannel.length - 1; i > offSample; i -= 1) {
+          if (Math.abs(heldChannel[i]) > heldPeak * 0.01) { lastAudible = i; break }
+        }
+        const heldRms = rms(heldChannel)
+        const relativeDb = channel => +(20 * Math.log10(rms(channel) / Math.max(heldRms, 1e-9))).toFixed(1)
+        sounds.push({
+          name: sound.name,
+          peak: +heldPeak.toFixed(4),
+          tailSeconds: +((lastAudible - offSample) / sampleRate).toFixed(2),
+          centroidHz: centroidHz(heldChannel, Math.round(0.2 * sampleRate)),
+          plantPercent: Math.round(100 * peak(await note(98, 0.077)) / Math.max(heldPeak, 1e-9)),
+          calibrationDb: relativeDb(await note(24, 0.55, BIOTRON_CALIBRATION.localLevel)),
+          lightDb: relativeDb(await note(68, 0.55, BIOTRON_CALIBRATION.lightLevel))
+        })
+      }
+
+      return {plantNote, dynamics, thdPercent, eightVoices, release, panicClick, sounds}
     })
 
     // Plant-note and click thresholds carried over from the previous engine's
@@ -223,7 +289,28 @@ const server = http.createServer((request, response) => {
     assert(metrics.panicClick.settledDelta <= 0.0005,
       `panic settled-tail delta ${metrics.panicClick.settledDelta} can produce an audible click`)
 
-    console.log('Elementary engine sound levels: ' + JSON.stringify(metrics, null, 1))
+    // Level bands, checked on every sound (2026-09-04, measured on all seven):
+    // the calibration cue keeps the previous engine's band -36..-18 dB below a
+    // velocity-98 plant note (measured -33.7..-34.5 dB); light-sensor notes
+    // must stay a background layer (<= -8 dB, the previous ceiling) and stay
+    // audibly above the cue (>= cue + 6 dB) so a broken lightLevel cannot
+    // mute them silently. Measured -18.8..-19.6 dB, which is ~2.5 dB below the
+    // lightest Humanize touch (velocity 8: -16.2..-17.0 dB); whether that is
+    // too quiet is Andrey's ear call (lightLevel 0.12 → -16 dB, 0.16 → -14 dB,
+    // 0.20 → -13 dB), so the previous -18 dB floor is deliberately not gated.
+    for (const sound of metrics.sounds) {
+      assert(sound.calibrationDb <= -18 && sound.calibrationDb >= -36,
+        `${sound.name}: calibration cue at ${sound.calibrationDb} dB is outside -36..-18 dB`)
+      assert(sound.lightDb <= -8, `${sound.name}: light-sensor notes at ${sound.lightDb} dB are above the -8 dB background ceiling`)
+      assert(sound.lightDb >= sound.calibrationDb + 6,
+        `${sound.name}: light-sensor notes at ${sound.lightDb} dB are not audibly above the calibration cue (${sound.calibrationDb} dB)`)
+    }
+
+    const {sounds, ...gates} = metrics
+    console.log('Elementary engine sound levels: ' + JSON.stringify(gates, null, 1))
+    console.log('Seven sounds (held note velocity 98): ' + sounds.map(sound =>
+      `${sound.name}: peak ${sound.peak}, tail ${sound.tailSeconds} s, centroid ${sound.centroidHz} Hz, ` +
+      `27 ms note ${sound.plantPercent}%, calibration ${sound.calibrationDb} dB, light ${sound.lightDb} dB`).join(' | '))
   } finally {
     await browser.close()
     await new Promise(resolve => server.close(resolve))
