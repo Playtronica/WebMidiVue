@@ -290,9 +290,9 @@ async function controllerVersion(page) {
 
   await page.evaluate(() => window.__emitSettingsMidi([0xf0, 0x0b, 126, 0, 1, 9, 3, 0xf7]))
   await page.getByRole('button', {name: 'Update to 1.9.8'}).click()
-  await page.getByText(/Installed: 1\.9\.3\. Available: 1\.9\.8\./i).waitFor({state: 'visible', timeout: 5000})
+  await page.getByText(/Now: 1\.9\.3 → ✨ New: 1\.9\.8/i).waitFor({state: 'visible', timeout: 5000})
   await page.getByText(/Connect to the internet for firmware updates/i).waitFor({state: 'visible', timeout: 5000})
-  const update = page.locator('.modal.show').getByRole('button', {name: 'Download & verify', exact: true})
+  const update = page.locator('.modal.show').getByRole('button', {name: '⬇️ Download & check', exact: true})
   assert.strictEqual(await update.isDisabled(), true, 'firmware preparation was enabled offline')
   assert.strictEqual(await page.evaluate(() => window.__midiSent.some(message => message[3] === 127)), false,
     'offline firmware action entered BOOT')
