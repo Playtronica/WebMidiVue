@@ -62,12 +62,17 @@ const report = {
 // данными, а не словами в заметке (контракт простоты, оговорка к правилу 3). Оно закрывается
 // по сроку ИЛИ в момент исчезновения умирающего файла — что раньше; после закрытия потолки
 // возвращаются к целевым, и прогон покраснеет, если сущность не удалили.
+// Потолки строк подняты на 230 сознательно (04.09.2026): перенесены авторские
+// тембры chromatone/elements и список готовых звуков (src/audio/elementary/
+// timbres.mjs). Это добавленная функция, а не разрастание — старые пресеты
+// ушли из интерфейса, а целевой потолок «после» поднят на ту же величину,
+// чтобы удаление умирающего движка по-прежнему требовалось.
 const replacementWindow = {
   reason: 'переход движка звука на Elementary Audio (решение 2026-09-04)',
   dying: 'src/audio/engine.mjs',
   until: '2026-09-18',
-  during: {sourceFiles: 71, sourceLines: 10600},
-  after: {sourceFiles: 64, sourceLines: 9960}
+  during: {sourceFiles: 71, sourceLines: 10850},
+  after: {sourceFiles: 64, sourceLines: 10190}
 }
 const windowOpen = fs.existsSync(path.resolve(root, replacementWindow.dying)) &&
   new Date() <= new Date(`${replacementWindow.until}T23:59:59Z`)

@@ -426,7 +426,7 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     assert.strictEqual(await deviceMenu.getByRole('link', {name: 'Sound'}).count(), 0)
     assert.strictEqual(await deviceMenu.getByRole('link', {name: 'Biotron'}).getAttribute('href'), '#/biotron')
     assert.strictEqual(await page.locator('.sound-lab__variant').count(), 7)
-    assert.deepStrictEqual(await page.locator('.sound-lab__variant').allTextContents(), ['Clear Glass', 'Soft Glass', 'Breath Glass', 'Singing Glass', 'Glass Room', 'Electric Glass', 'Pluck'])
+    assert.deepStrictEqual(await page.locator('.sound-lab__variant').allTextContents(), ['Round', 'Round Bright', 'Fat', 'Fat Bass', 'String', 'Soft String', 'Air'])
     const volume = page.getByRole('slider', {name: 'Volume'})
     assert.strictEqual(await volume.inputValue(), '70')
     await volume.fill('100')
@@ -512,7 +512,7 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     await page.evaluate(() => window.__emitSoundMidi([0x90, 64, 0]))
     await page.getByRole('button', {name: 'Stop notes'}).click()
 
-    const names = ['Clear Glass', 'Soft Glass', 'Breath Glass', 'Singing Glass', 'Glass Room', 'Electric Glass', 'Pluck']
+    const names = ['Round', 'Round Bright', 'Fat', 'Fat Bass', 'String', 'Soft String', 'Air']
     for (let index = 0; index < 6; index += 1) {
       const variant = page.getByRole('button', {name: names[index], exact: true})
       await variant.click()

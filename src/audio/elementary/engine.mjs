@@ -19,7 +19,6 @@
 // call moved it to (measured 2026-09-04, see _resyncRefs()).
 import {el} from '@elemaudio/core'
 import {clamp, makeNoteKey, midiNoteToFrequency} from '../core.mjs'
-import {SOUND_VARIANTS, validatePreset} from '../presets.mjs'
 import {normalizeVolume} from '../volume.mjs'
 // Громкость здесь только ослабляет: 0…1 до потолка, как в chromatone/elements.
 // Прежний множитель ×5 в volume.mjs компенсировал компрессор, которого в этом
@@ -27,7 +26,8 @@ import {normalizeVolume} from '../volume.mjs'
 // без него держится 8.6 дБ на 16 голосах. Старый движок трогать нельзя — на нём
 // сейчас beta17 у команды, и volume.mjs умрёт вместе с ним.
 const attenuation = value => (normalizeVolume(value) / 100) ** 2
-import {voice as voicePatch, master as masterPatch} from './patch.mjs'
+import {master as masterPatch} from './patch.mjs'
+import {SOUNDS, toSound, voiceBuilder} from './timbres.mjs'
 import {VoicePool} from './voices.mjs'
 
 export {DEFAULT_VOLUME, normalizeVolume} from '../volume.mjs'
@@ -48,7 +48,9 @@ export class ElementarySynthEngine {
     // block whether its gate is open or not — an unused ref is not free.
     this.poolSize = this.quality === 'safe' ? 4 : 8
     this.pool = new VoicePool(this.poolSize)
-    this.preset = validatePreset(options.preset || SOUND_VARIANTS[0])
+    // Звук = тембр + его настройки + мастер-цепь (sounds.mjs). Старая форма
+    // пресета принимается как тембр 'glass'.
+    this.sound = toSound(options.preset || SOUNDS[0])
     this.volume = normalizeVolume(options.volume)
     this.core = null
     this.ready = false
@@ -113,15 +115,17 @@ export class ElementarySynthEngine {
   }
 
   _buildGraph() {
-    const preset = this.preset
+    const buildVoice = voiceBuilder(this.sound, this.quality)
     let sum = 0
     for (let slot = 0; slot < this.poolSize; slot += 1) {
-      sum = el.add(sum, voicePatch({
-        gate: this.gateRefs[slot], freq: this.freqRefs[slot], vel: this.velRefs[slot], preset
+      sum = el.add(sum, buildVoice({
+        gate: this.gateRefs[slot], freq: this.freqRefs[slot], vel: this.velRefs[slot]
       }))
     }
     const probe = el.in({channel: 0})
-    return masterPatch(el.add(sum, probe), {volume: this.volumeRef})
+    return masterPatch(el.add(sum, probe), {
+      volume: this.volumeRef, fx: this.sound.fx, sampleRate: this.context.sampleRate, quality: this.quality
+    })
   }
 
   async _render() { await this.core.render(this._buildGraph()) }
@@ -157,7 +161,7 @@ export class ElementarySynthEngine {
   }
 
   async applyPreset(input) {
-    this.preset = validatePreset(input)
+    this.sound = toSound(input)
     if (!this.ready) return
     await this._render()
     await this._resyncRefs()

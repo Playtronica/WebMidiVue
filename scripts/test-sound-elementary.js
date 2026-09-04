@@ -134,8 +134,16 @@ const server = http.createServer((request, response) => {
       // 0.5-amplitude probe at operating gain would drive the tanh ceiling
       // far harder than any real note ever does and measure the ceiling, not
       // the chain.
+      // Measured on a wet-free preset on purpose. Delay and reverb are part
+      // of a preset's sound, but their output is by definition not the
+      // fundamental: a modulated reverb tail lands in this integral as
+      // "distortion" (measured 2026-09-04: the same chain reads 0.02% dry and
+      // 9.2% with Clear Glass's delay+reverb). What this gate is for is the
+      // voice and master path itself — the place the legacy compressor's real
+      // distortion lived.
+      const dryPreset = {...preset, delayWet: 0, reverbWet: 0}
       const thdContext = new OfflineAudioContext(1, Math.round(sampleRate * 1.2), sampleRate)
-      const thdEngine = new ElementarySynthEngine(thdContext, {preset, volume: 70})
+      const thdEngine = new ElementarySynthEngine(thdContext, {preset: dryPreset, volume: 70})
       await thdEngine.ensureReady()
       const probeOsc = thdContext.createOscillator()
       const probeGain = thdContext.createGain()

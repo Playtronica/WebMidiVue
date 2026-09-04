@@ -226,7 +226,7 @@ import {noteForKeyboardCode} from '@/audio/core.mjs'
 import {createRealtimeElementarySynth as createRealtimeSynth, DEFAULT_VOLUME, normalizeVolume} from '@/audio/elementary/engine.mjs'
 import {registerSoundController, soundSessionState, unregisterSoundController, updateSoundSession} from '@/audio/sessionState.mjs'
 import {trace, MidiInputSession} from '@/audio/midi.mjs'
-import {SOUND_VARIANTS} from '@/audio/presets.mjs'
+import {SOUNDS} from '@/audio/elementary/timbres.mjs'
 import {createExclusiveTabLease} from '@/audio/tabLease.mjs'
 import {BIOTRON_CALIBRATION, biotronVoiceLevel, BiotronCalibrationTracker, parseBiotronCalibrationState} from '@/audio/biotronCalibration.mjs'
 import {getRevealProfile, selectRevealInput} from '@/audio/revealProfiles.mjs'
@@ -273,7 +273,7 @@ export default {
     return {
       engine: null,
       midi: null,
-      variants: SOUND_VARIANTS,
+      variants: SOUNDS,
       currentVariant: 0,
       volume: loadVolume(),
       keyboard,
