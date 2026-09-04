@@ -22,7 +22,7 @@ const server = http.createServer((q, r) => {
     page.on('console', m => { if (/error/i.test(m.text())) console.log('  [page]', m.text().slice(0, 140)) })
     await page.goto(`http://127.0.0.1:${server.address().port}`)
     await page.addScriptTag({url: `http://127.0.0.1:${server.address().port}/scripts/_elem-bundle.js`})
-    const out = await page.evaluate(async () => {
+    const out = await page.evaluate(async (VEL_EXP) => {
       const {el, WebRenderer} = window.__elem
       const SR = 48000
       const peak = (ch, a = 0, b = ch.length) => { let p = 0; for (let i = a; i < b; i++) p = Math.max(p, Math.abs(ch[i])); return p }
@@ -31,7 +31,7 @@ const server = http.createServer((q, r) => {
         const env = el.adsr(0.006, 0.18, 0.35, 0.42, gate)
         const cut = el.mul(el.add(300, el.mul(4200, vel)), 1)
         const osc = el.add(el.mul(0.75, el.cycle(freq)), el.mul(0.25, el.triangle(el.mul(freq, 2))))
-        return el.mul(env, el.pow(vel, 1.3), el.lowpass(cut, 0.7, osc), 0.5)
+        return el.mul(env, el.pow(vel, VEL_EXP), el.lowpass(cut, 0.7, osc), 0.5)
       }
       const render = async (build, seconds) => {
         const ctx = new OfflineAudioContext(1, Math.round(SR * seconds), SR)
@@ -78,8 +78,8 @@ const server = http.createServer((q, r) => {
       }, 1.2)
       res.eightVoices = {peak: +peak(many).toFixed(4)}
       return res
-    })
-    console.log(JSON.stringify(out, null, 1))
+    }, Number(process.argv[2] || 0.78))
+    console.log('vel^' + (process.argv[2] || 0.78), JSON.stringify(out))
   } finally {
     await browser.close(); await new Promise(res => server.close(res))
     fs.rmSync(path.join(root, 'scripts/_elem-entry.js'), {force: true}); fs.rmSync(path.join(root, 'scripts/_elem-bundle.js'), {force: true})
