@@ -1,13 +1,16 @@
 // Drives the live beta over CDP: clicks, waits for stages, dumps the trace. Andrey only touches the plant.
 const {chromium} = require('playwright-core'); const {execFileSync} = require('child_process')
 const TARGET = process.argv[2], STEP = process.argv[3] || 'hear'
+// The first-play route. Given #/biotron or #/biotron/play alike; the other steps strip /play themselves.
+const PLAY = TARGET.replace(/\/play\/?$/, '') + '/play'
+const CDP = process.env.CDP || 'http://127.0.0.1:9444'
 const STEPS = STEP === 'all' ? ['hear', 'calibrate', 'beat', 'release'] : [STEP]
 const PY = process.env.HOME + '/ProjectData/playtronica-firmware/tools/py310-midi/bin/python'
 const BENCH = '/Users/andreymanirko/Projects/Claude/Playtronica Claude/projects/firmware-engineering/scripts/biotron_mac_bench.py'
 const health = tag => { try { execFileSync(PY, [BENCH, 'health', '--version', '1.9.8', '--log', `/tmp/live-${tag}.json`], {stdio: 'ignore', cwd: '/Users/andreymanirko/Projects/Claude/Playtronica Claude/projects/firmware-engineering'}) ; const d = JSON.parse(require('fs').readFileSync(`/tmp/live-${tag}.json`)); const f = {}; d.observations.filter(o => o.kind === 'health_page').forEach(o => Object.assign(f, o.fields)); return {rejected: f.tx_rejected, malformed0: f.cable0_malformed, tx: f.tx_enqueued} } catch (e) { return {error: String(e).slice(0, 80)} } }
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a)
 ;(async () => {
-  const browser = await chromium.connectOverCDP('http://127.0.0.1:9444')
+  const browser = await chromium.connectOverCDP(CDP)
   const context = browser.contexts()[0]
   await context.grantPermissions(['midi', 'midi-sysex'], {origin: new URL(TARGET).origin})
   const page = context.pages()[0] || await context.newPage()
@@ -18,7 +21,9 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a)
   for (const STEP of STEPS) {
   log(`===== step ${STEP} =====`)
   if (STEP === 'hear') {
-    await page.goto(TARGET); await page.locator('.sound-lab[data-reveal-stage="intro"]').waitFor({timeout: 20000})
+    // A hash-only change does not reload the document, so a tab already on the beta (or with sound running)
+    // never returns to 'intro' and 'Hear Biotron' is not there. Reload: a fresh document starts at intro.
+    await page.goto(PLAY); await page.reload(); await page.locator('.sound-lab[data-reveal-stage="intro"]').waitFor({timeout: 20000})
     log('page intro, build', await page.locator('footer, .build, [class*=build]').first().innerText().catch(() => '?'))
     await page.getByRole('button', {name: 'Hear Biotron'}).click(); log('CLICK Hear Biotron')
     const t0 = Date.now(); let last = ''
