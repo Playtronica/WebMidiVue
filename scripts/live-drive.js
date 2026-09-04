@@ -32,8 +32,10 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a)
   }
   if (STEP === 'calibrate') {
     await page.goto(TARGET.replace('/play', '')); await page.getByRole('button', {name: 'Calibrate plant again'}).waitFor({timeout: 20000})
+    // The settings route has no .sound-lab; the build stamp lives here (hidden on the first-play route).
+    log('build stamp', await page.locator('.beta-build').innerText({timeout: 2000}).catch(() => '?'))
     await page.getByRole('button', {name: 'Calibrate plant again'}).click(); log('CLICK Calibrate plant again')
-    for (let i = 0; i < 40; i++) { await page.waitForTimeout(1000); const v = await page.locator('.sound-lab').getAttribute('data-active-voices').catch(() => 'n/a'); if (i % 5 === 0) log(`+${i}s voices=${v}`) }
+    for (let i = 0; i < 40; i++) { await page.waitForTimeout(1000); const v = await page.locator('.sound-lab').getAttribute('data-active-voices', {timeout: 200}).catch(() => 'n/a'); if (i % 5 === 0) log(`+${i}s voices=${v}`) }
   }
   if (STEP === 'beat') {
     await page.goto(TARGET.replace('/play', '')); await page.getByRole('button', {name: 'Check saved settings'}).waitFor({timeout: 20000})
