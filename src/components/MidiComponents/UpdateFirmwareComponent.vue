@@ -5,7 +5,7 @@ const target = process.env.VUE_APP_BIOTRON_FIRMWARE_TARGET
 const internalFirmware = target ? {version: target, internal: true,
   name: process.env.VUE_APP_BIOTRON_FIRMWARE_NAME, url: process.env.VUE_APP_BIOTRON_FIRMWARE_URL,
   sha256: process.env.VUE_APP_BIOTRON_FIRMWARE_SHA256, size: Number(process.env.VUE_APP_BIOTRON_FIRMWARE_SIZE)} : null
-const PICK = 'The folder window opens in Documents. Select the drive named RPI-RP2 there: on Mac in the left sidebar (or press ⌘⇧G and type /Volumes/RPI-RP2), on Windows under This PC. Then press Select.'
+const PICK = 'Choose the drive RPI-RP2 (Mac: left sidebar · Windows: This PC), then press Select.'
 export default {
   emits: ['check_firmware'],
   props: {repo: String, device: Object, currentVersion: {type: String, default: ''},
@@ -73,7 +73,7 @@ export default {
           this.message = `Firmware ${this.latest.version} is verified. ${this.device ? 'Biotron has not restarted yet.' : PICK}`
         } else if (this.phase === 'prepared') {
           this.phase = 'booting'; this.message = 'Restarting Biotron in update mode…'; await bootDevice(this.device)
-          this.phase = 'select-drive'; this.message = `Biotron restarted as the RPI-RP2 drive. ${PICK}`
+          this.phase = 'select-drive'; this.message = `Biotron is now the RPI-RP2 drive. ${PICK}`
         } else if (this.phase === 'select-drive') {
           this.phase = 'writing'; await writeFirmware(this.prepared, this.latest); this.phase = 'reconnecting'
           this.message = `Firmware copied. Waiting for Biotron ${this.latest.version}…`
@@ -102,9 +102,9 @@ export default {
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
       <div class="modal-body">
         <p v-if="available">Installed: {{ currentVersion }}. Available: {{ latest.version }}.</p>
-        <p v-if="recovery">Biotron does not answer over MIDI. If it is in update mode, the computer shows a drive named <strong>RPI-RP2</strong>: firmware {{ latest.version }} can be written to it now.</p>
-        <p v-if="internal && ready">The browser verifies the complete file first and writes it only to the RPI-RP2 drive. Chrome or Edge asks you to choose that drive; this confirmation cannot be skipped.</p>
-        <p v-if="internal && ready" class="small text-muted">{{ pick }}</p>
+        <p v-if="recovery">No Biotron over MIDI. Is the drive <strong>RPI-RP2</strong> on your computer? Then install firmware {{ latest.version }} now.</p>
+        <p v-if="internal && ready">The file is checked first. Then you choose the RPI-RP2 drive.</p>
+        <p v-if="internal && ready" class="small text-muted">{{ pick }} Mac tip: ⌘⇧G, then /Volumes/RPI-RP2.</p>
         <p v-if="current" class="alert alert-success mb-0">Firmware {{ currentVersion }} is current.</p>
         <p v-if="!online" class="alert alert-warning mb-0">Connect to the internet for firmware updates. Settings remain available offline.</p>
         <p v-if="error" class="alert alert-danger mb-0" role="alert">{{ error }}</p>

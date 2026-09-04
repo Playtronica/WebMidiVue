@@ -66,11 +66,11 @@ const arrayBuffer = buffer => buffer.buffer.slice(buffer.byteOffset, buffer.byte
   assert.match(updateComponent, /Choose RPI-RP2 & install/)
   assert.match(updateComponent, /@click="\$emit\('check_firmware'\)"/)
   // F2 (2026-09-04): the folder picker opens in Documents; the drive must be named before and during the step.
-  assert.match(updateComponent, /Select the drive named RPI-RP2 there: on Mac in the left sidebar \(or press ⌘⇧G and type \/Volumes\/RPI-RP2\), on Windows under This PC/)
-  assert.match(updateComponent, /<p v-if="internal && ready" class="small text-muted">\{\{ pick \}\}<\/p>/)
+  assert.match(updateComponent, /Choose the drive RPI-RP2 \(Mac: left sidebar · Windows: This PC\), then press Select/)
+  assert.match(updateComponent, /<p v-if="internal && ready" class="small text-muted">\{\{ pick \}\} Mac tip: ⌘⇧G, then \/Volumes\/RPI-RP2\.<\/p>/)
   // F3 (2026-09-04): page reloaded while Biotron sits in update mode — no MIDI, only the RPI-RP2 drive.
   assert.match(updateComponent, /Biotron in update mode\?/)
-  assert.match(updateComponent, /<p v-if="recovery">Biotron does not answer over MIDI/)
+  assert.match(updateComponent, /<p v-if="recovery">No Biotron over MIDI\. Is the drive <strong>RPI-RP2<\/strong> on your computer\?/)
   assert.doesNotMatch(updateComponent, /public updater is intentionally disabled/i)
   await testComponentStateMachine(updateComponent)
 
@@ -242,7 +242,7 @@ async function testComponentStateMachine(componentSource) {
     }
     return instance
   }
-  const drive = /Select the drive named RPI-RP2 there: on Mac in the left sidebar/
+  const drive = /Choose the drive RPI-RP2 \(Mac: left sidebar · Windows: This PC\), then press Select\./
 
   // Normal path: Biotron answers over MIDI with 1.9.7 — verify, restart, choose drive, write, reconnect.
   const instance = build({device: 'selected-midi-output', currentVersion: '1.9.7'})
@@ -294,7 +294,7 @@ async function testComponentStateMachine(componentSource) {
   await retry.runStep()
   assert.strictEqual(retry.phase, 'select-drive')
   assert.strictEqual(retry.error, '')
-  assert.match(retry.message, /^No drive selected\. The folder window opens in Documents/)
+  assert.match(retry.message, /^No drive selected\. Choose the drive RPI-RP2/)
   writeFailure = new Error('Select the RPI-RP2 drive. No file was written.')
   await retry.runStep()
   assert.strictEqual(retry.phase, 'select-drive')
