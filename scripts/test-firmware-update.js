@@ -65,6 +65,12 @@ const arrayBuffer = buffer => buffer.buffer.slice(buffer.byteOffset, buffer.byte
   assert.match(updateComponent, /Downloading and checking firmware/)
   assert.match(updateComponent, /Choose RPI-RP2 & install/)
   assert.match(updateComponent, /@click="\$emit\('check_firmware'\)"/)
+  // F2 (2026-09-04): the folder picker opens in Documents; the drive must be named before and during the step.
+  assert.match(updateComponent, /Select the drive named RPI-RP2 there: on Mac in the left sidebar \(or press ⌘⇧G and type \/Volumes\/RPI-RP2\), on Windows under This PC/)
+  assert.match(updateComponent, /<p v-if="internal && ready" class="small text-muted">\{\{ pick \}\}<\/p>/)
+  // F3 (2026-09-04): page reloaded while Biotron sits in update mode — no MIDI, only the RPI-RP2 drive.
+  assert.match(updateComponent, /Biotron in update mode\?/)
+  assert.match(updateComponent, /<p v-if="recovery">Biotron does not answer over MIDI/)
   assert.doesNotMatch(updateComponent, /public updater is intentionally disabled/i)
   await testComponentStateMachine(updateComponent)
 
@@ -180,6 +186,7 @@ async function testComponentStateMachine(componentSource) {
     plugins: ['@babel/plugin-transform-modules-commonjs']
   }).code
   const calls = []
+  let writeFailure = null
   const prepared = {buffer: new ArrayBuffer(512), sha256: '38c7fd35ef5e456d86b03f50f380d499519835fa84b7516fbd7b1cd1012b91da'}
   const context = {
     exports: {},
@@ -214,6 +221,7 @@ async function testComponentStateMachine(componentSource) {
           },
           writeFirmware: async (value, firmware) => {
             calls.push(['write', value, firmware.version])
+            if (writeFailure) throw writeFailure
           }
         }
       }
@@ -226,24 +234,26 @@ async function testComponentStateMachine(componentSource) {
   context.exports = context.module.exports
   vm.runInNewContext(compiledComponent, context)
   const definition = context.module.exports.default
-  const instance = {
-    ...definition.data(),
-    repo: 'Playtronica/biotron-firmware',
-    device: 'selected-midi-output',
-    currentVersion: '1.9.7',
-    versionAware: true
+  const build = props => {
+    const instance = {...definition.data(), repo: 'Playtronica/biotron-firmware', versionAware: true, ...props}
+    for (const [name, method] of Object.entries(definition.methods)) instance[name] = method.bind(instance)
+    for (const [name, computed] of Object.entries(definition.computed)) {
+      Object.defineProperty(instance, name, {get: computed.bind(instance)})
+    }
+    return instance
   }
-  for (const [name, method] of Object.entries(definition.methods)) instance[name] = method.bind(instance)
-  for (const [name, computed] of Object.entries(definition.computed)) {
-    Object.defineProperty(instance, name, {get: computed.bind(instance)})
-  }
+  const drive = /Select the drive named RPI-RP2 there: on Mac in the left sidebar/
 
+  // Normal path: Biotron answers over MIDI with 1.9.7 — verify, restart, choose drive, write, reconnect.
+  const instance = build({device: 'selected-midi-output', currentVersion: '1.9.7'})
+  assert.strictEqual(instance.buttonText, 'Update to 1.9.8')
   await instance.runStep()
   assert.strictEqual(instance.phase, 'prepared')
   assert.deepStrictEqual(calls[0], ['prepare', '1.9.8'])
   await instance.runStep()
   assert.strictEqual(instance.phase, 'select-drive')
   assert.deepStrictEqual(calls[1], ['boot', 'selected-midi-output'])
+  assert.match(instance.message, drive)
   await instance.runStep()
   assert.strictEqual(instance.phase, 'reconnecting')
   assert.strictEqual(calls[2][0], 'write')
@@ -251,4 +261,54 @@ async function testComponentStateMachine(componentSource) {
   assert.strictEqual(instance.phase, 'complete')
   assert.strictEqual(instance.prepared, null)
   assert.match(instance.message, /installed and verified/)
+
+  // F3: page opened while Biotron is already in update mode — no MIDI device, no version, drive RPI-RP2 present.
+  calls.length = 0
+  const lost = build({device: null, currentVersion: ''})
+  assert.strictEqual(lost.buttonText, 'Biotron in update mode?')
+  assert.strictEqual(lost.recovery, true)
+  assert.strictEqual(lost.ready, true)
+  assert.strictEqual(lost.actionDisabled, false)
+  assert.strictEqual(lost.actionText, 'Download & verify')
+  await lost.runStep()
+  assert.strictEqual(lost.phase, 'select-drive')
+  assert.match(lost.message, drive)
+  assert.deepStrictEqual(calls.map(call => call[0]), ['prepare'])
+  assert.strictEqual(lost.actionText, 'Choose RPI-RP2 & install')
+  await lost.runStep()
+  assert.strictEqual(lost.phase, 'reconnecting')
+  assert.deepStrictEqual(calls.map(call => call[0]), ['prepare', 'write', 'timer'])
+  definition.watch.currentVersion.call(lost, '1.9.8')
+  assert.strictEqual(lost.phase, 'complete')
+
+  // Device visible but version unknown: the button asks the parent to check firmware, the modal path is not taken.
+  const silent = build({device: 'selected-midi-output', currentVersion: ''})
+  assert.strictEqual(silent.buttonText, 'Check firmware')
+  assert.strictEqual(silent.recovery, true)
+
+  // F2: cancelled picker and a wrong folder both return to the drive step with the sidebar hint; nothing is lost.
+  calls.length = 0
+  writeFailure = Object.assign(new Error('cancelled'), {name: 'AbortError'})
+  const retry = build({device: null, currentVersion: ''})
+  await retry.runStep()
+  await retry.runStep()
+  assert.strictEqual(retry.phase, 'select-drive')
+  assert.strictEqual(retry.error, '')
+  assert.match(retry.message, /^No drive selected\. The folder window opens in Documents/)
+  writeFailure = new Error('Select the RPI-RP2 drive. No file was written.')
+  await retry.runStep()
+  assert.strictEqual(retry.phase, 'select-drive')
+  assert.strictEqual(retry.error, 'Select the RPI-RP2 drive. No file was written.')
+  assert.strictEqual(retry.actionDisabled, false)
+  writeFailure = null
+  await retry.runStep()
+  assert.strictEqual(retry.phase, 'reconnecting')
+  assert.deepStrictEqual(calls.map(call => call[0]), ['prepare', 'write', 'write', 'write', 'timer'])
+
+  // Device lost between verify and restart: restart needs MIDI, the action waits instead of guessing.
+  const dropped = build({device: 'selected-midi-output', currentVersion: '1.9.7'})
+  await dropped.runStep()
+  assert.strictEqual(dropped.phase, 'prepared')
+  dropped.device = null
+  assert.strictEqual(dropped.actionDisabled, true)
 }

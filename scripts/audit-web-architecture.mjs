@@ -65,12 +65,15 @@ const report = {
 // подсчёта его собственного размера: без звука в src/ 62 файла / 9751 строка,
 // движок на Elementary с семью звуками и мастер-цепью — 2 файла / ~500 строк.
 // Потолок строк выставлен по факту после чистки, чтобы любой рост краснел.
+// 10236 → 10242 (04.09.2026, сессия 3b): обновление прошивки — путь восстановления,
+// когда страница открыта при приборе уже в режиме обновления (нет MIDI, есть диск
+// RPI-RP2), и явная подсказка выбора диска; +6 строк в UpdateFirmwareComponent.vue.
 const limits = {
   eagerDeviceRouteImports: 0,
   sleepCalls: 0,
   unmanagedListenerFiles: 0,
   sourceFiles: 64,
-  sourceLines: 10236,
+  sourceLines: 10242,
   largestProductFileLines: 850
 }
 const violations = [
