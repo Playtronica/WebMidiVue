@@ -1,6 +1,6 @@
 <script>
 import {bootDevice} from '@/assets/js/SysExCommand'
-import {compareFirmwareVersions, GetLatestFirmware, LoadFirmware, prepareFirmware, writeFirmware} from '@/assets/js/LoadFirmware'
+import {compareFirmwareVersions, DESKTOP_ONLY, GetLatestFirmware, LoadFirmware, prepareFirmware, writeFirmware} from '@/assets/js/LoadFirmware'
 const target = process.env.VUE_APP_BIOTRON_FIRMWARE_TARGET
 const internalFirmware = target ? {version: target, internal: true,
   name: process.env.VUE_APP_BIOTRON_FIRMWARE_NAME, url: process.env.VUE_APP_BIOTRON_FIRMWARE_URL,
@@ -10,12 +10,13 @@ export default {
   emits: ['check_firmware'],
   props: {repo: String, device: Object, currentVersion: {type: String, default: ''},
     versionAware: {type: Boolean, default: false}, text: {type: String, default: 'Update Firmware'}},
-  data: () => ({online: navigator.onLine, latest: internalFirmware, phase: 'idle', message: '', error: '', pick: PICK,
+  data: () => ({online: navigator.onLine, latest: internalFirmware, phase: 'idle', message: '', error: '', pick: PICK, desktopOnly: DESKTOP_ONLY,
     prepared: null, checking: false, reconnectTimer: null}),
   computed: {
     available() { return Boolean(this.currentVersion && this.latest?.version && compareFirmwareVersions(this.latest.version, this.currentVersion) > 0) },
     current() { return Boolean(this.currentVersion && this.latest?.version && !this.available) },
     internal() { return Boolean(this.latest?.internal) },
+    canInstall() { return Boolean(window.showDirectoryPicker) },
     // No MIDI answer: Biotron may already sit in update mode as the RPI-RP2 drive (page reloaded or USB replugged mid-update).
     recovery() { return this.internal && this.versionAware && !this.currentVersion },
     ready() { return this.available || this.recovery },
@@ -67,7 +68,7 @@ export default {
       }
       try {
         if (['idle', 'preflight-error'].includes(this.phase)) {
-          if (!window.showDirectoryPicker) throw new Error('Automatic installation requires current Chrome or Edge on a desktop computer.')
+          if (!this.canInstall) throw new Error(DESKTOP_ONLY)
           this.phase = 'preparing'; this.message = '⬇️ Downloading and checking firmware…'
           this.prepared = await prepareFirmware(this.latest); this.phase = this.device ? 'prepared' : 'select-drive'
           this.message = `✅ Firmware ${this.latest.version} checked. ${this.device ? 'Biotron not restarted yet.' : PICK}`
@@ -103,15 +104,16 @@ export default {
       <div class="modal-body">
         <p v-if="available">📟 Now: {{ currentVersion }} → ✨ New: {{ latest.version }}</p>
         <p v-if="recovery">🔌 No Biotron over MIDI. 💾 Drive <strong>RPI-RP2</strong> on your computer? → Install {{ latest.version }} now.</p>
-        <p v-if="internal && ready">✅ File is checked first. 💾 Then you choose drive RPI-RP2.</p>
-        <p v-if="internal && ready" class="small text-muted">{{ pick }} 🍎 Tip: ⌘⇧G → /Volumes/RPI-RP2</p>
+        <p v-if="internal && ready && !canInstall">{{ desktopOnly }}</p>
+        <p v-if="internal && ready && canInstall">✅ File is checked first. 💾 Then you choose drive RPI-RP2.</p>
+        <p v-if="internal && ready && canInstall" class="small text-muted">{{ pick }} 🍎 Tip: ⌘⇧G → /Volumes/RPI-RP2</p>
         <p v-if="current" class="alert alert-success mb-0">Firmware {{ currentVersion }} is current.</p>
         <p v-if="!online" class="alert alert-warning mb-0">Connect to the internet for firmware updates. Settings remain available offline.</p>
         <p v-if="error" class="alert alert-danger mb-0" role="alert">{{ error }}</p>
         <p v-if="message" class="alert alert-info mb-0" role="status" aria-live="polite">{{ message }}</p>
       </div>
       <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button v-if="ready && actionText" type="button" class="btn btn-primary" :disabled="actionDisabled" @click="runStep">{{ actionText }}</button>
+        <button v-if="ready && actionText && (!internal || canInstall)" type="button" class="btn btn-primary" :disabled="actionDisabled" @click="runStep">{{ actionText }}</button>
         <button v-if="busy" type="button" class="btn btn-primary" disabled>⏳ Working…</button></div>
     </div></div>
   </div>

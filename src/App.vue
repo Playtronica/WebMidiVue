@@ -52,7 +52,7 @@
       {{ offlineRetrying ? "Retrying…" : "Retry" }}
     </button>
     <small v-if="showInstallHelp && offlineStatus.ready && !installed" class="offline-install-help">
-      Chrome: menu ⋮ → Cast, save and share → Install page as app. Edge: menu ⋯ → Apps → Install this site as an app.
+      Android Chrome: menu ⋮ → Add to Home screen. Chrome: menu ⋮ → Cast, save and share → Install page as app. Edge: menu ⋯ → Apps → Install this site as an app.
     </small>
   </div>
   <div class="wrapper">

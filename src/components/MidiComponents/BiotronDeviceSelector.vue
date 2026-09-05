@@ -8,6 +8,7 @@
       </select>
       <label for="device">{{ text_label }}</label>
     </div>
+    <small v-if="connecting && !selectedDevice" class="text-muted">{{ promptHint }}</small>
     <div v-if="allowDawHandoff" class="daw-handoff d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center mt-2">
       <button v-if="!released" type="button" class="btn btn-outline-primary daw-handoff__button" @click="releaseMidi" :disabled="connecting || !selectedDevice">
         Release device for DAW
@@ -34,7 +35,7 @@
 
 <script>
   import {buildSettingsQuery, parseSettingsResponse} from "@/biotron/settingsReadback.mjs";
-  import {requestSharedMidiAccess} from "@/audio/midiAccess.mjs";
+  import {MIDI_PROMPT_HINT, requestSharedMidiAccess} from "@/audio/midiAccess.mjs";
   import {soundSessionState, stopPersistentSound} from "@/audio/sessionState.mjs";
 
   const portIdentity = (port) => [port.manufacturer || "", port.name || ""].join("\u0000");
@@ -79,6 +80,7 @@
         released: false,
         connecting: false,
         midiError: "",
+        promptHint: MIDI_PROMPT_HINT,
         operationId: 0,
         unmounted: false,
         recalibrationNonce: 0,

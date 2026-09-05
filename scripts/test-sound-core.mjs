@@ -227,8 +227,8 @@ test('platform compatibility separates unsupported runtime from denied permissio
     isSecureContext: true,
     navigator: {userAgent: 'Mozilla/5.0 Chrome/140.0', requestMIDIAccess() {}}
   })
-  assert.deepEqual(desktop, {audio: true, chromium: true, midi: true, mobile: false, secureContext: true})
-  assert.equal(buildCompatibilityIssue(desktop, {requiresMidi: true, requiresDesktop: true}), null)
+  assert.deepEqual(desktop, {audio: true, midi: true, secureContext: true})
+  assert.equal(buildCompatibilityIssue(desktop, {requiresMidi: true}), null)
 
   const noMidi = detectPlatformCapabilities({
     AudioContext,
@@ -237,38 +237,35 @@ test('platform compatibility separates unsupported runtime from denied permissio
   })
   const midiIssue = buildCompatibilityIssue(noMidi, {requiresMidi: true, productName: 'Biotron'})
   assert.equal(midiIssue.kind, 'midi')
-  assert.match(midiIssue.title, /Biotron can’t connect/i)
+  assert.equal(midiIssue.title, 'No MIDI in this browser')
+  assert.match(midiIssue.summary, /Biotron connects over Web MIDI/)
   assert.match(midiIssue.steps.join(' '), /Chrome or Edge/i)
   assert.match(buildMidiAdvisory(noMidi).summary, /computer keyboard/i)
-
-  const partialFirefox = {...noMidi, midi: true}
-  const browserIssue = buildCompatibilityIssue(partialFirefox, {
-    requiresMidi: true,
-    requiresChromium: true,
-    productName: 'Biotron'
-  })
-  assert.equal(browserIssue.kind, 'browser')
-  assert.equal(browserIssue.title, 'Open this page in Chrome or Edge')
 
   const deniedButSupported = {...desktop}
   assert.equal(buildCompatibilityIssue(deniedButSupported, {requiresMidi: true}), null)
 })
 
-test('mobile, insecure and audio-less environments get distinct recovery', () => {
+test('phones gate on Web MIDI capability, not on device name', () => {
   const AudioContext = class {}
-  const mobile = detectPlatformCapabilities({
+  // Android Chrome (Web MIDI since 43): passes every device route, no advisory on Sound.
+  const android = detectPlatformCapabilities({
     AudioContext,
     isSecureContext: true,
-    navigator: {userAgentData: {mobile: true}, requestMIDIAccess() {}}
+    navigator: {userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 7) Chrome/151.0 Mobile', userAgentData: {mobile: true}, requestMIDIAccess() {}}
   })
-  const mobileIssue = buildCompatibilityIssue(mobile, {
-    requiresMidi: true,
-    requiresDesktop: true,
-    productName: 'Scales'
+  assert.equal(buildCompatibilityIssue(android, {requiresMidi: true, requiresAudio: true, productName: 'Biotron'}), null)
+  assert.equal(buildMidiAdvisory(android), null)
+  // iPhone Safari (Apple ships no Web MIDI): one honest gate naming the workaround app.
+  const iphone = detectPlatformCapabilities({
+    AudioContext,
+    isSecureContext: true,
+    navigator: {userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148 Safari'}
   })
-  assert.equal(mobileIssue.kind, 'mobile')
-  assert.equal(mobileIssue.title, 'Scales needs a computer')
-  assert.match(buildMidiAdvisory(mobile).title, /On-screen sound only/i)
+  const iphoneIssue = buildCompatibilityIssue(iphone, {requiresMidi: true, productName: 'Scales'})
+  assert.equal(iphoneIssue.kind, 'midi')
+  assert.match(iphoneIssue.steps.join(' '), /MIDIWeb Browser/)
+  assert.match(buildMidiAdvisory(iphone).title, /USB device connection/i)
 
   const insecure = detectPlatformCapabilities({
     AudioContext,

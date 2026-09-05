@@ -11,6 +11,7 @@ const context = {
   exports: {},
   navigator: { requestMIDIAccess: async () => ({inputs: new Map(), outputs: new Map()}) },
   requestSharedMidiAccess(options) { return context.navigator.requestMIDIAccess(options) },
+  MIDI_PROMPT_HINT: 'permission hint (text lives in src/audio/midiAccess.mjs)',
   soundSessionState: {running: false},
   async stopPersistentSound() { return true },
   console: { log() {} },

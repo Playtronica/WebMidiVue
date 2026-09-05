@@ -16,8 +16,8 @@ const midiRoutes = new Map([
 
 const deviceMetaHelper = main.slice(main.indexOf('const deviceMeta'), main.indexOf('const playMeta'))
 assert(deviceMetaHelper.includes('requiresMidi: true'), 'shared device metadata must require Web MIDI')
-assert(deviceMetaHelper.includes('requiresDesktop: true'), 'shared device metadata must require desktop')
-assert(deviceMetaHelper.includes('requiresChromium: true'), 'shared device metadata must require the supported Chromium path')
+// Reddens if a device-name or browser-brand list returns (3b, 05.09.2026): the gate is Web MIDI capability only.
+assert(!/requiresDesktop|requiresChromium/.test(deviceMetaHelper), 'device routes must gate on Web MIDI capability, not on device or browser lists')
 assert(main.includes("const playMeta = productName => ({...deviceMeta(productName), requiresAudio: true})"),
   'shared Play metadata must add Web Audio')
 
@@ -30,7 +30,7 @@ for (const [route, product] of midiRoutes) {
 
 const firstPlay = main.slice(main.indexOf("path: '/biotron/play'"), main.indexOf("routes.push({path: '/sound'"))
 assert(firstPlay.includes("meta: {...playMeta('Biotron'), firstPlay: true}"),
-  'Biotron Play must use the shared MIDI, desktop and audio requirements')
+  'Biotron Play must use the shared MIDI and audio requirements')
 
 const soundRoute = main.split('\n').find(line => line.includes("routes.push({path: '/sound'"))
 assert(soundRoute.includes('requiresAudio: true'), 'Sound must block when Web Audio is unavailable')

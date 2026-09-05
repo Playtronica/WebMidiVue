@@ -1,3 +1,5 @@
+export const MIDI_PROMPT_HINT = 'Allow MIDI, then SysEx: a phone asks twice.'
+
 const accessPromises = new Map()
 
 export function requestSharedMidiAccess({sysex = false} = {}) {

@@ -67,7 +67,10 @@ const arrayBuffer = buffer => buffer.buffer.slice(buffer.byteOffset, buffer.byte
   assert.match(updateComponent, /@click="\$emit\('check_firmware'\)"/)
   // F2 (2026-09-04): the folder picker opens in Documents; the drive must be named before and during the step.
   assert.match(updateComponent, /💾 Choose drive RPI-RP2 → Select\. 🍎 Mac: left sidebar · 🪟 Windows: This PC\./)
-  assert.match(updateComponent, /<p v-if="internal && ready" class="small text-muted">\{\{ pick \}\} 🍎 Tip: ⌘⇧G → \/Volumes\/RPI-RP2<\/p>/)
+  assert.match(updateComponent, /<p v-if="internal && ready && canInstall" class="small text-muted">\{\{ pick \}\} 🍎 Tip: ⌘⇧G → \/Volumes\/RPI-RP2<\/p>/)
+  // 3b (2026-09-05): no folder picker (Android Chrome) — one honest phrase instead of a step that throws.
+  assert.match(updateComponent, /<p v-if="internal && ready && !canInstall">\{\{ desktopOnly \}\}<\/p>/)
+  assert.match(updateComponent, /v-if="ready && actionText && \(!internal \|\| canInstall\)"/)
   // F3 (2026-09-04): page reloaded while Biotron sits in update mode — no MIDI, only the RPI-RP2 drive.
   assert.match(updateComponent, /💾 Biotron shows as RPI-RP2\?/)
   assert.match(updateComponent, /<p v-if="recovery">🔌 No Biotron over MIDI\. 💾 Drive <strong>RPI-RP2<\/strong> on your computer\?/)
@@ -157,7 +160,7 @@ const arrayBuffer = buffer => buffer.buffer.slice(buffer.byteOffset, buffer.byte
 
   await assert.rejects(() => updater.writeFirmware(fetched, firmware, async () => ({name: 'Downloads'})), /Select the RPI-RP2 drive/)
 
-  await assert.rejects(() => updater.writeFirmware(fetched, firmware, null), /current Chrome or Edge/)
+  await assert.rejects(() => updater.writeFirmware(fetched, firmware, null), /computer with Chrome or Edge/)
 
   console.log('Firmware update verified: exact beta UF2 is hash/size/structure checked before BOOT; only RPI-RP2 receives bytes; failures stay fail-closed.')
 })().catch(error => {

@@ -200,7 +200,7 @@
       </div>
     </section>
 
-    <section v-if="capabilities.midi && !platformCapabilities.mobile" class="sound-lab__midi" aria-labelledby="sound-device">
+    <section v-if="capabilities.midi" class="sound-lab__midi" aria-labelledby="sound-device">
       <div>
         <h2 id="sound-device">Playtronica device</h2>
         <p>Only the selected MIDI input is opened. Stop &amp; release closes it.</p>
@@ -226,6 +226,7 @@ import {noteForKeyboardCode} from '@/audio/core.mjs'
 import {createRealtimeElementarySynth as createRealtimeSynth, DEFAULT_VOLUME, normalizeVolume} from '@/audio/elementary/engine.mjs'
 import {registerSoundController, soundSessionState, unregisterSoundController, updateSoundSession} from '@/audio/sessionState.mjs'
 import {trace, MidiInputSession} from '@/audio/midi.mjs'
+import {MIDI_PROMPT_HINT} from '@/audio/midiAccess.mjs'
 import {SOUNDS} from '@/audio/elementary/timbres.mjs'
 import {createExclusiveTabLease} from '@/audio/tabLease.mjs'
 import {BIOTRON_CALIBRATION, biotronVoiceLevel, BiotronCalibrationTracker, parseBiotronCalibrationState} from '@/audio/biotronCalibration.mjs'
@@ -542,6 +543,7 @@ export default {
       try {
         if (!await this.acquireTabLease()) return
         await this.ensureEngine()
+        this.status = MIDI_PROMPT_HINT
         const input = selectRevealInput(await this.midi.requestAccess(), this.revealProfile)
         this.midiInputs = [input]
         this.selectedInput = input.id

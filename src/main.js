@@ -24,8 +24,6 @@ const SoundLab = () => import(/* webpackChunkName: "sound-lab" */ '@sound-lab')
 const DeviceFirstPlay = () => import(/* webpackChunkName: "sound-lab" */ '@/components/SoundLab/DeviceFirstPlay.vue')
 const deviceMeta = productName => ({
     requiresMidi: true,
-    requiresDesktop: true,
-    requiresChromium: true,
     productName
 })
 const playMeta = productName => ({...deviceMeta(productName), requiresAudio: true})

@@ -52,6 +52,7 @@ export function inspectBiotronUf2(buffer) {
     if (seen.size !== total) throw new Error('Firmware is missing one or more UF2 blocks.')
     return {blocks: total, familyId: UF2.rp2040, payloadBytes}
 }
+export const DESKTOP_ONLY = '💻 Firmware updates run from a computer with Chrome or Edge.'
 export async function prepareFirmware(firmware, fetchImpl = fetch, cryptoApi = crypto) {
     validDescriptor(firmware)
     if (!cryptoApi?.subtle) throw new Error('This browser cannot verify firmware securely.')
@@ -66,7 +67,7 @@ export async function prepareFirmware(firmware, fetchImpl = fetch, cryptoApi = c
 export async function writeFirmware(prepared, firmware, pickDirectory = window.showDirectoryPicker?.bind(window)) {
     validDescriptor(firmware)
     if (!prepared?.buffer || prepared.sha256 !== firmware.sha256.toLowerCase()) throw new Error('Verify firmware again before writing.')
-    if (!pickDirectory) throw new Error('Automatic installation requires current Chrome or Edge on a desktop computer.')
+    if (!pickDirectory) throw new Error(DESKTOP_ONLY)
     const directory = await pickDirectory({mode: 'readwrite'})
     if (directory?.name?.toUpperCase() !== 'RPI-RP2') throw new Error('Select the RPI-RP2 drive. No file was written.')
     const file = await directory.getFileHandle(firmware.name, {create: true})
