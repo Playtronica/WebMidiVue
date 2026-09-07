@@ -69,6 +69,8 @@ export function selectRevealInput(inputs, profile) {
   // One unit's second cable (Windows: 'MIDIIN2 (Biotron)'; Mac: 'Port 2') is not a second unit.
   const primary = candidates.filter(input => !hasToken(input, profile.secondaryInputTokens || []))
   if (candidates.length > 1 && primary.length === 1) return primary[0]
+  // Android names both cables of one unit alike ('Biotron', 'Biotron'): the first port is cable 0, the plant music.
+  if (candidates.length === 2 && !preferred.length && inputText(candidates[0]) === inputText(candidates[1])) return candidates[0]
   if (!candidates.length) {
     throw new Error(`${profile.productName} was not found. Check the USB data cable, then try again.`)
   }

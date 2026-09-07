@@ -103,10 +103,13 @@ export class MidiInputSession {
 
   async sendToPairedOutput(data) {
     if (!this.access || !this.input) throw new Error('Connect the MIDI input first.')
-    const outputs = [...this.access.outputs.values()].filter(port => port.state !== 'disconnected' &&
-      ['name', 'manufacturer'].every(key => (port[key] || '') === (this.input[key] || '')))
-    if (outputs.length !== 1) throw new Error('Biotron control port could not be matched safely.')
-    const output = outputs[0]
+    // Same name and manufacturer as the input; when a platform names every cable alike (Android), pair by index.
+    const alike = port => port.state !== 'disconnected' &&
+      ['name', 'manufacturer'].every(key => (port[key] || '') === (this.input[key] || ''))
+    const inputs = [...this.access.inputs.values()].filter(alike)
+    const outputs = [...this.access.outputs.values()].filter(alike)
+    const output = inputs.length === outputs.length ? outputs[inputs.indexOf(this.input)] : null
+    if (!output) throw new Error('Biotron control port could not be matched safely.')
     await output.open()
     try { output.send(data); trace('out', [...data]) }
     finally { await output.close() }

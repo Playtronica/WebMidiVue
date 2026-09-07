@@ -132,10 +132,30 @@ test('Biotron recalibration writes only to the exact paired output and releases 
   }
   const session = new MidiInputSession({panic() {}}, () => {}, {sysex: true})
   session.input = {id: 'in-1', name: output.name, manufacturer: output.manufacturer}
-  session.access = {outputs: new Map([[output.id, output]])}
+  session.access = {inputs: new Map([[session.input.id, session.input]]), outputs: new Map([[output.id, output]])}
   await session.sendToPairedOutput([0xf0, 0x14, 0x0d, 125, 7, 0xf7])
   assert.deepEqual(sent, [[0xf0, 0x14, 0x0d, 125, 7, 0xf7]])
   assert.equal(output.connection, 'closed')
+})
+
+test('Android names every cable alike: the paired output is the one at the same index', async () => {
+  // Chromium media/midi/midi_manager_android.cc builds each PortInfo from the device product name,
+  // so one Biotron shows two inputs and two outputs all called 'Biotron' (Sergey, 2026-09-07).
+  const port = (id, extra = {}) => ({
+    id, name: 'Biotron', manufacturer: 'Playtronica', state: 'connected', sent: [],
+    async open() {}, send(data) { this.sent.push([...data]) }, async close() {}, ...extra
+  })
+  const [in0, in1, out0, out1] = [port('in-0'), port('in-1'), port('out-0'), port('out-1')]
+  const session = new MidiInputSession({panic() {}}, () => {}, {sysex: true})
+  session.access = {inputs: new Map([[in0.id, in0], [in1.id, in1]]), outputs: new Map([[out0.id, out0], [out1.id, out1]])}
+  session.input = in1
+  await session.sendToPairedOutput([0xf0, 0xf7])
+  assert.deepEqual([out0.sent, out1.sent], [[], [[0xf0, 0xf7]]])
+  session.input = in0
+  await session.sendToPairedOutput([0xf0, 0xf7])
+  assert.deepEqual(out0.sent, [[0xf0, 0xf7]])
+  session.access.outputs.delete(out0.id)
+  await assert.rejects(() => session.sendToPairedOutput([0xf0, 0xf7]), /could not be matched safely/)
 })
 
 test('voice ledger never exceeds its cap', () => {
@@ -197,6 +217,16 @@ test('reveal input selection is stable for two cables and blocks two devices', (
   // Two real units on Windows still block: two bare 'Biotron' inputs.
   assert.throws(
     () => selectRevealInput([winMusic, {...winMusic, id: 'w-3'}, winService], profile),
+    /More than one Biotron music input/
+  )
+  // Android (Sergey, 2026-09-07): Chromium names both cables of one unit 'Biotron' — no 'Port 1',
+  // no 'MIDIIN2'. Cable 0 (first port) is the plant music; two units (four alike) still block.
+  const droid0 = {id: 'd-0', manufacturer: 'Playtronica', name: 'Biotron'}
+  const droid1 = {id: 'd-1', manufacturer: 'Playtronica', name: 'Biotron'}
+  assert.equal(selectRevealInput([droid0, droid1], profile), droid0)
+  assert.equal(selectRevealInput([unrelated, droid0, droid1], profile), droid0)
+  assert.throws(
+    () => selectRevealInput([droid0, droid1, {...droid0, id: 'e-0'}, {...droid1, id: 'e-1'}], profile),
     /More than one Biotron music input/
   )
 })
