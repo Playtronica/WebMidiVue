@@ -73,6 +73,11 @@ const arrayBuffer = buffer => buffer.buffer.slice(buffer.byteOffset, buffer.byte
   assert.match(updateComponent, /v-if="ready && actionText && \(!internal \|\| canInstall\)"/)
   // F3 (2026-09-04): page reloaded while Biotron sits in update mode — no MIDI, only the RPI-RP2 drive.
   assert.match(updateComponent, /💾 Biotron shows as RPI-RP2\?/)
+  // W4 (Sergey, 2026-09-08): he went looking for the downloaded file. The page must say it kept the
+  // firmware in memory, and must offer the file itself as an equal manual fallback.
+  assert.match(updateComponent, /is checked and held in this page — nothing was saved to your computer/)
+  assert.match(updateComponent, /<a :href="latest\.url" :download="latest\.name">save \{\{ latest\.name \}\}<\/a>/)
+  assert.match(updateComponent, /copy the saved file onto the disk named RPI-RP2/)
   assert.match(updateComponent, /<p v-if="recovery">🔌 No Biotron over MIDI\. 💾 Drive <strong>RPI-RP2<\/strong> on your computer\?/)
   assert.doesNotMatch(updateComponent, /public updater is intentionally disabled/i)
   await testComponentStateMachine(updateComponent)
@@ -140,25 +145,50 @@ const arrayBuffer = buffer => buffer.buffer.slice(buffer.byteOffset, buffer.byte
     close: async () => writes.push('closed'),
     abort: async () => writes.push('aborted')
   }
-  const directory = {
-    name: 'RPI-RP2',
-    getFileHandle: async (name, options) => {
-      assert.strictEqual(name, firmware.name)
+  // Copied verbatim from the RP2040 bootrom that serves the drive (raspberrypi/pico-bootrom-rp2040,
+  // bootrom/info_uf2.txt, read 2026-09-08). The bootrom writes this file, not our build (gate B2).
+  const INFO_UF2 = 'UF2 Bootloader v3.0\nModel: Raspberry Pi RP2\nBoard-ID: RPI-RP2\n'
+  const bootDrive = (name, info = INFO_UF2) => ({
+    name,
+    getFileHandle: async (entry, options) => {
+      if (entry === 'INFO_UF2.TXT') {
+        if (info === null) throw Object.assign(new Error('not found'), {name: 'NotFoundError'})
+        return {getFile: async () => ({text: async () => info})}
+      }
+      assert.strictEqual(entry, firmware.name)
       assert.strictEqual(options.create, true)
       return {createWritable: async options => {
         assert.strictEqual(options.keepExistingData, false)
         return writable
       }}
     }
-  }
-  const written = await updater.writeFirmware(fetched, firmware, async () => directory)
+  })
+
+  const written = await updater.writeFirmware(fetched, firmware, async () => bootDrive('RPI-RP2'))
   assert.strictEqual(written.directory, 'RPI-RP2')
   assert.strictEqual(written.filename, firmware.name)
   assert.strictEqual(written.bytes, firmware.size)
   assert.strictEqual(writes[0].length, firmware.size)
   assert.strictEqual(writes[1], 'closed')
 
-  await assert.rejects(() => updater.writeFirmware(fetched, firmware, async () => ({name: 'Downloads'})), /Select the RPI-RP2 drive/)
+  // Chromium names a picked directory after the path basename, and FilePath::BaseName() strips the
+  // Windows drive letter, so the root of drive D: arrives as '\' — never as the volume label
+  // (base/files/file_path.cc, content/browser/file_system_access/file_system_chooser.cc, read 2026-09-08).
+  // Sergey's Windows FAIL of 2026-09-08 (finding W1). The boot drive is judged by its content, not its name.
+  for (const name of ['\\', '', 'D:', 'RPI-RP2 (E:)', 'rpi-rp2', 'RPi-RP2']) {
+    writes.length = 0
+    const result = await updater.writeFirmware(fetched, firmware, async () => bootDrive(name))
+    assert.strictEqual(result.bytes, firmware.size, `boot drive named ${JSON.stringify(name)} must be written`)
+    assert.strictEqual(writes[1], 'closed')
+  }
+
+  // A directory without the bootrom marker is refused, and the message names what the person opened.
+  writes.length = 0
+  await assert.rejects(() => updater.writeFirmware(fetched, firmware, async () => bootDrive('Downloads', null)),
+    /You opened "Downloads"\. Nothing was written/)
+  assert.deepStrictEqual(writes, [])
+  await assert.rejects(() => updater.writeFirmware(fetched, firmware, async () => bootDrive('RPI-RP2', 'Board-ID: RP2350')),
+    /Nothing was written/)
 
   await assert.rejects(() => updater.writeFirmware(fetched, firmware, null), /computer with Chrome or Edge/)
 

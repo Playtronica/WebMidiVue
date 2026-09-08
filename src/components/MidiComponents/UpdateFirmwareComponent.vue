@@ -71,7 +71,7 @@ export default {
           if (!this.canInstall) throw new Error(DESKTOP_ONLY)
           this.phase = 'preparing'; this.message = '⬇️ Downloading and checking firmware…'
           this.prepared = await prepareFirmware(this.latest); this.phase = this.device ? 'prepared' : 'select-drive'
-          this.message = `✅ Firmware ${this.latest.version} checked. ${this.device ? 'Biotron not restarted yet.' : PICK}`
+          this.message = `✅ Firmware ${this.latest.version} is checked and held in this page — nothing was saved to your computer. ${this.device ? 'Biotron not restarted yet.' : PICK}`
         } else if (this.phase === 'prepared') {
           this.phase = 'booting'; this.message = '🔄 Restarting Biotron…'; await bootDevice(this.device)
           this.phase = 'select-drive'; this.message = `🔄 Biotron is now drive RPI-RP2. ${PICK}`
@@ -107,6 +107,9 @@ export default {
         <p v-if="internal && ready && !canInstall">{{ desktopOnly }}</p>
         <p v-if="internal && ready && canInstall">✅ File is checked first. 💾 Then you choose drive RPI-RP2.</p>
         <p v-if="internal && ready && canInstall" class="small text-muted">{{ pick }} 🍎 Tip: ⌘⇧G → /Volumes/RPI-RP2</p>
+        <p v-if="internal && ready" class="small text-muted">
+          Or do it by hand: <a :href="latest.url" :download="latest.name">save {{ latest.name }}</a>, then copy the saved file onto the disk named RPI-RP2.
+        </p>
         <p v-if="current" class="alert alert-success mb-0">Firmware {{ currentVersion }} is current.</p>
         <p v-if="!online" class="alert alert-warning mb-0">Connect to the internet for firmware updates. Settings remain available offline.</p>
         <p v-if="error" class="alert alert-danger mb-0" role="alert">{{ error }}</p>
