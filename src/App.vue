@@ -23,7 +23,7 @@
     </ul>
     </nav>
   </header>
-  <small v-if="betaBuild && !firstPlay" class="beta-build">Biotron offline beta · {{ buildId }}</small>
+  <small v-if="betaBuild" class="beta-build">Biotron offline beta · {{ buildId }}</small>
   <div
       v-if="offlineMessage && !firstPlay"
       class="offline-status mx-auto mt-2 px-3 py-2"
@@ -52,7 +52,7 @@
       {{ offlineRetrying ? "Retrying…" : "Retry" }}
     </button>
     <small v-if="showInstallHelp && offlineStatus.ready && !installed" class="offline-install-help">
-      Android Chrome: menu ⋮ → Add to Home screen. Chrome: menu ⋮ → Cast, save and share → Install page as app. Edge: menu ⋯ → Apps → Install this site as an app.
+      Android Chrome: menu ⋮ → Add to Home screen. Chrome: menu ⋮ → Cast, save and share → Install page as app. Edge: menu ⋯ → More tools → Apps → Install this site as an app.
     </small>
   </div>
   <div class="wrapper">
@@ -64,6 +64,17 @@
           </KeepAlive>
         </router-view>
       </CompatibilityGate>
+
+      <aside v-if="betaBuild" class="border rounded p-3 mx-auto my-4 text-start" aria-labelledby="beta-feedback-title">
+        <p id="beta-feedback-title" class="fw-bold mb-1">Help shape the next Biotron Settings</p>
+        <p class="text-secondary mb-3">
+          I’m Andrey from Playtronica. I personally read every reply. We acknowledge concrete bug reports within two working days and publish a short update every Friday.
+        </p>
+        <a :href="feedbackMailto" class="btn btn-outline-primary">
+          Tell Andrey what should change
+        </a>
+        <small class="d-block mt-2 text-muted">Your email opens with three questions and this build number. Nothing is sent automatically.</small>
+      </aside>
 
     </div>
     <footer v-if="!firstPlay" class="bottom-panel">
@@ -110,6 +121,12 @@ export default {
   computed: {
     firstPlay() {
       return this.betaBuild && this.$route.meta.firstPlay === true
+    },
+    feedbackMailto() {
+      const subject = `Biotron Settings beta feedback — ${this.buildId}`
+      const body = `What were you trying to make Biotron do?\n\nWhere did you hesitate or get a result you did not expect?\n\n` +
+        `If we changed one thing before the next version, what should it be?\n\nBuild: ${this.buildId}\nPage: ${this.$route.path}`
+      return `mailto:manirko@playtronica.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     },
     offlineMessage() {
       if (this.offlineStatus.ready && !this.online) {

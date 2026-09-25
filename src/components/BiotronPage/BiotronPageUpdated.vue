@@ -221,10 +221,10 @@
               <div class="col">
                 <SwitchComponent
                     :key="this.forceRerender"
-                    command-label="📡 Ultra sensitivity"
+                    command-label="📡 Input variation (experimental)"
                     :command-object="commands_data.randomness"
                     @input-changed="this.sys_ex_changed"
-                    description="Makes the plant more responsive."
+                    description="Adds a small random 0–9 offset to each new plant-sensor reading before note calculation. It does not increase the sensor's measured sensitivity or control velocity."
                 />
               </div>
               <div class="col">

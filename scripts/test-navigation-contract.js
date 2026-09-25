@@ -15,6 +15,16 @@ assert(app.includes('<router-link to="/biotron"'),
   'the top-level Biotron destination must open its settings workspace')
 assert(!app.includes('<router-link to="/sound"'),
   'Sound must not appear beside physical devices in the top-level menu')
+assert(app.includes('mailto:manirko@playtronica.com'),
+  'the beta must offer a direct feedback channel to Andrey')
+assert(app.includes('What were you trying to make Biotron do?') &&
+  app.includes('Where did you hesitate or get a result you did not expect?') &&
+  app.includes('If we changed one thing before the next version, what should it be?'),
+  'the beta feedback action must preserve the three research questions')
+assert(app.includes('Nothing is sent automatically.'),
+  'the feedback action must explain that opening an email does not send it')
+assert(app.includes('More tools → Apps → Install this site as an app.'),
+  'the beta must show the current Edge install path')
 assert(taskNav.includes("{id: 'play', label: 'Play'"), 'device tasks must include Play')
 assert(taskNav.includes("{id: 'settings', label: 'Settings'"), 'device tasks must include Settings')
 assert(taskNav.includes(':aria-current="task.id === activeTask ? \'page\' : null"'),
@@ -22,6 +32,9 @@ assert(taskNav.includes(':aria-current="task.id === activeTask ? \'page\' : null
 assert(biotron.includes('active-task="settings"'), 'Biotron settings must show Settings as current')
 assert(biotron.includes('play-route="/biotron/play"'), 'Biotron settings must link directly to Play')
 assert(biotron.includes('Calibrate plant again'), 'Biotron settings must expose explicit recalibration')
+assert(biotron.includes('Input variation (experimental)') &&
+  biotron.includes("It does not increase the sensor's measured sensitivity or control velocity."),
+  'CC15 must describe the exact firmware behavior without a sensitivity claim')
 assert(selector.includes('RECALIBRATE_COMMAND = 125'), 'Web and firmware recalibration command must stay aligned')
 assert(selector.includes('123 is reserved for persisted-settings readback'), 'Settings readback ID must remain reserved')
 assert(selector.includes('[0xf0, 0x14, 0x0d, RECALIBRATE_COMMAND, nonce, 0xf7]'),
