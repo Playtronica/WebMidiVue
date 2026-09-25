@@ -102,7 +102,7 @@
                 :key="this.forceRerender"
                 :command-object="this.commands_data.noteOffPercent"
                 :table-values="this.fractions_note_off"
-                description="How long a note plays before stopping (100 = full length, 50 = half, 0 = very short)."
+                description="How long each note plays: 1 = the full beat, 1/2 = half a beat, and 1/64 = a very short note."
                 @input-changed="this.sys_ex_changed"
                 table-values-reversed
                 class="m-2"
@@ -184,7 +184,7 @@
                 <SwitchComponent
                     id="randomPlantVelSwitch"
                     command-label="🧍Humanize"
-                    description="Adds natural variations to note velocity, making the music sound less robotic and more like a real person playing an instrument."
+                    description="Varies note velocity between the minimum and maximum values. The minimum value only has an effect while Humanize is on."
                     :command-object="this.commands_data.randomPlantVelocity"
                     @input-changed="this.sys_ex_changed"
 
@@ -259,7 +259,7 @@
                 :key="this.forceRerender"
                 :command-object="this.commands_data.noteDistance"
                 @input-changed="this.sys_ex_changed"
-                description="How big a change is needed to go to the next note."
+                description="Shapes how strongly sensor changes move through the note sequence. Start at 50, then compare 25 and 75 over several notes."
                 class="m-2"
             />
             <SliderCommand
@@ -297,7 +297,7 @@
                     command-label="🧍Humanize"
                     :command-object="this.commands_data.randomLightVelocity"
                     @input-changed="this.sys_ex_changed"
-                    description="Adds natural variations to note velocity, making the music sound less robotic and more like a real person playing an instrument."
+                    description="Varies light-note velocity between the minimum and maximum values. The minimum value only has an effect while Humanize is on."
                 />
               </div>
               <div class="col">
@@ -306,7 +306,7 @@
                     command-label="〜 Pitch Bend"
                     :command-object="this.commands_data.light_pitch_mode"
                     @input-changed="this.sys_ex_changed"
-                    description="Same as pitch bend wheel on your keyboard – makes sound wobbly"
+                    description="Uses the light sensor to bend plant notes instead of playing separate light notes. Light Range is ignored while this is on."
                 />
               </div>
             </div>
@@ -369,7 +369,7 @@
                 :command-object="this.commands_data.range_light_note"
                 @input-changed="this.sys_ex_changed"
                 command-label="📏 Range"
-                description="How many notes are played relative to root note"
+                description="How wide the light-sensor melody can move around the Home Note. Used only while Pitch Bend is off."
                 class="m-2"
             />
 
