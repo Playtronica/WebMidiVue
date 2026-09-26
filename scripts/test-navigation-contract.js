@@ -9,8 +9,8 @@ const biotron = read('src/components/BiotronPage/BiotronPageUpdated.vue')
 const selector = read('src/components/MidiComponents/BiotronDeviceSelector.vue')
 const sound = read('src/components/SoundLab/SoundLab.vue')
 
-assert(app.includes("betaBuild ? 'Choose a device' : 'Devices'"),
-  'top navigation must identify itself as a device chooser in beta')
+assert(app.includes('v-if="!firstPlay && !betaBuild"'),
+  'the isolated Biotron beta must not expose unrelated device navigation')
 assert(app.includes('<router-link to="/biotron"'),
   'the top-level Biotron destination must open its settings workspace')
 assert(!app.includes('<router-link to="/sound"'),
@@ -37,6 +37,12 @@ assert(biotron.includes("betaBuild ? 'preset-actions'"),
   'the beta preset actions must use the responsive action grid')
 assert(biotron.includes('play-route="/biotron/play"'), 'Biotron settings must link directly to Play')
 assert(biotron.includes('Calibrate plant again'), 'Biotron settings must expose explicit recalibration')
+assert(biotron.includes('Connect Biotron to unlock its settings.') &&
+  biotron.includes('v-if="!betaBuild || settingsReady"'),
+  'beta controls must stay locked until Biotron answers with its saved settings')
+assert(biotron.includes('Already see RPI-RP2?') ||
+  read('src/components/MidiComponents/UpdateFirmwareComponent.vue').includes('Already see RPI-RP2?'),
+  'firmware recovery must remain available before MIDI settings are loaded')
 assert(biotron.includes('Input variation (experimental)') &&
   biotron.includes("It does not increase the sensor's measured sensitivity or control velocity."),
   'CC15 must describe the exact firmware behavior without a sensitivity claim')
@@ -52,4 +58,4 @@ assert(sound.includes("{{ revealExpanded ? 'Hide sounds' : 'Choose a sound' }}")
 assert(sound.includes('>Settings</router-link>'),
   'first play must offer the same Settings label as the task navigation')
 
-console.log('Navigation contract verified: devices are global; Play and Settings are device-level tasks.')
+console.log('Navigation contract verified: the beta is Biotron-only; Play and Settings remain device-level tasks.')

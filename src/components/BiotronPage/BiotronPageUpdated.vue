@@ -51,7 +51,9 @@
         role="status"
         aria-live="polite"
     >{{ settingsMessage }}</div>
+    <UpdateFirmwareComponent v-if="betaBuild" class="w-100 mt-3" text="Update Firmware" repo="Playtronica/biotron-firmware" :device="device" :current-version="firmwareVersion" version-aware @check_firmware="checkFirmware"/>
     </section>
+    <template v-if="!betaBuild || settingsReady">
     <section :class="{'beta-preset-card': betaBuild}" aria-label="Preset and saved settings">
     <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"  text_label="📂 Preset"/>
     <div :class="betaBuild ? 'preset-actions' : 'row gx-1 mb-5'">
@@ -63,7 +65,7 @@
       <div :class="{'col': !betaBuild}">
         <button @click="this.createPreset" class="btn btn-primary w-100 h-100">💾 Save Preset</button>
       </div>
-      <div :class="{'col': !betaBuild}">
+      <div v-if="!betaBuild" :class="{'col': !betaBuild}">
         <UpdateFirmwareComponent
             class="w-100 h-100"
             text="🔄 Update Firmware"
@@ -383,7 +385,7 @@
       </template>
     </BootstrapCollapse>
 
-  </div>
+  </div></template><p v-else class="alert alert-light mx-2" role="status">{{ device ? 'Reading your Biotron settings… Controls unlock when it answers.' : 'Connect Biotron to unlock its settings. Nothing changes until you choose a device.' }}</p>
   </div>
 </template>
 
@@ -513,7 +515,7 @@ export default  {
         applySettingsVector(this.commands_data, snapshot.values)
         this.forceRerender++
         this.settingsState = "loaded"
-        this.settingsMessage = "Settings loaded from Biotron."
+        this.settingsMessage = "Settings loaded. Changes now apply live and save automatically."
       } catch (error) {
         if (this.device !== device || loadId !== this.settingsLoadId) return
         this.settingsState = "error"

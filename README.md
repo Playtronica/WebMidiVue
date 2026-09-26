@@ -39,6 +39,13 @@ check below. Third-party iOS MIDI browsers remain research-only until they pass 
 physical evidence gate. Deploy this build only on a dedicated beta origin;
 never under the production service-worker scope.
 
+The beta shell deliberately exposes only Biotron's `Play` and `Settings`
+tasks. The normal production device navigation remains unchanged. Settings,
+presets and live controls stay hidden until the selected Biotron answers with
+its saved state; firmware recovery remains reachable when the device is
+already mounted as `RPI-RP2`. This prevents a tester from editing an
+unverified placeholder state.
+
 Beta routes declare their required capabilities in `src/main.js`. One shared
 compatibility gate checks secure context, Web MIDI and Web Audio before mounting
 a device page. Unsupported phones and browsers get one
@@ -73,6 +80,10 @@ BOOT and the firmware-side contract forbids settings or flash mutation.
 The ordinary `npm run build` deliberately contains no manifest, service worker,
 or registration. `npm run test:production-isolation` enforces that boundary so
 this beta cannot silently alter the existing production Settings lifecycle.
+The beta build also emits a Cloudflare Pages `_headers` file that blocks
+framing, limits powerful browser permissions, removes referrer leakage and
+keeps the private beta out of search indexing. Production does not receive this
+file.
 
 Verify the generated service worker, revisioned app shell and manifest:
 

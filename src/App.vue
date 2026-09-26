@@ -2,10 +2,9 @@
   <div :class="{'beta-shell': betaBuild}">
   <img src="/Logo-Black-280.webp" alt="Playtronica logo" width="280" height="199" loading="eager" decoding="async" class="small--hide image-element" itemprop="logo">
 
-  <header v-if="!firstPlay" :class="betaBuild ? 'device-header' : 'd-flex justify-content-center'">
-    <span v-if="betaBuild" class="device-header__label">Devices</span>
-    <nav :aria-label="betaBuild ? 'Choose a device' : 'Devices'" :class="{'device-header__scroll': betaBuild}">
-      <ul class="nav nav-pills" :class="{'device-header__list': betaBuild}">
+  <header v-if="!firstPlay && !betaBuild" class="d-flex justify-content-center">
+    <nav aria-label="Devices">
+      <ul class="nav nav-pills">
       <li class="nav-item">
         <router-link to="/biotron" class="nav-link">Biotron</router-link>
       </li>
@@ -19,7 +18,7 @@
           <router-link to="/scales" class="nav-link">Scales</router-link>
         </li>
       <li class="nav-item">
-        <a href="https://playtronica.github.io/WebMidiOrbita/?nomidi=true" class="nav-link">Orbita<span v-if="betaBuild" aria-hidden="true"> ↗</span></a>
+        <a href="https://playtronica.github.io/WebMidiOrbita/?nomidi=true" class="nav-link">Orbita</a>
       </li>
     </ul>
     </nav>
@@ -167,6 +166,7 @@ export default {
   },
   mounted() {
     console.log("Hello! You`re curious, aren`t you?")
+    if (this.betaBuild) document.title = 'Biotron Settings Beta — Playtronica'
     window.addEventListener(OFFLINE_STATUS_EVENT, this.handleOfflineStatus)
     window.addEventListener("online", this.handleConnectionChange)
     window.addEventListener("offline", this.handleConnectionChange)
@@ -228,14 +228,6 @@ export default {
 .beta-build { display:block; margin-top:.45rem; color:var(--beta-muted,#6c757d); font-size:.75rem; letter-spacing:.01em; }
 .beta-build span { color:var(--beta-accent); font-weight:700; }
 .offline-status-slot { min-height:58px; }
-.device-header { display:flex; width:min(760px,calc(100% - 1rem)); margin:.25rem auto 0; padding:.35rem; align-items:center; justify-content:center; gap:.75rem; border:1px solid var(--beta-line); border-radius:1rem; background:var(--beta-surface); box-shadow:0 10px 30px rgba(30,37,55,.05); backdrop-filter:blur(16px); }
-.device-header__label { flex:0 0 auto; color:#6b6761; font-size:.8rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
-.device-header__scroll { min-width:0; overflow-x:auto; scrollbar-width:none; }
-.device-header__scroll::-webkit-scrollbar { display:none; }
-.device-header__list { flex-wrap:nowrap; width:max-content; }
-.device-header__list .nav-link { min-height:44px; padding-inline:.85rem; align-content:center; border-radius:.75rem; color:#575a62; white-space:nowrap; }
-.device-header__list .nav-link:hover,.device-header__list .nav-link:focus-visible { color:var(--beta-ink); background:rgba(49,94,231,.07); }
-.device-header__list .nav-link.active { color:#fff; background:var(--beta-accent); box-shadow:0 6px 18px rgba(49,94,231,.24); }
 .offline-actions { display:inline-flex; align-items:center; gap:.5rem; margin-left:.75rem; }
 .offline-action { min-height:36px; padding:.35rem .75rem; border:1px solid currentColor; border-radius:.7rem; color:#0f5132; background:#fff; font:inherit; font-weight:600; }
 .offline-action--error { margin-left:.75rem; color:#842029; }
@@ -264,6 +256,6 @@ input:checked + .slider:before { transform:translateX(26px); }
 .bottom-panel { height:60px; display:flex; justify-content:center; align-items:center; border-top:1px solid rgba(27,31,40,.1); }
 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 input[type="number"] { -moz-appearance:textfield; }
-@media (max-width:640px) { .device-header{display:block}.device-header__label{display:block;margin-bottom:.15rem;text-align:left}.device-header__scroll{margin-right:-.5rem}.offline-actions{display:flex;justify-content:center;margin:.5rem 0 0} }
+@media (max-width:640px) { .offline-actions{display:flex;justify-content:center;margin:.5rem 0 0} }
 @media (prefers-reduced-motion:no-preference) { .beta-shell .btn,.beta-shell .nav-link,.beta-shell .offline-action{transition:color .18s ease,background-color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease}.beta-shell .btn:not(:disabled):active,.beta-shell .offline-action:not(:disabled):active{transform:translateY(1px)} }
 </style>

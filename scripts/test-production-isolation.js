@@ -8,6 +8,7 @@ for (const file of ['service-worker.js', 'manifest.json']) {
   assert(!fs.existsSync(path.join(root, file)), `${file} leaked into the normal production build`)
 }
 assert(!fs.existsSync(path.join(root, 'firmware')), 'beta firmware leaked into the normal production build')
+assert(!fs.existsSync(path.join(root, '_headers')), 'beta deployment headers leaked into the normal production build')
 
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8')
 assert(!/rel=["']manifest["']/i.test(html), 'PWA manifest link leaked into the normal production build')

@@ -218,7 +218,7 @@ async function controllerVersion(page) {
 
   const sendButton = page.getByRole('button', {name: /Check saved settings|Send to Device/i})
   await waitFor(() => sendButton.isEnabled(), 'fake Biotron did not connect offline')
-  await page.getByText('Settings loaded from Biotron.').waitFor({state: 'visible'})
+  await page.getByText('Settings loaded. Changes now apply live and save automatically.').waitFor({state: 'visible'})
   const liveWriteCount = await page.evaluate(() => window.__midiSent.length)
   await page.locator('input[type="checkbox"]').first().evaluate(element => element.click())
   await page.getByText('Applied live — saving and checking…').waitFor({state: 'visible'})

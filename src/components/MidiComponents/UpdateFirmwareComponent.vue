@@ -23,7 +23,7 @@ export default {
     busy() { return ['preparing', 'booting', 'writing', 'reconnecting'].includes(this.phase) },
     buttonText() {
       if (this.checking) return 'Checking firmware…'
-      if (this.versionAware && !this.currentVersion) return this.device ? 'Check firmware' : '💾 Biotron shows as RPI-RP2?'
+      if (this.versionAware && !this.currentVersion) return this.device ? 'Check firmware' : 'Already see RPI-RP2? Recover firmware'
       if (this.current) return `Firmware ${this.currentVersion} ✓`
       if (this.available) return `Update to ${this.latest.version}`
       return this.text
@@ -95,7 +95,7 @@ export default {
 <template>
   <button v-if="versionAware && !currentVersion && device" type="button" class="btn btn-primary" :class="$attrs.class"
           @click="$emit('check_firmware')">{{ buttonText }}</button>
-  <button v-else data-bs-toggle="modal" data-bs-target="#UpdateConf" class="btn btn-primary" :class="$attrs.class"
+  <button v-else data-bs-toggle="modal" data-bs-target="#UpdateConf" class="btn" :class="[recovery ? 'btn-outline-secondary' : 'btn-primary', $attrs.class]"
           :disabled="checking || current">{{ buttonText }}</button>
   <div class="modal fade" id="UpdateConf" tabindex="-1" aria-labelledby="firmware-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content">

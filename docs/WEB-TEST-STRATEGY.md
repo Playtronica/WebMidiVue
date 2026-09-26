@@ -77,12 +77,12 @@ VoiceOver or NVDA pass over Connect → change MUTE → save → release → rec
 
 ## Performance
 
-Lighthouse 13.5 on the immutable `c8615e4` beta candidate measured, on
-2026-09-26: performance 69, accessibility 81, best practices 100, FCP 1.6 s,
-LCP 3.2 s and CLS 0.722. The actionable causes were the 3,508 px logo rendered
-at 132 px, late route/offline blocks, missing form names and 16 px slider hit
-areas. The follow-up changes replace the logo with a 3 KB 2× asset, reserve the
-route/status space and add an automated CLS/accessibility geometry gate.
+Lighthouse 13.5 on the pre-fix candidate measured performance 69,
+accessibility 81, best practices 100 and CLS 0.722 on 2026-09-26. After the logo,
+layout and form fixes, the same local lab setup measured 96 / 100 / 100 and CLS
+0.034. The browser release gate now reports CLS 0.000 at desktop, Pixel 7,
+320×568 and the iPhone no-MIDI path. Keep the before/after values as diagnostic
+history, not a promise about a customer's phone or network.
 
 Treat Lighthouse as repeatable lab diagnosis, not production truth. Field Core
 Web Vitals should be judged at the 75th percentile, separately for mobile and
@@ -113,10 +113,10 @@ URL; previous physical evidence does not transfer silently.
 1. **After physical acceptance:** split `test-sound-browser.js` by user journey
    under Playwright Test, keeping one shared fake-MIDI fixture and trace only on
    retry. This improves failure localization without changing product behavior.
-2. **After the beta navigation decision:** limit the Biotron offline beta to
-   Biotron routes or explicitly justify caching other device chunks. The current
-   service worker precaches 36 files totalling about 1.26 MiB and includes
-   unrelated device routes.
+2. **After wave 1:** remove unrelated device routes from the beta router bundle,
+   if the change can remain production-isolated. They are now hidden from beta
+   navigation and excluded from its offline precache, while the shared
+   production router still emits their lazy chunks into `dist`.
 3. **Visual slice:** replace Bootstrap's full CSS with a reviewed component
    subset only after pinned screenshots exist. Lighthouse reported about 94% of
    the initial vendor CSS unused on the Biotron route, but route-wide references

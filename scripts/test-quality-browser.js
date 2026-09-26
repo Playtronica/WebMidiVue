@@ -65,7 +65,7 @@ async function auditProfile(browser, origin, profile) {
       .map(element => ({name: element.getAttribute('aria-label'), height: element.getBoundingClientRect().height}))
       .filter(({height}) => height < 24)
     const smallPrimaryTargets = [...document.querySelectorAll(
-      '.device-header__list a, [aria-label="Biotron tasks"] a, .beta-feedback__action'
+      '[aria-label="Biotron tasks"] a, .beta-feedback__action'
     )]
       .filter(visible)
       .map(element => ({text: element.textContent.trim(), rect: element.getBoundingClientRect().toJSON()}))

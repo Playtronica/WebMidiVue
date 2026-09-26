@@ -72,7 +72,7 @@ const arrayBuffer = buffer => buffer.buffer.slice(buffer.byteOffset, buffer.byte
   assert.match(updateComponent, /<p v-if="internal && ready && !canInstall">\{\{ desktopOnly \}\}<\/p>/)
   assert.match(updateComponent, /v-if="ready && actionText && \(!internal \|\| canInstall\)"/)
   // F3 (2026-09-04): page reloaded while Biotron sits in update mode — no MIDI, only the RPI-RP2 drive.
-  assert.match(updateComponent, /💾 Biotron shows as RPI-RP2\?/)
+  assert.match(updateComponent, /Already see RPI-RP2\? Recover firmware/)
   // W4 (Sergey, 2026-09-08): he went looking for the downloaded file. The page must say it kept the
   // firmware in memory, and must offer the file itself as an equal manual fallback.
   assert.match(updateComponent, /is checked and held in this page — nothing was saved to your computer/)
@@ -298,7 +298,7 @@ async function testComponentStateMachine(componentSource) {
   // F3: page opened while Biotron is already in update mode — no MIDI device, no version, drive RPI-RP2 present.
   calls.length = 0
   const lost = build({device: null, currentVersion: ''})
-  assert.strictEqual(lost.buttonText, '💾 Biotron shows as RPI-RP2?')
+  assert.strictEqual(lost.buttonText, 'Already see RPI-RP2? Recover firmware')
   assert.strictEqual(lost.recovery, true)
   assert.strictEqual(lost.ready, true)
   assert.strictEqual(lost.actionDisabled, false)

@@ -6,7 +6,7 @@ const zlib = require('zlib')
 const root = path.resolve(__dirname, '..', 'dist')
 const read = file => fs.readFileSync(path.join(root, file), 'utf8')
 
-for (const file of ['index.html', 'manifest.json', 'service-worker.js']) {
+for (const file of ['index.html', 'manifest.json', 'service-worker.js', '_headers']) {
   assert(fs.existsSync(path.join(root, file)), `${file} is missing from the production build`)
 }
 
@@ -20,6 +20,13 @@ assert(manifest.icons.some(icon => icon.sizes === '192x192'))
 assert(manifest.icons.some(icon => icon.sizes === '512x512'))
 
 const serviceWorker = read('service-worker.js')
+const headers = read('_headers')
+for (const directive of ['X-Frame-Options: DENY', "Content-Security-Policy: frame-ancestors 'none'",
+  'Permissions-Policy: midi=(self), camera=(), microphone=(), geolocation=()',
+  'Referrer-Policy: no-referrer', 'X-Robots-Tag: noindex']) {
+  assert(headers.includes(directive), `beta header is missing: ${directive}`)
+}
+assert(!serviceWorker.includes('_headers'), 'deployment headers must not enter the offline cache')
 assert(serviceWorker.includes('precacheAndRoute'), 'Workbox precache is not enabled')
 assert(serviceWorker.includes('index.html'), 'app shell is not precached')
 assert(serviceWorker.includes('revision'), 'precache entries are not revisioned')
@@ -53,6 +60,9 @@ assert(soundBundle, 'the beta build does not include the lazy sound lab')
 assert(read(path.join('js', soundBundle)).includes('Round Bright'), 'the sound lab does not include the seven sounds')
 assert(read(path.join('js', soundBundle)).includes('Meet Biotron'), 'the beta build has no Biotron first-play reveal')
 assert(serviceWorker.includes(`js/${soundBundle}`), 'the sound lab chunk is not available offline')
+for (const unrelated of ['touchme', 'playtron', 'scales', 'scala', 'circle']) {
+  assert(!serviceWorker.includes(`js/${unrelated}.`), `${unrelated} route leaked into the Biotron offline cache`)
+}
 const soundGzipBytes = zlib.gzipSync(fs.readFileSync(path.join(root, 'js', soundBundle))).length
 assert(soundGzipBytes <= 25 * 1024, `sound lab exceeds its 25 KiB gzip budget: ${soundGzipBytes} bytes`)
 
