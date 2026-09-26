@@ -9,6 +9,7 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8')
 for (const file of ['index.html', 'manifest.json', 'service-worker.js', '_headers']) {
   assert(fs.existsSync(path.join(root, file)), `${file} is missing from the production build`)
 }
+assert(!fs.existsSync(path.join(root, 'firmware')), 'general beta must not ship the firmware test artifact')
 
 const manifest = JSON.parse(read('manifest.json'))
 assert.strictEqual(manifest.name, 'Biotron Settings Offline Beta')
@@ -55,6 +56,8 @@ assert(javascript.includes('Install app'), 'the production UI has no explicit PW
 assert(javascript.includes('Biotron offline beta'), 'the production UI has no visible beta build identity')
 assert(biotronBundle, 'the beta build does not include the Biotron DAW handoff')
 assert(allJavascript.includes('Release device for DAW'), 'the Biotron lifecycle was not emitted into any route chunk')
+assert(!read(path.join('js', biotronBundle)).includes('Update to 1.9.8'),
+  'general Biotron beta must not expose the firmware test updater')
 assert(serviceWorker.includes(`js/${biotronBundle}`), 'the lazy Biotron settings chunk is not available offline')
 assert(soundBundle, 'the beta build does not include the lazy sound lab')
 assert(read(path.join('js', soundBundle)).includes('Round Bright'), 'the sound lab does not include the seven sounds')

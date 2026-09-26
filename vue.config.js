@@ -2,6 +2,7 @@ const {execFileSync} = require('child_process')
 const path = require('path')
 
 const biotronBeta = process.env.VUE_APP_BIOTRON_PWA_BETA === 'true'
+const biotronFirmwareBeta = process.env.VUE_APP_BIOTRON_FIRMWARE_TEST_ENABLED === 'true'
 let sourceRevision = process.env.CF_PAGES_COMMIT_SHA || process.env.GITHUB_SHA || ''
 if (!sourceRevision) {
   try {
@@ -42,10 +43,12 @@ module.exports = {
       config.plugins.delete('workbox')
     } else {
       config.plugin('copy').tap(args => {
-        args[0].patterns.push({
-          from: path.resolve(__dirname, 'beta-assets/firmware'),
-          to: path.resolve(__dirname, 'dist/firmware')
-        })
+        if (biotronFirmwareBeta) {
+          args[0].patterns.push({
+            from: path.resolve(__dirname, 'beta-assets/firmware'),
+            to: path.resolve(__dirname, 'dist/firmware')
+          })
+        }
         args[0].patterns.push({
           from: path.resolve(__dirname, 'beta-assets/_headers'),
           to: path.resolve(__dirname, 'dist')

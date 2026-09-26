@@ -34,8 +34,8 @@ Restore MUTE to its starting value before continuing.
 2. Close every beta window. Disconnect the computer from the internet.
 3. Launch the installed beta from the operating system, not browser history.
 4. Confirm the offline message appears and repeat one MUTE on/off cycle.
-5. Open firmware update. PASS only if it says internet is required and Biotron
-   stays in normal mode; it must not enter BOOT.
+5. Confirm the general customer build shows no firmware-update action. Biotron
+   must stay in normal mode and must not enter BOOT.
 
 ## 11:00–14:00 — sound and port handoff
 
@@ -56,7 +56,7 @@ MIDI + SysEx permission and one intended device: PASS / FAIL
 MUTE changed the real Biotron and was restored: PASS / FAIL
 USB disconnect → reconnect: PASS / FAIL
 Install → offline launch → MUTE write: PASS / FAIL
-Offline firmware guard; never entered BOOT: PASS / FAIL
+General build hides firmware update; never entered BOOT: PASS / FAIL
 First-play sound and note activity: PASS / FAIL
 Release → DAW → reconnect: PASS / FAIL / NOT RUN
 First failure, ambiguity, freeze or unexpected BOOT: NONE / exact step

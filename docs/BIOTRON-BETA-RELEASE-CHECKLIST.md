@@ -11,6 +11,9 @@ production merge.
 - Run `npm run audit:web` and `npm run test:biotron` from that exact commit.
 - Confirm `npm run test:production-isolation` passes.
 - Build with an explicit visible `VUE_APP_BUILD_ID` matching the commit.
+- Build the general customer candidate with
+  `VUE_APP_BIOTRON_FIRMWARE_TEST_ENABLED=false`; its output must contain no
+  firmware directory and the Biotron page must show no updater action.
 - Deploy only to the isolated beta Pages project and save its immutable URL.
 - Confirm the remote response includes `X-Frame-Options: DENY`,
   `Content-Security-Policy: frame-ancestors 'none'`, the beta

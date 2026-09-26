@@ -6,6 +6,7 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "build:biotron-beta": "vue-cli-service build --mode biotron-beta",
+    "build:biotron-firmware-beta": "vue-cli-service build --mode biotron-firmware-beta",
     "lint": "vue-cli-service lint",
     "test:midi-lifecycle": "node scripts/test-midi-lifecycle.js",
     "test:device-scope": "node scripts/test-device-scope.js",

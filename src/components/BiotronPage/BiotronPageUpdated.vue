@@ -51,7 +51,7 @@
         role="status"
         aria-live="polite"
     >{{ settingsMessage }}</div>
-    <UpdateFirmwareComponent v-if="betaBuild" class="w-100 mt-3" text="Update Firmware" repo="Playtronica/biotron-firmware" :device="device" :current-version="firmwareVersion" version-aware @check_firmware="checkFirmware"/>
+    <UpdateFirmwareComponent v-if="betaBuild && firmwareTestEnabled" class="w-100 mt-3" text="Update Firmware" repo="Playtronica/biotron-firmware" :device="device" :current-version="firmwareVersion" version-aware @check_firmware="checkFirmware"/>
     </section>
     <template v-if="!betaBuild || settingsReady">
     <section :class="{'beta-preset-card': betaBuild}" aria-label="Preset and saved settings">
@@ -732,6 +732,7 @@ export default  {
   data() {
     return {
       betaBuild: process.env.VUE_APP_BIOTRON_PWA_BETA === 'true',
+      firmwareTestEnabled: process.env.VUE_APP_BIOTRON_FIRMWARE_TEST_ENABLED === 'true',
       page_is_inited: false,
       scales: ["Major", "Minor", "Chrom", "Dorian", "Mixolydian",
         "Lydian", "Wholetone", "Minblues", "Majblues", "Minpen",

@@ -290,14 +290,11 @@ async function controllerVersion(page) {
   console.log(`3/7 offline Biotron detection, nonce-bound recalibration and non-blocking SysEx write verified (max event-loop gap ${heartbeatMaxGap.toFixed(1)} ms)`)
 
   await page.evaluate(() => window.__emitSettingsMidi([0xf0, 0x0b, 126, 0, 1, 9, 3, 0xf7]))
-  await page.getByRole('button', {name: 'Update to 1.9.8'}).click()
-  await page.getByText(/Now: 1\.9\.3 → ✨ New: 1\.9\.8/i).waitFor({state: 'visible', timeout: 5000})
-  await page.getByText(/Connect to the internet for firmware updates/i).waitFor({state: 'visible', timeout: 5000})
-  const update = page.locator('.modal.show').getByRole('button', {name: '⬇️ Download & check', exact: true})
-  assert.strictEqual(await update.isDisabled(), true, 'firmware preparation was enabled offline')
+  assert.strictEqual(await page.getByRole('button', {name: /Update to 1\.9\.8|Update Firmware/}).count(), 0,
+    'general customer beta exposed a firmware update action')
   assert.strictEqual(await page.evaluate(() => window.__midiSent.some(message => message[3] === 127)), false,
-    'offline firmware action entered BOOT')
-  console.log('4/7 offline firmware guard verified')
+    'general customer beta entered BOOT')
+  console.log('4/7 general customer beta keeps firmware update isolated')
 
   await context.setOffline(false)
   await page.evaluate(() => {
@@ -349,7 +346,7 @@ async function controllerVersion(page) {
   await page.getByText(/Offline mode — Settings are working without internet/i).waitFor({state: 'visible', timeout: 10000})
   console.log('7/7 Retry repairs offline setup and the same profile launches offline again')
 
-  console.log('Browser PWA verified across persistent-profile restarts: installability, offline app shell, permission/retry, MIDI setting write, firmware guard and controlled update.')
+  console.log('Browser PWA verified across persistent-profile restarts: installability, offline app shell, permission/retry, MIDI setting write, firmware isolation and controlled update.')
 })().catch(error => {
   console.error(error)
   process.exitCode = 1

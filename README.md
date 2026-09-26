@@ -18,8 +18,8 @@ npm run build
 The ordinary production build keeps the current website behaviour and does not
 install a service worker. The dedicated Biotron beta below is an installable
 PWA: after one successful online visit, its settings UI and hash routes are
-cached for offline use. Firmware updates are intentionally online-only because
-the latest `.uf2` file is fetched from GitHub.
+cached for offline use. The general customer beta does not contain or expose a
+firmware updater.
 
 Build the isolated Biotron beta (direct Biotron launch, visible source revision,
 and a separate PWA identity) with:
@@ -27,6 +27,17 @@ and a separate PWA identity) with:
 ```
 npm run build:biotron-beta
 ```
+
+The hardware-confirmed firmware research build is separate:
+
+```
+npm run build:biotron-firmware-beta
+```
+
+Only that build copies the pinned 1.9.8 artifact and shows the Biotron updater.
+It must not be sent to an unscreened customer segment. Firmware installation is
+desktop Chrome/Edge plus internet only, and each board revision must be
+confirmed before receiving its link.
 
 The primary beta test path is current Chrome/Edge on a Windows, macOS or Linux
 computer. It is not an `.exe`: the browser installs a standalone app after the
@@ -74,7 +85,7 @@ the plant. This is deliberately a bounded MIDI-pattern inference, not a new
 firmware status claim; an explicit read-only status message would be stronger.
 
 The beta Settings page also contains an explicit `Calibrate plant again`
-control for the matching firmware draft. It sends vendor SysEx command `123`
+control for the matching firmware draft. It sends vendor SysEx command `125`
 with a nonce and accepts only nonce-matched progress (`waiting`, `measuring`,
 `ready`) reported by the device. Older firmware is left untouched and gets a
 clear reconnect fallback after the capability timeout. The command never uses

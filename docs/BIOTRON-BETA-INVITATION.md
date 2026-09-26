@@ -46,8 +46,8 @@ working days and send this group a short update each Friday: what changed, what
 we will test next and what is still unclear.
 
 For this first test, a computer with current Chrome or Edge is the reliable
-path. Mobile support is still experimental, and firmware installation still
-needs a computer and internet. If Biotron is not found, try the
+path. Mobile support is still experimental. Firmware is a separate,
+hardware-confirmed test and is not included in this general beta. If Biotron is not found, try the
 [connection checklist](https://help.playtronica.com/troubleshooting/wont-connect/),
 then reply with the exact step that stopped you.
 
