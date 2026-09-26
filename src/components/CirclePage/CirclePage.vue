@@ -39,6 +39,35 @@
             />
           </template>
         </GroupOfCommands>
+
+        <GroupOfCommands name-of-group="Command Button Remap">
+          <template v-slot:objects>
+            <div class="row">
+              <div class="col">
+                <SelectCommand
+                    command-label="Extra Pad"
+                    :key="this.forceRerender"
+                    :list-of-variants="this.command_buttons"
+                    :command-object="commands_data.cmd_remap_extra"
+                    @input-changed="this.sys_ex_changed"
+                    description="Command button triggered by the Extra pad (temporary, until every command pad works)"
+                    class="m-3"
+                />
+              </div>
+              <div class="col">
+                <SelectCommand
+                    command-label="Loop Pad"
+                    :key="this.forceRerender"
+                    :list-of-variants="this.command_buttons"
+                    :command-object="commands_data.cmd_remap_loop"
+                    @input-changed="this.sys_ex_changed"
+                    description="Command button triggered by the Loop pad (temporary, until every command pad works)"
+                    class="m-3"
+                />
+              </div>
+            </div>
+          </template>
+        </GroupOfCommands>
       </template>
     </BootstrapCollapse>
 
@@ -418,6 +447,7 @@ export default {
       play_modes: ["Arpeggiator", "Chords", "Strum"],
       arp_directions: ["Up", "Down", "Up-Down", "Down-Up", "Random", "Thirds Up", "Thirds Down", "Batch"],
       arp_rates: ["x1", "/2", "/4", "/8", "x2", "x4"],
+      command_buttons: ["Extra", "Loop", "Speed", "Pitch/Shift", "Hold", "Mode"],
       synthFactoryPresetNames,
       synthPresetCommand: makeSynthPresetCommand(),
     }
