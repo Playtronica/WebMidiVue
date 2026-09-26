@@ -13,9 +13,19 @@
       <ol v-if="issue.steps.length">
         <li v-for="step in issue.steps" :key="step">{{ step }}</li>
       </ol>
-      <button v-if="issue.copyLink" type="button" class="btn btn-dark" @click="copyPageLink">
-        {{ copied ? 'Link copied' : 'Copy this page link' }}
-      </button>
+      <div v-if="issue.action || issue.copyLink" class="compatibility-notice__actions">
+        <a
+          v-if="issue.action"
+          :href="issue.action.href"
+          class="btn btn-dark"
+          target="_blank"
+          rel="noopener"
+        >{{ issue.action.label }}</a>
+        <button v-if="issue.copyLink" type="button" class="btn btn-outline-dark" @click="copyPageLink">
+          {{ copied ? 'Link copied' : 'Copy this page link' }}
+        </button>
+      </div>
+      <small v-if="issue.action && issue.action.note" class="compatibility-notice__action-note">{{ issue.action.note }}</small>
       <span v-if="copyStatus" class="compatibility-notice__copy-status" role="status">{{ copyStatus }}</span>
     </div>
   </section>
@@ -104,6 +114,8 @@ export default {
 .compatibility-notice p { margin: 0; color: #66534d; line-height: 1.55; }
 .compatibility-notice ol { margin: 1rem 0 1.25rem; padding-left: 1.25rem; }
 .compatibility-notice li + li { margin-top: .4rem; }
+.compatibility-notice__actions { display:flex; flex-wrap:wrap; gap:.65rem; margin-top:1rem; }
+.compatibility-notice__action-note { display:block; margin-top:.6rem; color:#66534d; font-size:.82rem; letter-spacing:0; text-transform:none; }
 .compatibility-notice__copy-status { display: block; margin-top: .6rem; color: #66534d; font-size: .9rem; }
 
 @media (max-width: 520px) {

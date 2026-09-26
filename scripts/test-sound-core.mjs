@@ -294,8 +294,13 @@ test('phones gate on Web MIDI capability, not on device name', () => {
   })
   const iphoneIssue = buildCompatibilityIssue(iphone, {requiresMidi: true, productName: 'Scales'})
   assert.equal(iphoneIssue.kind, 'midi')
-  assert.match(iphoneIssue.steps.join(' '), /cannot connect to this beta/)
-  assert.match(buildMidiAdvisory(iphone).title, /USB device connection/i)
+  assert.equal(iphone.appleMobile, true)
+  assert.match(iphoneIssue.steps.join(' '), /MIDIWeb Browser/)
+  assert.equal(iphoneIssue.action.label, 'Get MIDIWeb Browser')
+  assert.equal(iphoneIssue.action.href, 'https://apps.apple.com/us/app/midiweb-browser/id6757226617')
+  const iphoneAdvisory = buildMidiAdvisory(iphone)
+  assert.match(iphoneAdvisory.title, /USB device connection/i)
+  assert.equal(iphoneAdvisory.action.href, iphoneIssue.action.href)
 
   const insecure = detectPlatformCapabilities({
     AudioContext,

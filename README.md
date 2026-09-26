@@ -35,8 +35,11 @@ needs USB host/OTG support plus a data-capable cable. No exact phone model is a
 release-certified target yet. Standard browsers on iPhone/iPad, desktop Safari
 and Firefox do not provide the Web MIDI path required by device Settings.
 No computer/OS combination becomes release-certified without the physical
-check below. Third-party iOS MIDI browsers remain research-only until they pass the same
-physical evidence gate. Deploy this build only on a dedicated beta origin;
+check below. On iOS/iPadOS 17.6+, [MIDIWeb Browser by 5of12
+LLP](https://apps.apple.com/us/app/midiweb-browser/id6757226617) is the preferred
+experimental research path because it bridges Core MIDI to WebMIDI and supports
+the SysEx flow required by Settings. It remains unverified with Biotron until it
+passes the same physical evidence gate. Deploy this build only on a dedicated beta origin;
 never under the production service-worker scope.
 
 The beta shell deliberately exposes only Biotron's `Play` and `Settings`

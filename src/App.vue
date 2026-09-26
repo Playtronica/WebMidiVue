@@ -79,6 +79,15 @@
           Tell Andrey what should change
         </a>
         <small class="d-block mt-2 text-muted">Your email opens with three questions and this build number. Nothing is sent automatically.</small>
+        <details class="beta-compatibility">
+          <summary>Browser &amp; phone compatibility</summary>
+          <ul>
+            <li><strong>Computer:</strong> current Chrome or Edge is the primary beta path.</li>
+            <li><strong>Android:</strong> current Chrome with USB host/OTG is experimental.</li>
+            <li><strong>iPhone or iPad:</strong> standard browsers do not provide Web MIDI. On iOS/iPadOS 17.6 or later, try <a href="https://apps.apple.com/us/app/midiweb-browser/id6757226617" target="_blank" rel="noopener">MIDIWeb Browser</a>; Biotron support is experimental.</li>
+          </ul>
+          <small>Firmware updates still require a computer and internet.</small>
+        </details>
       </aside>
 
     </div>
@@ -238,6 +247,10 @@ export default {
 .offline-status--error { color:#842029; background:#f8d7da; border-color:#f5c2c7; }
 .beta-feedback { width:min(760px,100%); padding:clamp(1.2rem,4vw,2rem); border:1px solid rgba(49,94,231,.14); border-radius:1.35rem; background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(238,243,255,.9)); box-shadow:0 18px 50px rgba(30,37,55,.07); }
 .beta-feedback__eyebrow { display:block; margin-bottom:.45rem; color:var(--beta-accent); font-size:.72rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; }
+.beta-compatibility { margin-top:1rem; padding-top:1rem; border-top:1px solid var(--beta-line); color:var(--beta-muted); }
+.beta-compatibility summary { min-height:44px; padding:.65rem 0; color:var(--beta-ink); font-weight:700; cursor:pointer; }
+.beta-compatibility ul { margin:.4rem 0 .6rem; padding-left:1.25rem; }
+.beta-compatibility li + li { margin-top:.4rem; }
 .beta-feedback__title { margin-bottom:.45rem; font-size:clamp(1.2rem,3vw,1.55rem); font-weight:750; letter-spacing:-.025em; }
 .beta-feedback__action { min-height:44px; padding:.65rem 1rem; border:1px solid var(--beta-accent); border-radius:.8rem; color:#fff; background:var(--beta-accent); font-weight:700; }
 .beta-feedback__action:hover,.beta-feedback__action:focus-visible { color:#fff; background:#254dc8; box-shadow:0 7px 20px rgba(49,94,231,.2); }

@@ -1,11 +1,18 @@
+export const MIDIWEB_BROWSER_URL = 'https://apps.apple.com/us/app/midiweb-browser/id6757226617'
+
 export function detectPlatformCapabilities(runtime = globalThis) {
   const navigator = runtime.navigator || {}
+  const userAgent = navigator.userAgent || ''
+  const appleMobile = /iPad|iPhone|iPod/.test(userAgent) ||
+    (/Macintosh/.test(userAgent) && Number(navigator.maxTouchPoints) > 1)
 
-  return Object.freeze({
+  const capabilities = {
     audio: typeof (runtime.AudioContext || runtime.webkitAudioContext) === 'function',
     midi: typeof navigator.requestMIDIAccess === 'function',
     secureContext: runtime.isSecureContext !== false
-  })
+  }
+  if (appleMobile) capabilities.appleMobile = true
+  return Object.freeze(capabilities)
 }
 
 export function buildCompatibilityIssue(capabilities, requirements = {}) {
@@ -34,8 +41,13 @@ export function buildCompatibilityIssue(capabilities, requirements = {}) {
       steps: Object.freeze([
         'Use current Chrome or Edge on a computer.',
         'Android is experimental: use current Chrome, a USB host/OTG connection, and a data-capable cable.',
-        'Standard browsers on iPhone and iPad cannot connect to this beta.'
+        `On iPhone or iPad, standard browsers cannot connect. Try MIDIWeb Browser on iOS or iPadOS 17.6 or later; ${productName} support is experimental.`
       ]),
+      action: capabilities.appleMobile ? Object.freeze({
+        label: 'Get MIDIWeb Browser',
+        href: MIDIWEB_BROWSER_URL,
+        note: 'Then open this beta link inside MIDIWeb Browser.'
+      }) : null,
       copyLink: true
     })
   }
@@ -62,8 +74,13 @@ export function buildMidiAdvisory(capabilities) {
   return Object.freeze({
     kind: 'midi-advisory',
     title: 'USB device connection isn’t available here',
-    summary: 'You can still try every sound with your keyboard or screen. For the primary beta USB path, open this page in current Chrome or Edge on a computer; Android Chrome is experimental.',
+    summary: 'You can still try every sound with your keyboard or screen. For USB, use current Chrome or Edge on a computer. Android Chrome and MIDIWeb Browser on iPhone or iPad are experimental.',
     steps: Object.freeze([]),
+    action: capabilities.appleMobile ? Object.freeze({
+      label: 'Get MIDIWeb Browser',
+      href: MIDIWEB_BROWSER_URL,
+      note: 'Requires iOS or iPadOS 17.6 or later.'
+    }) : null,
     copyLink: false
   })
 }
