@@ -159,6 +159,23 @@ async function verifyCapabilityFallbacks(browser, origin) {
   assert.deepStrictEqual(deniedErrors, [])
   await deniedContext.close()
 
+  const missingContext = await browser.newContext()
+  missingContext.setDefaultTimeout(5000)
+  await missingContext.addInitScript(() => {
+    Object.defineProperty(navigator, 'requestMIDIAccess', {
+      configurable: true,
+      value: async () => ({inputs: new Map(), outputs: new Map(), addEventListener() {}, removeEventListener() {}})
+    })
+  })
+  const missing = await missingContext.newPage()
+  await missing.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
+  await missing.getByRole('button', {name: 'Hear Biotron'}).click()
+  await missing.getByText('Connect Biotron first', {exact: true}).waitFor()
+  await missing.getByText(/Plug Biotron into this computer with a USB data cable/i).waitFor()
+  assert.strictEqual(await missing.getByRole('button', {name: 'Stop notes'}).count(), 0)
+  await missing.locator('.sound-lab[data-reveal-stage="intro"][data-audio-state="closed"][data-tab-lease="free"]').waitFor()
+  await missingContext.close()
+
   const noAudioContext = await browser.newContext()
   noAudioContext.setDefaultTimeout(5000)
   await noAudioContext.addInitScript(() => {

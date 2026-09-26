@@ -62,6 +62,11 @@
             <p>{{ revealProfile.explanation }}</p>
           </template>
 
+          <div v-if="revealIssue" class="sound-lab__connect-notice" role="status" aria-live="polite">
+            <strong>{{ revealIssue.title }}</strong>
+            <span>{{ revealIssue.body }}</span>
+          </div>
+
           <div class="sound-lab__reveal-actions">
             <button
               v-if="revealStage === 'intro' || (engine && audioState !== 'running' && !releaseBlocked)"
@@ -78,7 +83,7 @@
               :disabled="starting"
             >Stop &amp; release</button>
             <button
-              v-if="engine"
+              v-if="engine && revealStage !== 'intro'"
               type="button"
               class="btn btn-outline-danger"
               @click="panic"
@@ -305,7 +310,8 @@ export default {
       tabLeaseState: 'free',
       revealStage: 'intro',
       revealExpanded: false,
-      recognizedInput: ''
+      recognizedInput: '',
+      revealIssue: null
     }
   },
   mounted() {
@@ -441,6 +447,7 @@ export default {
         this.revealStage = 'intro'
         this.revealExpanded = false
         this.recognizedInput = ''
+        this.revealIssue = null
         this.resetCalibration()
         this.tabLease.release()
         this.tabLeaseState = 'free'
@@ -539,6 +546,7 @@ export default {
         return
       }
       this.starting = true
+      this.revealIssue = null
       let failure = ''
       try {
         if (!await this.acquireTabLease()) return
@@ -562,8 +570,15 @@ export default {
         }
       } catch (error) {
         failure = error.message || `${this.revealProfile.productName} could not start.`
+        const missingDevice = /was not found|No MIDI inputs found/i.test(failure)
+        const denied = /permission was not allowed/i.test(failure)
         await this.stop()
-        if (!this.releaseBlocked) this.status = failure
+        if (!this.releaseBlocked) {
+          this.status = missingDevice ? 'Biotron is not connected yet.' : 'Biotron could not start.'
+          this.revealIssue = missingDevice
+            ? {title: 'Connect Biotron first', body: 'Plug Biotron into this computer with a USB data cable, then press Hear Biotron again.'}
+            : {title: denied ? 'Allow access to Biotron' : 'Biotron could not start', body: failure}
+        }
       } finally {
         this.starting = false
       }
@@ -589,6 +604,7 @@ export default {
         if (this.revealMode) {
           this.revealStage = 'intro'
           this.recognizedInput = ''
+          this.revealIssue = {title: 'Biotron disconnected', body: 'Reconnect its USB data cable, then press Hear Biotron again.'}
           this.resetCalibration()
         }
         this.status = 'MIDI disconnected — notes stopped'
@@ -727,6 +743,8 @@ export default {
 .sound-lab__calibration-note--two { right: 27%; animation: biotron-note-two .28s steps(2, end) .14s infinite; }
 .sound-lab__reveal-copy h2 { margin: .25rem 0 .5rem; font-size: clamp(1.5rem, 4vw, 2.4rem); }
 .sound-lab__reveal-copy p { max-width: 34rem; color: #625e58; line-height: 1.5; }
+.sound-lab__connect-notice { display:grid; gap:.2rem; margin:1rem 0; padding:.85rem 1rem; border:1px solid rgba(106,90,205,.28); border-radius:.9rem; color:#302763; background:#f0edff; }
+.sound-lab__connect-notice span { color:#514b63; line-height:1.45; }
 .sound-lab__recognized { color: #4d427e; font-weight: 700; }
 .sound-lab__reveal-actions, .sound-lab__after-reveal { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
 .sound-lab__status--reveal { display: block; margin-top: .75rem; padding-left: 0; }

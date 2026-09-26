@@ -7,28 +7,33 @@ an explicit final confirmation.
 
 ## Subject
 
-Help me shape the new Biotron Settings — private beta
+You’re one of 30 Biotron owners invited to shape the new Settings
 
 ## Preview text
 
-Try one real task and tell me where the new Settings should go next.
+This is intentionally early: try one real task and help decide what comes next.
 
 ## Body
 
 Hi {{ customer.first_name | default: "there" }},
 
-I’m Andrey from Playtronica. I’m rebuilding Biotron Settings and I’d like you to
-try the private beta before we release it publicly.
+I’m Andrey from Playtronica. I’m inviting a small group of 30 Biotron owners to
+try a very early version of the new Biotron Settings.
 
-My main goal is to make the first experience clearer, faster and genuinely
-useful on the devices people already have. I will personally read every reply,
-turn repeated requests into the next versions, and send participants a short
-update each Friday about what changed and what I’m still investigating.
+I want to be transparent: this is not a polished release. The visual design,
+layout and some wording will change. Some parts may still feel simple or rough.
+I’m sharing it now on purpose — before we make those decisions permanent —
+because your experience with Biotron is more useful than our guesses.
 
-Please open **[IMMUTABLE BETA URL]** in current Chrome or Edge on your computer,
-connect Biotron and try one thing you actually want to do. The page shows build
-**[BUILD ID]**. This is a private beta; it does not replace the public
-Playtronica Settings site.
+Please open **[IMMUTABLE BETA URL]** in current Chrome or Edge on your computer.
+Connect a plant and Biotron with a USB data cable, press **Hear Biotron**, then
+try one thing you genuinely want to do in Play or Settings. Ten minutes is
+enough. If something confuses you or does not work, that is useful feedback —
+you are not testing it wrong.
+
+This private beta does not replace or modify the public Playtronica Settings
+site. The page shows build **[BUILD ID]**, so I can match your feedback to the
+version you tried.
 
 Then reply to this email with:
 
@@ -36,12 +41,18 @@ Then reply to this email with:
 2. Where did you hesitate or get a result you did not expect?
 3. If I changed one thing before the next version, what should it be?
 
-Android is experimental and depends on the exact phone, browser, adapter, cable
-and power setup. Normal iPhone/iPad browsers cannot control Biotron through Web
-MIDI. Firmware installation still needs a computer and internet. If the beta
-stops you, reply with your computer or phone model, OS, browser and the build ID.
+I personally read every reply. I’ll acknowledge concrete bug reports within two
+working days and send this group a short update each Friday: what changed, what
+we will test next and what is still unclear.
 
-Thank you — your feedback will directly shape the next version.
+For this first test, a computer with current Chrome or Edge is the reliable
+path. Mobile support is still experimental, and firmware installation still
+needs a computer and internet. If Biotron is not found, try the
+[connection checklist](https://help.playtronica.com/troubleshooting/wont-connect/),
+then reply with the exact step that stopped you.
+
+Thank you for helping while the work is still open enough to change. Your reply
+will directly shape the next version — including how it should look and feel.
 
 Andrey<br>
 Playtronica
