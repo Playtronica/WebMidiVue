@@ -32,7 +32,9 @@ export function buildCompatibilityIssue(capabilities, requirements = {}) {
       title: 'No MIDI in this browser',
       summary: `${productName} connects over Web MIDI, and this browser does not provide it.`,
       steps: Object.freeze([
-        'Use Chrome or Edge on a computer or Android phone; on iPhone or iPad, the free MIDIWeb Browser app.'
+        'Use current Chrome or Edge on a computer.',
+        'Android is experimental: use current Chrome, a USB host/OTG connection, and a data-capable cable.',
+        'Standard browsers on iPhone and iPad cannot connect to this beta.'
       ]),
       copyLink: true
     })
@@ -60,7 +62,7 @@ export function buildMidiAdvisory(capabilities) {
   return Object.freeze({
     kind: 'midi-advisory',
     title: 'USB device connection isn’t available here',
-    summary: 'You can still try every sound with your computer keyboard. To connect a Playtronica device, open this page in the latest Chrome or Edge.',
+    summary: 'You can still try every sound with your keyboard or screen. For the primary beta USB path, open this page in current Chrome or Edge on a computer; Android Chrome is experimental.',
     steps: Object.freeze([]),
     copyLink: false
   })

@@ -148,7 +148,7 @@ async function controllerVersion(page) {
   assert.strictEqual(await page.evaluate(() => window.__midiRequestCount), 2, 'MIDI denial did not recover with exactly one retry')
   assert.strictEqual(await page.evaluate(() => window.__midiRequestOptions[0].sysex), true, 'SysEx was not requested in the single MIDI permission flow')
 
-  const desktopButton = page.getByRole('button', {name: /Add desktop shortcut/i})
+  const installButton = page.getByRole('button', {name: /Install app/i})
   await page.evaluate(() => {
     window.__installPromptCalls = 0
     const event = new Event('beforeinstallprompt', {cancelable: true})
@@ -156,12 +156,12 @@ async function controllerVersion(page) {
     event.userChoice = Promise.resolve({outcome: 'accepted'})
     window.dispatchEvent(event)
   })
-  await desktopButton.click()
+  await installButton.click()
   assert.strictEqual(await page.evaluate(() => window.__installPromptCalls), 1, 'install prompt was not called exactly once')
-  await desktopButton.click()
+  await installButton.click()
   await page.getByText(/Chrome: menu/i).waitFor({state: 'visible'})
   await page.evaluate(() => window.dispatchEvent(new Event('appinstalled')))
-  await page.getByText('Added to desktop', {exact: true}).waitFor({state: 'visible', timeout: 5000})
+  await page.getByText('App installed', {exact: true}).waitFor({state: 'visible', timeout: 5000})
 
   const manifest = await page.evaluate(() => fetch('/manifest.json').then(response => response.json()))
   assert.strictEqual(manifest.name, 'Biotron Settings Offline Beta')

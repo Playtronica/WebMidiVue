@@ -39,10 +39,10 @@
           class="offline-action"
           @click="installApp"
       >
-        Add desktop shortcut
+        Install app
       </button>
     </span>
-    <span v-if="installed" class="offline-installed">Added to desktop</span>
+    <span v-if="installed" class="offline-installed">App installed</span>
     <button
         v-if="offlineStatus.state === 'error'"
         type="button"

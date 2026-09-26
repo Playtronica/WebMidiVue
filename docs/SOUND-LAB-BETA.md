@@ -22,9 +22,12 @@ The engine accepts MIDI Note On/Off on every channel and CC 120/123 panic. It re
 When the Web Locks API is available, Sound Lab holds an exclusive lock while active. A second Settings window stays silent and does not open MIDI until the first window presses **Stop & release**. Browsers without Web Locks can still play, but show an explicit reminder to keep only one Settings window open.
 
 Capabilities are checked before opening resources. Without Web MIDI, the
-general Sound page remains usable from the computer keyboard and explains that
-USB input needs current desktop Chrome or Edge; the device-specific first-play
-button stays blocked rather than pretending it can hear the device. Without Web
+general Sound page remains usable from the keyboard or screen and explains that
+the primary beta USB path needs current Chrome or Edge on a computer. Android
+Chrome is an experimental physical-test path when the phone provides USB
+host/OTG and Web MIDI. Standard iPhone/iPad browsers cannot connect to the
+device. The device-specific first-play button stays blocked rather than
+pretending it can hear the device. Without Web
 Audio, Start stays disabled and the same page gives one supported alternative.
 Denied MIDI permission and insecure-page failures are translated into one
 specific recovery action instead of exposing a browser exception.
@@ -106,7 +109,10 @@ npm run test:sound:soak        # 10 min before a review candidate
   hardware evidence.
 - After injected MIDI-close and AudioContext-close failures with successful retries, the browser test completes 100/100 Start → Stop & release cycles with no page error or stale tab lease.
 - Automated rendering proves bounds and stability, not whether a timbre is beautiful. Human listening is a release gate.
-- Chrome/Edge/Brave support MIDI. Safari can run Web Audio but does not provide Web MIDI, so device input is not promised there.
+- Current computer Chrome/Edge is the primary beta MIDI test path. Brave and
+  Android Chrome are test paths, not blanket support promises. Safari and
+  standard iPhone/iPad browsers can run Web Audio but do not provide Web MIDI,
+  so device input is not promised there.
 - Real-browser negative-path tests remove Web MIDI and Web Audio separately:
   audio-only keyboard play remains available, while impossible device/audio
   actions are disabled with a specific alternative.

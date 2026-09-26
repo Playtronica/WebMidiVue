@@ -28,18 +28,31 @@ and a separate PWA identity) with:
 npm run build:biotron-beta
 ```
 
-The PWA works in current desktop Chrome/Edge on Windows, macOS and Linux. It is
-not an `.exe`: the browser installs a standalone shortcut after the first online
-visit. Safari and Firefox are outside this beta because the Settings UI requires
-Web MIDI. Deploy this build only on a dedicated beta origin; never under the
-production service-worker scope.
+The primary beta test path is current Chrome/Edge on a Windows, macOS or Linux
+computer. It is not an `.exe`: the browser installs a standalone app after the
+first online visit. Android Chrome is an experimental field-test path and also
+needs USB host/OTG support plus a data-capable cable. No exact phone model is a
+release-certified target yet. Standard browsers on iPhone/iPad, desktop Safari
+and Firefox do not provide the Web MIDI path required by device Settings.
+No computer/OS combination becomes release-certified without the physical
+check below. Third-party iOS MIDI browsers remain research-only until they pass the same
+physical evidence gate. Deploy this build only on a dedicated beta origin;
+never under the production service-worker scope.
 
 Beta routes declare their required capabilities in `src/main.js`. One shared
-compatibility gate checks secure context, desktop support, Web MIDI and Web
-Audio before mounting a device page. Unsupported phones and browsers get one
+compatibility gate checks secure context, Web MIDI and Web Audio before mounting
+a device page. Unsupported phones and browsers get one
 plain-language recovery card; permission denial remains a separate retryable
 state. The generic Sound route keeps its on-screen/keyboard audio mode when MIDI
 is unavailable and hides the unusable USB controls.
+
+Responsive layout is not evidence that USB control works. Firmware update is
+computer-only and online-only; it must remain unavailable on phones. The current
+support and evidence boundaries are recorded in:
+
+- [`docs/BIOTRON-BETA-COMPUTER-15MIN.md`](docs/BIOTRON-BETA-COMPUTER-15MIN.md)
+- [`docs/BIOTRON-BETA-PHONE-15MIN.md`](docs/BIOTRON-BETA-PHONE-15MIN.md)
+- [`docs/BIOTRON-BETA-RELEASE-CHECKLIST.md`](docs/BIOTRON-BETA-RELEASE-CHECKLIST.md)
 
 Biotron first play treats firmware stabilization as its own state. Released
 firmware 1.8.2 and the current firmware branch sample the plant every 100 ms,
@@ -91,7 +104,7 @@ The browser lifecycle test uses an installed Chrome/Chromium (`CHROME_PATH` can
 override discovery) and covers service-worker install/control, offline direct
 navigation, the offline firmware guard, and a non-disruptive waiting update.
 
-The physical Windows release gate is in
+The older Windows/REAPER-specific gate remains in
 [`docs/BIOTRON-PWA-WINDOWS-12MIN.md`](docs/BIOTRON-PWA-WINDOWS-12MIN.md).
 
 ### Lints and fixes files

@@ -242,7 +242,7 @@ test('sound capabilities fail closed without hiding the audio-only fallback', ()
 
   const audioOnly = detectSoundCapabilities({AudioContext, navigator: {}})
   assert.deepEqual(audioOnly, {audio: true, midi: false})
-  assert.match(soundCapabilityMessage(audioOnly), /Computer-keyboard sound works/i)
+  assert.match(soundCapabilityMessage(audioOnly), /Keyboard and screen sound work/i)
   assert.match(soundCapabilityMessage(audioOnly, {requiresMidi: true}), /cannot hear your device/i)
 
   const unsupported = detectSoundCapabilities({navigator: {requestMIDIAccess() {}}})
@@ -270,7 +270,7 @@ test('platform compatibility separates unsupported runtime from denied permissio
   assert.equal(midiIssue.title, 'No MIDI in this browser')
   assert.match(midiIssue.summary, /Biotron connects over Web MIDI/)
   assert.match(midiIssue.steps.join(' '), /Chrome or Edge/i)
-  assert.match(buildMidiAdvisory(noMidi).summary, /computer keyboard/i)
+  assert.match(buildMidiAdvisory(noMidi).summary, /keyboard or screen/i)
 
   const deniedButSupported = {...desktop}
   assert.equal(buildCompatibilityIssue(deniedButSupported, {requiresMidi: true}), null)
@@ -286,7 +286,7 @@ test('phones gate on Web MIDI capability, not on device name', () => {
   })
   assert.equal(buildCompatibilityIssue(android, {requiresMidi: true, requiresAudio: true, productName: 'Biotron'}), null)
   assert.equal(buildMidiAdvisory(android), null)
-  // iPhone Safari (Apple ships no Web MIDI): one honest gate naming the workaround app.
+  // iPhone Safari (Apple ships no Web MIDI): one honest gate without promising an unverified workaround.
   const iphone = detectPlatformCapabilities({
     AudioContext,
     isSecureContext: true,
@@ -294,7 +294,7 @@ test('phones gate on Web MIDI capability, not on device name', () => {
   })
   const iphoneIssue = buildCompatibilityIssue(iphone, {requiresMidi: true, productName: 'Scales'})
   assert.equal(iphoneIssue.kind, 'midi')
-  assert.match(iphoneIssue.steps.join(' '), /MIDIWeb Browser/)
+  assert.match(iphoneIssue.steps.join(' '), /cannot connect to this beta/)
   assert.match(buildMidiAdvisory(iphone).title, /USB device connection/i)
 
   const insecure = detectPlatformCapabilities({

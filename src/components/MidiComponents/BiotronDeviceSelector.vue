@@ -135,7 +135,7 @@
             if (err && (err.name === "NotAllowedError" || err.name === "SecurityError")) {
               this.midiError = "MIDI access was blocked. Allow MIDI and SysEx for this site, then retry.";
             } else if (!navigator.requestMIDIAccess) {
-              this.midiError = "Web MIDI is not supported. Use current Chrome or Edge on a desktop computer.";
+              this.midiError = "Web MIDI is not supported. Use current Chrome or Edge on a computer; Android Chrome is experimental.";
             } else {
               this.midiError = "Could not open the MIDI port. Close your DAW or other MIDI apps, then retry.";
             }

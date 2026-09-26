@@ -1,6 +1,6 @@
 # Web Settings simplification review
 
-Status: local review branch; no production deploy. Updated 2026-08-30.
+Status: isolated beta branch; no production deploy. Updated 2026-09-26.
 
 ## Normative engineering contract
 
@@ -37,7 +37,7 @@ must also leave the project easier to explain, test, remove and maintain.
   and after. Growth requires a named reason and human review of the ratchet.
 - A production Vue file may not silently grow beyond 850 lines. Split by a real
   responsibility, not by arbitrary fragments.
-- Product source is capped at 64 files and 10,050 lines at the current baseline.
+- Product source is capped at 64 files and 10,242 lines at the enforced baseline.
   A feature that crosses the cap must remove equivalent debt or explicitly
   update this contract in a separate reviewed commit.
 - A new dependency needs: browser/runtime purpose, why the platform cannot do
@@ -100,6 +100,13 @@ No production deployment is part of this branch.
 
 Run `npm run audit:web` for the current mechanical inventory. The full test gate
 also runs `npm run test:architecture`: known debt may decrease but cannot grow.
+
+Current inventory on 2026-09-26, before physical beta acceptance: 64/64 source
+files, 10,086/10,242 source lines, 3,479 test/script lines, zero eager-route
+debt, zero CPU-blocking waits and zero unmanaged listener files. The largest
+production file is `BiotronPageUpdated.vue` at 849/850 lines. These two nearly
+full caps are explicit debt, not permission for a pre-release rewrite: the next
+feature must first reduce or deliberately re-baseline them in its own review.
 
 ## Measured result of S0
 
@@ -231,8 +238,11 @@ selection is a firmware compatibility decision and needs its own rollback.
 ### Release gate
 
 Every stage must pass lint, normal production isolation, beta build/PWA tests,
-fake-Web-MIDI lifecycle tests and browser tests. Windows Chrome/Edge with real
-hardware remains required for MIDI ownership, reconnect and offline acceptance.
+fake-Web-MIDI lifecycle tests and browser tests. A current Chrome/Edge computer
+with real hardware remains required for MIDI ownership, reconnect and offline
+acceptance. Android remains experimental until an exact physical phone, OS,
+Chrome version, adapter/cable and Biotron pass are recorded. Standard iPhone and
+iPad browsers are a required negative-path check, not a supported USB path.
 
 ## Rules that keep the project easy for the firmware developer
 

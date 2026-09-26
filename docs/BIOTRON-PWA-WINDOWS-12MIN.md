@@ -11,7 +11,7 @@ the time limit. The beta URL must be on a dedicated non-production origin.
    the short source revision shown beside it.
 3. Allow MIDI and SysEx. Select a Biotron entry. If Windows lists Port 1 and
    Port 2, record which one you selected; do not connect a second Biotron.
-4. Wait for **Offline mode is ready**, then choose **Add desktop shortcut** or the
+4. Wait for **Offline mode is ready**, then choose **Install app** or the
    Chrome/Edge address bar. Launch the installed app once.
 
 ## 2:00–5:00 — real device write

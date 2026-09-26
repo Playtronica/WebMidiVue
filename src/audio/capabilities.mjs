@@ -7,13 +7,13 @@ export function detectSoundCapabilities(runtime = globalThis) {
 
 export function soundCapabilityMessage(capabilities, {requiresMidi = false} = {}) {
   if (!capabilities.audio) {
-    return 'Sound is not available in this browser. Open this page in current Chrome or Edge on a desktop computer.'
+    return 'Sound is not available in this browser. Open this page in current Chrome or Edge on a computer.'
   }
   if (!capabilities.midi && requiresMidi) {
-    return 'This browser can play sound, but it cannot hear your device. Open this page in current Chrome or Edge on a desktop computer.'
+    return 'This browser can play sound, but it cannot hear your device. Use current Chrome or Edge on a computer; Android Chrome is experimental.'
   }
   if (!capabilities.midi) {
-    return 'Computer-keyboard sound works here. USB devices need current Chrome or Edge on desktop.'
+    return 'Keyboard and screen sound work here. USB devices need current Chrome or Edge on a computer; Android Chrome is experimental.'
   }
   return ''
 }
