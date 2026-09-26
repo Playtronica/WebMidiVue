@@ -83,10 +83,27 @@ npm run test:firmware
 npm run test:pwa:browser
 ```
 
-`npm run test:biotron` runs the complete deterministic beta gate. Use scripts
-and the local browser test before asking for human review; reserve model review
-for architecture, customer claims and release decisions. No test or automation
-in this branch pushes, deploys, publishes firmware, or touches production.
+Use the smallest test lane that can answer the current question:
+
+```bash
+npm run test:quick       # lint, architecture and deterministic module contracts
+npm run test:beta-build  # beta build plus artifact/protocol/PWA checks
+npm run test:browser     # sound, PWA restart and responsive quality in Chromium
+npm run test:biotron     # exact release gate: every lane plus production isolation
+```
+
+The responsive quality gate covers desktop, Pixel 7, a compact 320 px viewport
+and the iPhone no-MIDI path. It blocks global horizontal overflow, CLS above
+0.1, duplicate IDs, visible unlabeled controls, undersized sliders and primary
+tap targets below 44 px. These emulated profiles prove layout and browser
+behavior, not a physical USB connection. The complete strategy and remaining
+manual gates are in
+[`docs/WEB-TEST-STRATEGY.md`](docs/WEB-TEST-STRATEGY.md).
+
+Use scripts and the local browser tests before asking for human review; reserve
+model review for architecture, customer claims and release decisions. No test
+or automation in this branch pushes, deploys, publishes firmware, or touches
+production.
 
 `npm run audit:web` prints the current architectural debt and largest files.
 `npm run test:architecture` is a ratchet inside the full gate: eager routes and

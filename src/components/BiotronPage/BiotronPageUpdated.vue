@@ -162,7 +162,6 @@
         <GroupOfCommands name-of-group="Buttons Mode">
           <template v-slot:objects>
             <SwitchComponent
-                id="randomPlantVelSwitch"
                 command-label="Mute button state"
                 description="Enables and disables mute button"
                 :command-object="this.commands_data.button_mode_state"
@@ -190,7 +189,6 @@
             <div class="row m-2">
               <div class="col">
                 <SwitchComponent
-                    id="randomPlantVelSwitch"
                     command-label="🧍Humanize"
                     description="Varies note velocity between the minimum and maximum values. The minimum value only has an effect while Humanize is on."
                     :command-object="this.commands_data.randomPlantVelocity"

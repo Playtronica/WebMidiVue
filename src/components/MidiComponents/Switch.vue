@@ -9,7 +9,7 @@
 
       <div>
         <label class="switch">
-          <input id="checkbox_input" type="checkbox" :checked="commandObject.value"
+          <input type="checkbox" :aria-label="commandLabel" :checked="commandObject.value"
                  @click="commandObject.set_value($event.target.checked)" @change="this.changed">
           <span class="slider round"></span>
         </label>

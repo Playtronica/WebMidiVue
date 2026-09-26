@@ -1,6 +1,6 @@
 <template>
   <div :class="{'beta-shell': betaBuild}">
-  <img src="/Logo-Black.png" alt="Playtronica logo" width="140" loading="eager" class="small--hide image-element" itemprop="logo">
+  <img src="/Logo-Black-280.webp" alt="Playtronica logo" width="280" height="199" loading="eager" decoding="async" class="small--hide image-element" itemprop="logo">
 
   <header v-if="!firstPlay" :class="betaBuild ? 'device-header' : 'd-flex justify-content-center'">
     <span v-if="betaBuild" class="device-header__label">Devices</span>
@@ -25,8 +25,9 @@
     </nav>
   </header>
   <small v-if="betaBuild" class="beta-build"><span>Biotron offline beta</span> · {{ buildId }}</small>
-  <div
-      v-if="offlineMessage && !firstPlay"
+  <div v-if="!firstPlay" class="offline-status-slot">
+    <div
+      v-if="offlineMessage"
       class="offline-status mx-auto mt-2 px-3 py-2"
       :class="offlineStatusClass"
       role="status"
@@ -55,16 +56,19 @@
     <small v-if="showInstallHelp && offlineStatus.ready && !installed" class="offline-install-help">
       Android Chrome: menu ⋮ → Add to Home screen. Chrome: menu ⋮ → Cast, save and share → Install page as app. Edge: menu ⋯ → More tools → Apps → Install this site as an app.
     </small>
+    </div>
   </div>
   <div class="wrapper">
     <div class="m-2 content ">
-      <CompatibilityGate :route="$route">
-        <router-view v-slot="{ Component }">
-          <KeepAlive include="DeviceFirstPlay">
-            <component :is="Component" />
-          </KeepAlive>
-        </router-view>
-      </CompatibilityGate>
+      <main :class="{'route-stage': betaBuild}">
+        <CompatibilityGate :route="$route">
+          <router-view v-slot="{ Component }">
+            <KeepAlive include="DeviceFirstPlay">
+              <component :is="Component" />
+            </KeepAlive>
+          </router-view>
+        </CompatibilityGate>
+      </main>
 
       <aside v-if="betaBuild" class="beta-feedback mx-auto my-4 text-start" aria-labelledby="beta-feedback-title">
         <small class="beta-feedback__eyebrow">Built with Biotron owners</small>
@@ -219,10 +223,11 @@ export default {
 <style>
 #app { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-align: center; color: #2c3e50; margin-top: 1%; }
 .beta-shell { --beta-ink:#16181d; --beta-muted:#686b73; --beta-line:rgba(27,31,40,.11); --beta-surface:rgba(255,255,255,.88); --beta-accent:#315ee7; min-height:100vh; padding:.75rem 0 2rem; color:var(--beta-ink); background:radial-gradient(circle at 8% 0%,rgba(119,218,178,.13),transparent 28rem),radial-gradient(circle at 96% 12%,rgba(49,94,231,.09),transparent 24rem),#f6f5f1; }
-.beta-shell > .image-element { width:132px; margin:.35rem auto .75rem; }
+.beta-shell > .image-element { width:132px; height:auto; margin:.35rem auto .75rem; }
 .offline-status { width:min(720px,calc(100% - 2rem)); border:1px solid; border-radius:1rem; font-size:.9rem; }
 .beta-build { display:block; margin-top:.45rem; color:var(--beta-muted,#6c757d); font-size:.75rem; letter-spacing:.01em; }
 .beta-build span { color:var(--beta-accent); font-weight:700; }
+.offline-status-slot { min-height:58px; }
 .device-header { display:flex; width:min(760px,calc(100% - 1rem)); margin:.25rem auto 0; padding:.35rem; align-items:center; justify-content:center; gap:.75rem; border:1px solid var(--beta-line); border-radius:1rem; background:var(--beta-surface); box-shadow:0 10px 30px rgba(30,37,55,.05); backdrop-filter:blur(16px); }
 .device-header__label { flex:0 0 auto; color:#6b6761; font-size:.8rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
 .device-header__scroll { min-width:0; overflow-x:auto; scrollbar-width:none; }
@@ -255,6 +260,7 @@ input:checked + .slider:before { transform:translateX(26px); }
 .slider.round:before { border-radius:50%; }
 .content { flex:1; width:min(820px,100%); margin-inline:auto !important; padding:clamp(1rem,3vw,1.5rem); box-sizing:border-box; }
 .wrapper { display:flex; flex-direction:column; min-height:100vh; }
+.route-stage { min-height:100vh; }
 .bottom-panel { height:60px; display:flex; justify-content:center; align-items:center; border-top:1px solid rgba(27,31,40,.1); }
 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 input[type="number"] { -moz-appearance:textfield; }

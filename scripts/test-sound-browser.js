@@ -76,6 +76,7 @@ const server = createStaticServer(root)
 
 async function verifyCapabilityFallbacks(browser, origin) {
   const audioOnlyContext = await browser.newContext()
+  audioOnlyContext.setDefaultTimeout(5000)
   await audioOnlyContext.addInitScript(() => {
     Object.defineProperty(navigator, 'requestMIDIAccess', {configurable: true, value: undefined})
   })
@@ -115,6 +116,7 @@ async function verifyCapabilityFallbacks(browser, origin) {
   // Android Chrome: full device profile (UA, screen, touch) and real Web MIDI with both permissions granted.
   // Reddens if the gate judges by device name again: beta21 showed «Biotron needs a computer» here (05.09.2026).
   const androidContext = await browser.newContext({...devices['Pixel 7'], permissions: ['midi', 'midi-sysex']})
+  androidContext.setDefaultTimeout(5000)
   const android = await androidContext.newPage()
   const androidErrors = []
   android.on('pageerror', error => androidErrors.push(error.message))
@@ -134,6 +136,7 @@ async function verifyCapabilityFallbacks(browser, origin) {
   await androidContext.close()
 
   const deniedContext = await browser.newContext()
+  deniedContext.setDefaultTimeout(5000)
   await deniedContext.addInitScript(() => {
     Object.defineProperty(navigator, 'requestMIDIAccess', {
       configurable: true,
@@ -157,6 +160,7 @@ async function verifyCapabilityFallbacks(browser, origin) {
   await deniedContext.close()
 
   const noAudioContext = await browser.newContext()
+  noAudioContext.setDefaultTimeout(5000)
   await noAudioContext.addInitScript(() => {
     Object.defineProperty(window, 'AudioContext', {configurable: true, value: undefined})
     Object.defineProperty(window, 'webkitAudioContext', {configurable: true, value: undefined})
@@ -177,6 +181,7 @@ async function verifyCapabilityFallbacks(browser, origin) {
 
   // iPhone Safari profile: Apple ships no Web MIDI — one honest gate; Sound keeps the on-screen keys.
   const iphoneContext = await browser.newContext(devices['iPhone 15'])
+  iphoneContext.setDefaultTimeout(5000)
   await iphoneContext.addInitScript(() => {
     Object.defineProperty(navigator, 'requestMIDIAccess', {configurable: true, value: undefined})
   })
@@ -294,6 +299,7 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
   const browser = await chromium.launch({executablePath: chromePath(), headless: true})
   try {
     const context = await browser.newContext()
+    context.setDefaultTimeout(5000)
     await context.addInitScript(() => {
       window.__soundMidiRequests = []
       window.__soundMidiSent = []

@@ -96,20 +96,20 @@ export default {
     </label>
 
     <div v-if="this.tableValues">
-      <select v-model="this.rawValue" id="scale" class="form-control" @change="this.changed">
+      <select v-model="this.rawValue" :aria-label="`${commandLabel} value`" class="form-control" @change="this.changed">
         <option v-for="(value, key) in this.tableTranslate" v-bind:key="key" :value="key">
           {{this.tableValues[parseInt(value)]}}
         </option>
       </select>
     </div>
     <div v-else>
-      <input type="number" id="value_input" class="form-control"
+      <input type="number" :aria-label="`${commandLabel} value`" class="form-control"
              v-model="this.rawValue" :min="this.minValue" :max="this.maxValue"
              @change="this.changed($event)"/>
     </div>
 
 
-    <input v-if="this.slider_active" type="range" id="range_input" class="settings_input"
+    <input v-if="this.slider_active" type="range" :aria-label="`${commandLabel} slider`" class="settings_input"
            v-model="this.rawValue" :min="this.minValue" :max="this.maxValue"
            :step="this.commandObject.step"
            @change="this.changed($event)"/>
@@ -119,6 +119,7 @@ export default {
 <style scoped>
   .settings_input {
     width: 100%;
+    min-height: 32px;
   }
 
 

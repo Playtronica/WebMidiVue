@@ -102,9 +102,9 @@ Run `npm run audit:web` for the current mechanical inventory. The full test gate
 also runs `npm run test:architecture`: known debt may decrease but cannot grow.
 
 Current inventory on 2026-09-26, before physical beta acceptance: 64/64 source
-files, 10,086/10,242 source lines, 3,479 test/script lines, zero eager-route
+files, 10,095/10,242 source lines, 3,609 test/script lines, zero eager-route
 debt, zero CPU-blocking waits and zero unmanaged listener files. The largest
-production file is `BiotronPageUpdated.vue` at 849/850 lines. These two nearly
+production file is `BiotronPageUpdated.vue` at 847/850 lines. These two nearly
 full caps are explicit debt, not permission for a pre-release rewrite: the next
 feature must first reduce or deliberately re-baseline them in its own review.
 

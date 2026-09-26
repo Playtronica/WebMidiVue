@@ -69,12 +69,12 @@ export default {
     </label>
       <div class="row" style="margin-bottom: 10px">
         <div class="col">
-          <input type="number" id="value_input_min" class="form-control" @change="this.changed_min_val"
+          <input type="number" :aria-label="`${commandLabel} minimum`" class="form-control" @change="this.changed_min_val"
                  v-model="this.values[0]" :min="this.minCommandObject.min_value" :max="this.minCommandObject.max_value" />
         </div>
         -
         <div class="col">
-          <input type="number" id="value_input_max" class="form-control" @change="this.changed_max_val"
+          <input type="number" :aria-label="`${commandLabel} maximum`" class="form-control" @change="this.changed_max_val"
                  v-model="this.values[1]" :min="this.minCommandObject.min_value" :max="this.maxCommandObject.max_value" />
         </div>
       </div>

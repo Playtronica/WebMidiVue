@@ -16,6 +16,7 @@
     "test:sound": "node --test scripts/test-sound-core.mjs",
     "test:sound:levels": "node scripts/test-sound-elementary.js",
     "test:sound:browser": "node scripts/test-sound-browser.js",
+    "test:quality:browser": "node scripts/test-quality-browser.js",
     "test:navigation": "node scripts/test-navigation-contract.js",
     "test:compatibility": "node scripts/test-compatibility-contract.js",
     "audit:web": "node scripts/audit-web-architecture.mjs",
@@ -26,7 +27,10 @@
     "test:legacy-selector": "node scripts/test-legacy-device-selector.js",
     "test:sound:soak:smoke": "node scripts/test-sound-browser.js --soak-seconds=60",
     "test:sound:soak": "node scripts/test-sound-browser.js --soak-seconds=600",
-    "test:biotron": "npm run lint && npm run test:architecture && npm run test:listeners && npm run test:midi-timing && npm run test:settings-readback && npm run test:legacy-selector && npm run test:sound && npm run test:sound:levels && npm run test:navigation && npm run test:compatibility && npm run test:production-isolation && npm run build:biotron-beta && npm run test:device-scope && npm run test:midi-lifecycle && npm run test:pwa && npm run test:firmware && npm run test:sound:browser && npm run test:pwa:browser"
+    "test:quick": "npm run lint && npm run test:architecture && npm run test:listeners && npm run test:midi-timing && npm run test:settings-readback && npm run test:legacy-selector && npm run test:sound && npm run test:sound:levels && npm run test:navigation && npm run test:compatibility",
+    "test:beta-build": "npm run build:biotron-beta && npm run test:device-scope && npm run test:midi-lifecycle && npm run test:pwa && npm run test:firmware",
+    "test:browser": "npm run test:sound:browser && npm run test:pwa:browser && npm run test:quality:browser",
+    "test:biotron": "npm run test:quick && npm run test:production-isolation && npm run test:beta-build && npm run test:browser"
   },
   "dependencies": {
     "@elemaudio/core": "^4.0.1",

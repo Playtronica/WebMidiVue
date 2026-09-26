@@ -33,6 +33,7 @@ async function openProfile(online, denyMidiOnce = false) {
     serviceWorkers: 'allow',
     args: ['--no-first-run']
   })
+  context.setDefaultTimeout(5000)
   await context.addInitScript(({ initiallyOnline, initiallyDenyMidi }) => {
     window.__testOnline = initiallyOnline
     window.__midiRequestCount = 0

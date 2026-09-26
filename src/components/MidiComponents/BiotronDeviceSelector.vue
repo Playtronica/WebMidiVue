@@ -1,12 +1,12 @@
 <template>
   <div class="mb-3">
     <div class="form-floating">
-      <select v-model.number="currentMidiNum" class="form-control" @change="deviceChanged" :disabled="released || connecting">
+      <select id="biotron-device" v-model.number="currentMidiNum" class="form-control" @change="deviceChanged" :disabled="released || connecting">
         <option v-for="(device, key) in devices" :key="device.output.id" :value="key">
           {{ device.output.name }} {{ versions[device.output.id] }}
         </option>
       </select>
-      <label for="device">{{ text_label }}</label>
+      <label for="biotron-device">{{ text_label }}</label>
     </div>
     <small v-if="connecting && !selectedDevice" class="text-muted">{{ promptHint }}</small>
     <div v-if="allowDawHandoff" class="daw-handoff d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center mt-2">

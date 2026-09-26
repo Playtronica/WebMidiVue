@@ -1,9 +1,9 @@
 <template>
   <div class="form-floating mb-3">
-    <select v-model="currentMidiNum" class="form-control" @change="this.deviceChanged">
+    <select id="midi-device" v-model="currentMidiNum" class="form-control" @change="this.deviceChanged">
       <option v-for="(value, key) in midiOut" v-bind:key="key" :value="key" >{{value.name}} {{this.versions[key]}}</option>
     </select>
-    <label for="device">{{ this.text_label }}</label>
+    <label for="midi-device">{{ this.text_label }}</label>
   </div>
 </template>
 

@@ -3,10 +3,10 @@
     <div class=" m-0 w-100">
       <div class="d-flex ">
         <div class="form-floating flex-grow-1 me-2">
-          <select v-model="this.id" class="form-control" @change="this.patchChanged">-->
+          <select id="patch-selector" v-model="this.id" class="form-control" @change="this.patchChanged">
             <option v-for="patch in patches" v-bind:key="patch.id" :value="patch.id">{{patch.name}}</option>
           </select>
-          <label for="device">{{this.text_label}}</label>
+          <label for="patch-selector">{{this.text_label}}</label>
         </div>
           <button class="btn"
                   :class="{ 'btn-outline-primary': this.button_state === 'Save', 'btn-outline-danger': this.button_state === 'Delete'}"
@@ -18,16 +18,16 @@
     </div>
 
 
-    <div class="modal fade" id="saveModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal fade" id="saveModal" tabindex="-1" aria-labelledby="saveModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabel">Save Patch</h5>
+            <h5 class="modal-title" id="saveModalLabel">Save Patch</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cancel"></button>
           </div>
           <div class="modal-body">
             <div class="mb-3">
-              <label for="recipient-name" class="col-form-label">Patch Name</label>
+              <label for="patchName" class="col-form-label">Patch Name</label>
               <input type="text" class="form-control" id="patchName" v-model="this.patchName"
                      :key="this.forceRerender" autocomplete="off" data-autofocus>
             </div>
@@ -40,11 +40,11 @@
       </div>
     </div>
 
-    <div class="modal fade" id="deleteModel" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal fade" id="deleteModel" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabel">Delete Patch</h5>
+            <h5 class="modal-title" id="deleteModalLabel">Delete Patch</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cancel"></button>
           </div>
           <div class="modal-body">

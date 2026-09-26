@@ -50,7 +50,7 @@ export default {
       <HintComponent v-if="this.description" :text="this.description" />
     </label>
 
-    <select v-model="this.Value" id="scale" class="form-control" @change="changed">
+    <select v-model="this.Value" :aria-label="commandLabel" class="form-control" @change="changed">
       <option v-for="(item, index) in this.listOfVariants" v-bind:key="index" :value="index">
         {{item}}
       </option>

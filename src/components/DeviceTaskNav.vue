@@ -66,7 +66,7 @@ export default {
 
 .device-task-nav__link {
   display: inline-grid;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 1rem;
   place-items: center;
   border-radius: .7rem;
