@@ -39,20 +39,24 @@ export default {
   display: flex;
   width: min(760px, 100%);
   min-height: 48px;
-  margin: 0 auto 1.5rem;
-  padding: .3rem;
+  margin: 0 auto 1.15rem;
+  padding: .35rem;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  border: 1px solid #ded9d1;
-  border-radius: 999px;
-  background: #fbfaf7;
+  border: 1px solid rgba(27, 31, 40, .1);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, .86);
+  box-shadow: 0 10px 30px rgba(30, 37, 55, .05);
+  backdrop-filter: blur(16px);
   text-align: left;
 }
 
 .device-task-nav__device {
   padding-left: 1rem;
   color: #17171a;
+  font-size: .9rem;
+  letter-spacing: -.01em;
 }
 
 .device-task-nav nav {
@@ -65,7 +69,7 @@ export default {
   min-height: 40px;
   padding: 0 1rem;
   place-items: center;
-  border-radius: 999px;
+  border-radius: .7rem;
   color: #4f4a45;
   text-decoration: none;
 }
@@ -78,7 +82,8 @@ export default {
 
 .device-task-nav__link--active {
   color: #fff;
-  background: #2f6fed;
+  background: #315ee7;
+  box-shadow: 0 6px 18px rgba(49, 94, 231, .22);
   font-weight: 700;
   pointer-events: none;
 }

@@ -30,6 +30,11 @@ assert(taskNav.includes("{id: 'settings', label: 'Settings'"), 'device tasks mus
 assert(taskNav.includes(':aria-current="task.id === activeTask ? \'page\' : null"'),
   'the selected device task must be exposed accessibly')
 assert(biotron.includes('active-task="settings"'), 'Biotron settings must show Settings as current')
+assert(biotron.includes('biotron-settings-beta') && biotron.includes('Shape your Biotron') &&
+  biotron.includes('Connect Biotron, then shape how it listens, plays, and responds.'),
+  'the beta settings page must preserve the outcome-first visual hierarchy')
+assert(biotron.includes("betaBuild ? 'preset-actions'"),
+  'the beta preset actions must use the responsive action grid')
 assert(biotron.includes('play-route="/biotron/play"'), 'Biotron settings must link directly to Play')
 assert(biotron.includes('Calibrate plant again'), 'Biotron settings must expose explicit recalibration')
 assert(biotron.includes('Input variation (experimental)') &&

@@ -1,6 +1,6 @@
 <template>
   <LoaderComponent v-if="this.is_loading && !betaBuild" :key="forceRerender"/>
-
+  <div :class="{'biotron-settings-beta': betaBuild}">
     <DeviceTaskNav
         v-if="betaBuild"
         device-name="Biotron"
@@ -8,11 +8,16 @@
         play-route="/biotron/play"
         settings-route="/biotron"
     />
-    <h1 class="text-center">{{ betaBuild ? 'Settings' : 'Biotron Settings ⚙️' }}</h1>
+    <header :class="{'settings-hero': betaBuild}">
+      <small v-if="betaBuild" class="settings-hero__eyebrow">Biotron workspace</small>
+      <h1 class="text-center" :aria-label="betaBuild ? 'Settings' : null">{{ betaBuild ? 'Shape your Biotron' : 'Biotron Settings ⚙️' }}</h1>
+      <p v-if="betaBuild" class="settings-hero__intro">Connect Biotron, then shape how it listens, plays, and responds.</p>
+    </header>
     <div v-if="betaBuild && soundSession.running" class="alert alert-success mx-2 py-2" role="status">
       🔊 Sound stays on while you adjust settings. Touch the plant to hear each change.
       <router-link to="/biotron/play" class="alert-link ms-1">Sound &amp; volume</router-link>
     </div>
+    <section :class="{'beta-connect-card': betaBuild}" aria-label="Connect Biotron">
     <DeviceSelector
         ref="deviceSelector"
         regex-name="Biotron"
@@ -24,7 +29,7 @@
         allow-daw-handoff
         class="m-2"
     />
-    <div v-if="betaBuild" class="calibration-control mx-2 mb-3">
+    <div v-if="betaBuild" class="calibration-control mt-3">
       <button
           type="button"
           class="btn btn-outline-primary"
@@ -41,22 +46,24 @@
     </div>
     <div
         v-if="betaBuild && settingsMessage"
-        class="mx-2 mb-3 alert py-2"
+        class="mt-3 mb-0 alert py-2"
         :class="settingsState === 'error' ? 'alert-warning' : 'alert-light'"
         role="status"
         aria-live="polite"
     >{{ settingsMessage }}</div>
-    <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"  text_label="📂 Preset" class="m-2"/>
-    <div class="row gx-1 mb-5">
-      <div class="col">
+    </section>
+    <section :class="{'beta-preset-card': betaBuild}" aria-label="Preset and saved settings">
+    <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"  text_label="📂 Preset"/>
+    <div :class="betaBuild ? 'preset-actions' : 'row gx-1 mb-5'">
+      <div :class="{'col': !betaBuild}">
         <button @click="change_data_loader" :disabled="!this.device || this.is_loading || (betaBuild && !settingsReady)" class="btn btn-primary w-100 h-100">
           {{ betaBuild ? (is_loading ? 'Checking…' : 'Check saved settings') : '❇️ Send to Device' }}
         </button>
       </div>
-      <div class="col">
+      <div :class="{'col': !betaBuild}">
         <button @click="this.createPreset" class="btn btn-primary w-100 h-100">💾 Save Preset</button>
       </div>
-      <div class="col">
+      <div :class="{'col': !betaBuild}">
         <UpdateFirmwareComponent
             class="w-100 h-100"
             text="🔄 Update Firmware"
@@ -68,10 +75,11 @@
         />
       </div>
 
-      <div class="col">
+      <div :class="{'col': !betaBuild}">
         <FileDropArea name="📂 Load Preset" @get_drop="(e) => loadDataFromPreset(e)"/>
       </div>
     </div>
+    </section>
 
   <div>
     <BootstrapCollapse name_of_collapse="PLANT SENSOR" open_by_default>
@@ -372,17 +380,16 @@
                 description="How wide the light-sensor melody can move around the Home Note. Used only while Pitch Bend is off."
                 class="m-2"
             />
-
           </template>
         </GroupOfCommands>
       </template>
     </BootstrapCollapse>
 
   </div>
+  </div>
 </template>
 
 <script>
-
 import {withMidiWriteSession} from "@/assets/js/timing.mjs"
 
 import { saveAs } from '@progress/kendo-file-saver';
@@ -803,12 +810,9 @@ export default  {
     this.device = null
     this.listenerScope?.clear()
   }
-
 }
 </script>
-
 <style scoped>
-
 .calibration-control { display: flex; align-items: center; gap: .75rem; min-height: 44px; }
 .calibration-control__status { color: #52606d; line-height: 1.35; }
 .calibration-control__status--active::before {
@@ -819,5 +823,26 @@ export default  {
 @keyframes calibration-pulse { to { opacity: .35; transform: scale(.72); } }
 @media (max-width: 575.98px) { .calibration-control { align-items: stretch; flex-direction: column; } }
 @media (prefers-reduced-motion: reduce) { .calibration-control__status--active::before { animation: none; } }
+.biotron-settings-beta { --surface:rgba(255,255,255,.9); --line:rgba(27,31,40,.11); --ink:#17191f; --muted:#6b6e76; --accent:#315ee7; color:var(--ink); }
+.settings-hero { margin:0 auto 1.25rem; text-align:center; }
+.settings-hero__eyebrow { display:block; margin-bottom:.3rem; color:var(--accent); font-size:.72rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; }
+.settings-hero h1 { margin:0; font-size:clamp(2rem,7vw,3.25rem); font-weight:760; letter-spacing:-.045em; line-height:1.05; }
+.settings-hero__intro { max-width:34rem; margin:.65rem auto 0; color:var(--muted); font-size:clamp(.95rem,2.4vw,1.08rem); }
+.beta-connect-card,.beta-preset-card { margin-bottom:1rem; padding:clamp(1rem,3vw,1.35rem); border:1px solid var(--line); border-radius:1.25rem; background:var(--surface); box-shadow:0 16px 40px rgba(30,37,55,.055); text-align:left; backdrop-filter:blur(16px); }
+.preset-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65rem; margin-top:.8rem; }
+.preset-actions > div { min-width:0; }
+.preset-actions :deep(.btn),.preset-actions :deep(.fileDropArea) { width:100%; min-height:54px; padding:.6rem .7rem; border-radius:.8rem; font-size:.88rem; line-height:1.25; }
+.biotron-settings-beta :deep(.btn-primary) { border-color:var(--accent); background:var(--accent); box-shadow:none; }
+.biotron-settings-beta :deep(.btn-outline-primary) { border-color:rgba(49,94,231,.5); color:#294fca; }
+.biotron-settings-beta :deep(.form-control),.biotron-settings-beta :deep(.form-select) { min-height:52px; border-color:var(--line); border-radius:.8rem; color:var(--ink); background-color:rgba(255,255,255,.92); }
+.biotron-settings-beta :deep(.form-control:focus),.biotron-settings-beta :deep(.form-select:focus),.biotron-settings-beta :deep(.btn:focus-visible) { border-color:var(--accent); box-shadow:0 0 0 .22rem rgba(49,94,231,.16); }
+.biotron-settings-beta :deep(.toggle-label) { margin-top:.85rem; padding:1rem 1.1rem; border:1px solid var(--line); border-radius:1rem; background:rgba(255,255,255,.82); box-shadow:0 10px 28px rgba(30,37,55,.04); text-align:left; }
+.biotron-settings-beta :deep(.toggle-label h1) { display:flex; margin:0; align-items:center; justify-content:space-between; color:var(--ink); font-size:.78rem; font-weight:800; letter-spacing:.08em; }
+.biotron-settings-beta :deep(.toggle-label hr) { display:none; }
+.biotron-settings-beta :deep(.settings_elem) { margin-bottom:.85rem; padding:clamp(.8rem,2.8vw,1.2rem); border-color:var(--line); border-radius:1rem; background:var(--surface); box-shadow:0 12px 34px rgba(30,37,55,.045); text-align:left; }
+.biotron-settings-beta :deep(.settings_elem > .row),.biotron-settings-beta :deep(.settings_elem > div > .row) { margin-bottom:1rem; }
+.biotron-settings-beta :deep(label) { margin-bottom:.35rem; color:#393c44; font-weight:650; }
+@media (min-width:700px) { .preset-actions{grid-template-columns:repeat(4,minmax(0,1fr))} }
+@media (max-width:430px) { .beta-connect-card,.beta-preset-card{border-radius:1rem}.settings-hero h1{font-size:2rem} }
 
 </style>
