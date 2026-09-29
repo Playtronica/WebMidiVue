@@ -6,6 +6,7 @@ const read = file => fs.readFileSync(path.resolve(__dirname, '..', file), 'utf8'
 const app = read('src/App.vue')
 const taskNav = read('src/components/DeviceTaskNav.vue')
 const biotron = read('src/components/BiotronPage/BiotronPageUpdated.vue')
+const settingsReadback = read('src/biotron/settingsReadback.mjs')
 const selector = read('src/components/MidiComponents/BiotronDeviceSelector.vue')
 const sound = read('src/components/SoundLab/SoundLab.vue')
 
@@ -46,6 +47,15 @@ assert(biotron.includes('Already see RPI-RP2?') ||
 assert(biotron.includes('Input variation (experimental)') &&
   biotron.includes("It does not increase the sensor's measured sensitivity or control velocity."),
   'CC15 must describe the exact firmware behavior without a sensitivity claim')
+assert(biotron.includes('Reduce extra notes') &&
+  settingsReadback.includes('["randomness", 0]') &&
+  settingsReadback.includes('["performance", 1]') &&
+  settingsReadback.includes('["same_note_plant", 2]'),
+  'the low-effort calmer-play action must disable added variation and suppress tiny repeated note changes')
+assert(settingsReadback.includes('Note Hold changes note length, not the LEDs.') &&
+  biotron.includes('Done — use in DAW') &&
+  biotron.includes('releaseForDaw'),
+  'a verified save must explain the visible result and provide a one-click DAW handoff')
 assert(selector.includes('RECALIBRATE_COMMAND = 125'), 'Web and firmware recalibration command must stay aligned')
 assert(selector.includes('123 is reserved for persisted-settings readback'), 'Settings readback ID must remain reserved')
 assert(selector.includes('[0xf0, 0x14, 0x0d, RECALIBRATE_COMMAND, nonce, 0xf7]'),

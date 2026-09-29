@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 import {
+  CALMER_PLAY_SETTINGS,
+  applyCalmerPlay,
   applySettingsVector,
   buildSettingsQuery,
   parseSettingsResponse,
+  savedSettingsMessage,
   settingsVectorFromCommands,
   settingsVectorsEqual
 } from '../src/biotron/settingsReadback.mjs'
@@ -56,6 +59,23 @@ assert(settingsVectorsEqual(settingsVectorFromCommands(commands), values))
 const fullRange = {...commands, maxPlantVelocity: {value: 127}}
 assert.equal(settingsVectorFromCommands(fullRange)[9], 127)
 assert(!settingsVectorsEqual(values, [...values.slice(0, -1), 1]))
+
+assert.equal(savedSettingsMessage('noteOffPercent'),
+  'Saved on Biotron. Note Hold changes note length, not the LEDs.')
+assert(savedSettingsMessage('reduceExtraNotes').startsWith('Calmer play is saved.'))
+const calmerMessages = []
+const calmerDevice = {
+  state: 'connected', connection: 'open',
+  send(message) { calmerMessages.push(message) }
+}
+const calmerCommands = Object.fromEntries(CALMER_PLAY_SETTINGS.map(([name]) => [name, {
+  value: 127,
+  set_value(value) { this.value = value },
+  sendToMidi(output) { output.send([this.value]) }
+}]))
+assert.equal(await applyCalmerPlay(calmerDevice, () => calmerDevice, calmerCommands), true)
+assert.deepEqual(CALMER_PLAY_SETTINGS.map(([name]) => calmerCommands[name].value), [0, 1, 2])
+assert.deepEqual(calmerMessages, [[0], [1], [2]])
 
 for (const bpm of [0, 127, 128, 16383]) {
   const bpmVector = settingsVectorFromCommands({...commands, plantBpm: {value: bpm}})

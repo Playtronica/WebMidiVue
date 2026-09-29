@@ -62,6 +62,7 @@ async function openProfile(online, denyMidiOnce = false) {
       78, 3, 4, 4, 50, 10, 0, 4, 8, 98, 74, 75, 0, 1, 0, 12,
       0, 0, 1, 1, 0, 1, 60, 2, 3, 100, 0
     ]
+    const persistedIndexByCommand = {10: 12, 11: 13, 21: 21, 22: 17}
     const output = {
       id: 'biotron-output-1', manufacturer: 'Playtronica', name: 'Biotron',
       connection: 'closed',
@@ -70,9 +71,10 @@ async function openProfile(online, denyMidiOnce = false) {
       send(data) {
         const message = Array.from(data)
         window.__midiSent.push(message)
+        const persistedIndex = persistedIndexByCommand[message[3]]
         if (message.length === 6 && message[0] === 0xf0 && message[1] === 20 &&
-            message[2] === 13 && message[3] === 22 && message[5] === 0xf7) {
-          persistedValues[17] = message[4]
+            message[2] === 13 && persistedIndex !== undefined && message[5] === 0xf7) {
+          persistedValues[persistedIndex] = message[4]
         }
         if (window.__respondSettings && message[0] === 0xf0 && message[3] === 123 && message.length === 7) {
           const response = [
@@ -222,10 +224,19 @@ async function controllerVersion(page) {
   const liveWriteCount = await page.evaluate(() => window.__midiSent.length)
   await page.locator('input[type="checkbox"]').first().evaluate(element => element.click())
   await page.getByText('Applied live — saving and checking…').waitFor({state: 'visible'})
-  await page.getByText('Applied live and saved on Biotron.').waitFor({state: 'visible', timeout: 10000})
+  await page.getByText('Saved on Biotron.').waitFor({state: 'visible', timeout: 10000})
   assert(await page.evaluate(before => window.__midiSent.slice(before).some(message =>
     JSON.stringify(message) === JSON.stringify([0xf0, 20, 13, 22, 1, 0xf7])
   ), liveWriteCount), 'single setting did not reach Biotron immediately')
+  const calmerWriteCount = await page.evaluate(() => window.__midiSent.length)
+  await page.getByRole('button', {name: 'Reduce extra notes'}).click()
+  await page.getByText(/Calmer play is saved/i).waitFor({state: 'visible', timeout: 10000})
+  assert.deepStrictEqual(
+    (await page.evaluate(before => window.__midiSent.slice(before), calmerWriteCount))
+      .filter(message => [10, 21, 11].includes(message[3])).map(message => [message[3], message[4]]),
+    [[10, 0], [21, 1], [11, 2]],
+    'calmer play did not send the exact three low-effort settings'
+  )
   const calibrateButton = page.getByRole('button', {name: /Calibrate plant again/i})
   await waitFor(() => calibrateButton.isEnabled(), 'recalibration control did not become available')
   await calibrateButton.click()
@@ -258,9 +269,9 @@ async function controllerVersion(page) {
   )
   assert.strictEqual(await page.locator('#loader_div').count(), 0,
     'read-only save check showed a blocking full-screen loader')
-  await page.getByText('Live changes are saved on Biotron.').waitFor({state: 'visible', timeout: 5000})
+  await page.getByText(/Calmer play is saved/i).waitFor({state: 'visible', timeout: 5000})
   const settingsStatuses = await page.locator('[role="status"]').allTextContents()
-  assert(settingsStatuses.some(text => text.includes('Live changes are saved on Biotron.')),
+  assert(settingsStatuses.some(text => text.includes('Calmer play is saved.')),
     `exact readback did not confirm save: ${JSON.stringify(settingsStatuses)}`)
   const checkMessages = await page.evaluate(before => window.__midiSent.slice(before), sentBefore)
   assert(checkMessages.length <= 2 && checkMessages.every(message => [123, 126].includes(message[3])),
@@ -286,7 +297,7 @@ async function controllerVersion(page) {
   assert(await sendButton.isEnabled(), 'save check stayed disabled after timeout')
   await page.evaluate(() => { window.__respondSettings = true })
   await sendButton.click()
-  await page.getByText('Live changes are saved on Biotron.').waitFor({state: 'visible', timeout: 5000})
+  await page.getByText(/Calmer play is saved/i).waitFor({state: 'visible', timeout: 5000})
   console.log(`3/7 offline Biotron detection, nonce-bound recalibration and non-blocking SysEx write verified (max event-loop gap ${heartbeatMaxGap.toFixed(1)} ms)`)
 
   await page.evaluate(() => window.__emitSettingsMidi([0xf0, 0x0b, 126, 0, 1, 9, 3, 0xf7]))

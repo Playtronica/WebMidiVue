@@ -750,7 +750,7 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
       element.value = String(value)
       element.dispatchEvent(new Event('change', {bubbles: true}))
     }, Math.min(previousSpeed + 1, 1000))
-    await page.getByText('Applied live and saved on Biotron.').waitFor({timeout: 10000})
+    await page.getByText('Saved on Biotron.').waitFor({timeout: 10000})
     assert.strictEqual(await page.locator('#loader_div').count(), 0,
       'Play to Settings live change showed a blocking full-screen loader')
     assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'open')

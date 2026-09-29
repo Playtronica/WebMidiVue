@@ -1,8 +1,15 @@
+import {withMidiWriteSession} from "../assets/js/timing.mjs"
+
 export const SETTINGS_QUERY_ID = 123
 export const SETTINGS_PROTOCOL_VERSION = 1
 export const SETTINGS_SCHEMA_VERSION = 1
 export const SETTINGS_SOURCE_PERSISTED = 1
 export const SETTINGS_VECTOR_LENGTH = 27
+export const CALMER_PLAY_SETTINGS = [
+  ["randomness", 0],
+  ["performance", 1],
+  ["same_note_plant", 2]
+]
 
 const FIELD_NAMES = [
   'lightBpm', 'noteOffPercent', 'noteDistance', 'firstValue', 'smoothness',
@@ -61,4 +68,24 @@ export function settingsVectorsEqual(left, right) {
   return Array.isArray(left) && Array.isArray(right) &&
     left.length === SETTINGS_VECTOR_LENGTH && right.length === SETTINGS_VECTOR_LENGTH &&
     left.every((value, index) => value === right[index])
+}
+
+export function savedSettingsMessage(lastChangedSetting) {
+  if (lastChangedSetting === "noteOffPercent") {
+    return "Saved on Biotron. Note Hold changes note length, not the LEDs."
+  }
+  if (lastChangedSetting === "reduceExtraNotes") {
+    return "Calmer play is saved. Extra randomness and idle variation are off, and tiny note changes are ignored."
+  }
+  return "Saved on Biotron."
+}
+
+export async function applyCalmerPlay(device, getCurrentDevice, commands) {
+  for (const [name, value] of CALMER_PLAY_SETTINGS) commands[name].set_value(value)
+  return withMidiWriteSession(device, getCurrentDevice, async output => {
+    for (const [name] of CALMER_PLAY_SETTINGS) {
+      commands[name].sendToMidi(output)
+      await output.wait(80)
+    }
+  })
 }
