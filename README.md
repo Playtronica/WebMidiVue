@@ -28,6 +28,16 @@ and a separate PWA identity) with:
 npm run build:biotron-beta
 ```
 
+Prepare an exact release candidate only from a clean checkout with:
+
+```bash
+npm run candidate:biotron
+```
+
+That single command derives the visible build ID from `HEAD`, runs the complete
+Biotron release gate and writes `dist/release-evidence.json` with the commit and
+SHA-256 of every deployable file. It does not deploy or publish anything.
+
 The hardware-confirmed firmware research build is separate:
 
 ```
