@@ -18,10 +18,9 @@ assert(!app.includes('<router-link to="/sound"'),
   'Sound must not appear beside physical devices in the top-level menu')
 assert(app.includes('mailto:manirko@playtronica.com'),
   'the beta must offer a direct feedback channel to Andrey')
-assert(app.includes('What were you trying to make Biotron do?') &&
-  app.includes('Where did you hesitate or get a result you did not expect?') &&
-  app.includes('If we changed one thing before the next version, what should it be?'),
-  'the beta feedback action must preserve the three research questions')
+assert(app.includes('What is the one thing you most want me to change or build') &&
+  !app.includes('Where did you hesitate or get a result you did not expect?'),
+  'the beta feedback action must ask one low-effort question')
 assert(app.includes('Nothing is sent automatically.'),
   'the feedback action must explain that opening an email does not send it')
 assert(app.includes('More tools → Apps → Install this site as an app.'),

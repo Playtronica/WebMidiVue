@@ -100,6 +100,17 @@ async function auditProfile(browser, origin, profile) {
   assert.deepStrictEqual(result.smallPrimaryTargets, [], `${profile.name}: primary target below 44px`)
   assert.deepStrictEqual(result.logo, {source: '/Logo-Black-280.webp', width: '280', height: '199'})
 
+  if (profile.midi) {
+    await page.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
+    await page.getByRole('heading', {name: 'Meet Biotron'}).waitFor()
+    const feedbackGap = await page.evaluate(() => {
+      const main = document.querySelector('main')
+      const feedback = document.querySelector('.beta-feedback')
+      return Math.round(feedback.getBoundingClientRect().top - main.getBoundingClientRect().bottom)
+    })
+    assert(feedbackGap <= 80, `${profile.name}: beta feedback is hidden behind ${feedbackGap}px of empty space`)
+  }
+
   await context.close()
   return `${profile.name}: CLS ${result.cls.toFixed(3)}, overflow ${result.documentOverflow}px`
 }

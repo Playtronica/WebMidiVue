@@ -59,7 +59,7 @@
   </div>
   <div class="wrapper">
     <div class="m-2 content ">
-      <main :class="{'route-stage': betaBuild}">
+      <main :class="{'route-stage': betaBuild && !firstPlay, 'route-stage--compact': betaBuild && firstPlay}">
         <CompatibilityGate :route="$route">
           <router-view v-slot="{ Component }">
             <KeepAlive include="DeviceFirstPlay">
@@ -73,12 +73,12 @@
         <small class="beta-feedback__eyebrow">Built with Biotron owners</small>
         <p id="beta-feedback-title" class="beta-feedback__title">Help shape the next Biotron Settings</p>
         <p class="text-secondary mb-3">
-          I’m Andrey from Playtronica. I personally read every reply. We acknowledge concrete bug reports within two working days and publish a short update every Friday.
+          I’m Andrey from Playtronica. I read every reply myself. Send me anything: what felt confusing, what worked, or even the craziest idea. I’ll try to build it and tell testers what changed.
         </p>
         <a :href="feedbackMailto" class="btn beta-feedback__action">
-          Tell Andrey what should change
+          Tell me what to change
         </a>
-        <small class="d-block mt-2 text-muted">Your email opens with three questions and this build number. Nothing is sent automatically.</small>
+        <small class="d-block mt-2 text-muted">Your email opens with one question and this build number. Nothing is sent automatically.</small>
         <details class="beta-compatibility">
           <summary>Browser &amp; phone compatibility</summary>
           <ul>
@@ -139,8 +139,8 @@ export default {
     },
     feedbackMailto() {
       const subject = `Biotron Settings beta feedback — ${this.buildId}`
-      const body = `What were you trying to make Biotron do?\n\nWhere did you hesitate or get a result you did not expect?\n\n` +
-        `If we changed one thing before the next version, what should it be?\n\nBuild: ${this.buildId}\nPage: ${this.$route.path}`
+      const body = `What is the one thing you most want me to change or build — a problem, a sound, or even a crazy idea?\n\n` +
+        `Build: ${this.buildId}\nPage: ${this.$route.path}`
       return `mailto:manirko@playtronica.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     },
     offlineMessage() {
@@ -266,6 +266,7 @@ input:checked + .slider:before { transform:translateX(26px); }
 .content { flex:1; width:min(820px,100%); margin-inline:auto !important; padding:clamp(1rem,3vw,1.5rem); box-sizing:border-box; }
 .wrapper { display:flex; flex-direction:column; min-height:100vh; }
 .route-stage { min-height:100vh; }
+.route-stage--compact { min-height:0; }
 .bottom-panel { height:60px; display:flex; justify-content:center; align-items:center; border-top:1px solid rgba(27,31,40,.1); }
 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 input[type="number"] { -moz-appearance:textfield; }
