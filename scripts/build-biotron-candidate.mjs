@@ -1,6 +1,6 @@
 import {execFileSync} from "node:child_process"
 import {createHash} from "node:crypto"
-import {readdirSync, readFileSync, statSync, writeFileSync} from "node:fs"
+import {existsSync, readdirSync, readFileSync, statSync, writeFileSync} from "node:fs"
 import {relative, resolve} from "node:path"
 import {pathToFileURL} from "node:url"
 
@@ -41,6 +41,18 @@ export function createReleaseEvidence(distDir, {commit, branch, builtAt}) {
   }
 }
 
+export function normalizeGeneratedSourceMaps(distDir) {
+  const sourceMapPath = resolve(distDir, "service-worker.js.map")
+  if (!existsSync(sourceMapPath)) return []
+  const sourceMap = JSON.parse(readFileSync(sourceMapPath, "utf8"))
+  const before = Array.isArray(sourceMap.sources) ? sourceMap.sources : []
+  sourceMap.sources = before.map(source => (
+    /(?:^|\/)service-worker\.js$/.test(source) ? "service-worker.js" : source
+  ))
+  writeFileSync(sourceMapPath, JSON.stringify(sourceMap))
+  return sourceMap.sources
+}
+
 export function main() {
   const dirty = git("status", "--porcelain")
   if (dirty) throw new Error(`Refusing candidate build from a dirty checkout:\n${dirty}`)
@@ -53,6 +65,7 @@ export function main() {
     stdio: "inherit",
   })
   const distDir = resolve(root, "dist")
+  normalizeGeneratedSourceMaps(distDir)
   const bundles = filesBelow(distDir).filter(path => path.endsWith(".js"))
   if (!bundles.some(path => readFileSync(path, "utf8").includes(buildId))) {
     throw new Error(`Built beta does not expose expected build id ${buildId}`)
