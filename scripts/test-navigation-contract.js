@@ -56,6 +56,10 @@ assert(settingsReadback.includes('Note Hold changes note length, not the LEDs.')
   biotron.includes('Done — use in DAW') &&
   biotron.includes('releaseForDaw'),
   'a verified save must explain the visible result and provide a one-click DAW handoff')
+assert(biotron.includes('Copy diagnostics for Andrey') &&
+  biotron.includes('Nothing is sent automatically.') &&
+  settingsReadback.includes('buildBiotronDiagnosticPacket'),
+  'the beta must offer one user-controlled diagnostic packet without automatic sending')
 assert(selector.includes('RECALIBRATE_COMMAND = 125'), 'Web and firmware recalibration command must stay aligned')
 assert(selector.includes('123 is reserved for persisted-settings readback'), 'Settings readback ID must remain reserved')
 assert(selector.includes('[0xf0, 0x14, 0x0d, RECALIBRATE_COMMAND, nonce, 0xf7]'),

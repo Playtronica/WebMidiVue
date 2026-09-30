@@ -60,6 +60,11 @@ its saved state; firmware recovery remains reachable when the device is
 already mounted as `RPI-RP2`. This prevents a tester from editing an
 unverified placeholder state.
 
+The beta Settings page has one user-controlled `Copy diagnostics for Andrey`
+action. It copies the exact web build, browser capabilities, connection state,
+reported firmware version and current workflow state; it never sends anything
+automatically and excludes opaque browser MIDI port IDs.
+
 Beta routes declare their required capabilities in `src/main.js`. One shared
 compatibility gate checks secure context, Web MIDI and Web Audio before mounting
 a device page. Unsupported phones and browsers get one

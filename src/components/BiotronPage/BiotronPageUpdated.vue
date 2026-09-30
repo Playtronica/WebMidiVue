@@ -56,6 +56,10 @@
       <span>{{ settingsMessage }}</span>
       <button v-if="device && settingsState === 'saved'" type="button" class="btn btn-primary btn-sm" @click="releaseForDaw">Done — use in DAW</button>
     </div>
+    <div v-if="betaBuild" class="diagnostic-copy mt-2">
+      <button type="button" class="btn btn-outline-secondary btn-sm" @click="copyDiagnosticInfo">Copy diagnostics for Andrey</button>
+      <small class="d-block mt-1 text-muted">{{ diagnosticMessage || "Copies this build, browser, connection and device state. Nothing is sent automatically." }}</small>
+    </div>
     <UpdateFirmwareComponent v-if="betaBuild && firmwareTestEnabled" class="w-100 mt-3" text="Update Firmware" repo="Playtronica/biotron-firmware" :device="device" :current-version="firmwareVersion" version-aware @check_firmware="checkFirmware"/>
     </section>
     <template v-if="!betaBuild || settingsReady">
@@ -81,13 +85,11 @@
             @check_firmware="checkFirmware"
         />
       </div>
-
       <div :class="{'col': !betaBuild}">
         <FileDropArea name="📂 Load Preset" @get_drop="(e) => loadDataFromPreset(e)"/>
       </div>
     </div>
     </section>
-
   <div>
     <BootstrapCollapse name_of_collapse="PLANT SENSOR" open_by_default>
       <template v-slot:objects>
@@ -102,7 +104,6 @@
                   @input-changed="this.sys_ex_changed"
               />
             </div>
-
             <SliderCommand
                 command-label="🌱 The Beat"
                 :key="this.forceRerender"
@@ -111,7 +112,6 @@
                 @input-changed="this.sys_ex_changed"
                 class="m-2"
             />
-
             <SliderCommand
                 command-label="🎵 Note Hold"
                 :key="this.forceRerender"
@@ -122,7 +122,6 @@
                 table-values-reversed
                 class="m-2"
             />
-
             <SliderCommand
                 command-label="🏠︎ Home Note"
                 :key="this.forceRerender"
@@ -132,7 +131,6 @@
                 @input-changed="this.sys_ex_changed"
                 class="m-2"
             />
-
             <SelectCommand
                 command-label="🎼 Scale"
                 :key="this.forceRerender"
@@ -142,12 +140,10 @@
                 description="A set of notes that shape the melody and feel of the music. Choose a scale to define the sound of your composition."
                 class="m-3"
             />
-
           </template>
         </GroupOfCommands>
       </template>
     </BootstrapCollapse>
-
   </div>
 
   <div>
@@ -416,6 +412,7 @@ import {soundSessionState, stopPersistentSound, updateSoundSession} from "@/audi
 import {
   applySettingsVector,
   applyCalmerPlay,
+  copyBiotronDiagnostic,
   savedSettingsMessage,
   settingsVectorFromCommands,
   settingsVectorsEqual
@@ -455,6 +452,9 @@ export default  {
     settingsReady() { return ["loaded", "changed", "saved", "error"].includes(this.settingsState) }
   },
   methods: {
+    async copyDiagnosticInfo() {
+      this.diagnosticMessage = await copyBiotronDiagnostic(this, process.env.VUE_APP_BUILD_ID || "local-build")
+    },
     async handleDeviceChanged(device) {
       this.clearLiveVerification()
       this.settingsLoadId++
@@ -794,6 +794,7 @@ export default  {
       liveVerifyId: 0,
       lastChangedSetting: "",
       firmwareVersion: "",
+      diagnosticMessage: "",
       commands_data: Object.fromEntries(BiotronCommandsData),
     }
   },

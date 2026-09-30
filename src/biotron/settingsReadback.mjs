@@ -89,3 +89,53 @@ export async function applyCalmerPlay(device, getCurrentDevice, commands) {
     }
   })
 }
+
+const diagnosticText = (value, fallback = "unknown") => String(value || "").trim() || fallback
+
+export function buildBiotronDiagnosticPacket(state, environment = {}) {
+  const navigatorRef = environment.navigator || globalThis.navigator || {}
+  const locationRef = environment.location || globalThis.location || {}
+  const matchMedia = environment.matchMedia || globalThis.matchMedia
+  return {
+    schema: "playtronica.biotron-diagnostics.v1",
+    captured_at: (environment.now || (() => new Date().toISOString()))(),
+    product: "biotron",
+    web_tool: {
+      build_id: diagnosticText(state.buildId),
+      route: diagnosticText(state.route, "/biotron"),
+      online: navigatorRef.onLine !== false,
+      standalone: typeof matchMedia === "function" && Boolean(matchMedia("(display-mode: standalone)")?.matches),
+    },
+    environment: {
+      user_agent: diagnosticText(navigatorRef.userAgent),
+      web_midi_available: typeof navigatorRef.requestMIDIAccess === "function",
+      secure_context: environment.isSecureContext !== false,
+      origin: diagnosticText(locationRef.origin),
+    },
+    device: {
+      connected: Boolean(state.device),
+      midi_port_name: state.device ? diagnosticText(state.device.name) : null,
+      firmware_semantic_version: state.firmwareVersion || null,
+    },
+    workflow: {
+      settings_state: diagnosticText(state.settingsState, "idle"),
+      calibration_state: diagnosticText(state.calibrationState, "idle"),
+      sound_running: Boolean(state.soundRunning),
+    },
+  }
+}
+
+export async function copyBiotronDiagnostic(page, buildId, environment = {}) {
+  const navigatorRef = environment.navigator || globalThis.navigator || {}
+  const packet = buildBiotronDiagnosticPacket({
+    buildId, route: page.$route.path, device: page.device, firmwareVersion: page.firmwareVersion,
+    settingsState: page.settingsState, calibrationState: page.calibrationState,
+    soundRunning: page.soundSession.running,
+  }, environment)
+  try {
+    await navigatorRef.clipboard.writeText(JSON.stringify(packet, null, 2))
+    return "Copied — paste it into your email or WhatsApp message."
+  } catch {
+    return "Copy was blocked by the browser. Send the build number shown at the top instead."
+  }
+}
