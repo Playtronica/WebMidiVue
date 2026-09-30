@@ -1,66 +1,78 @@
-# Biotron private beta invitation
+# Biotron private beta recruitment and test handoff
 
-This copy is for Shopify Email from Andrey's authenticated Playtronica address.
-Replace every bracketed field from the frozen release record. Preview on desktop
-and phone. Do not send until the exact recipient count, subject and body receive
-an explicit final confirmation.
+The first message recruits a willing tester. It is not a product-validation
+exposure and must not contain the beta link. The exact link, build and one task
+are sent only after the person says yes.
 
-## Subject
+Use reviewed context for one-to-one messages. Broad email may recruit people,
+but opens and clicks never count as a product test. Preview every email on
+desktop and phone. Do not send until the exact recipient count, subject and
+body receive explicit final confirmation.
 
-You’re one of 30 Biotron owners invited to shape the new Settings
+## First message: ask permission
 
-## Preview text
+### Subject
 
-This is intentionally early: try one real task and help decide what comes next.
+We made Biotron harder than it should be
 
-## Body
+### Body
 
 Hi {{ customer.first_name | default: "there" }},
 
-I’m Andrey from Playtronica. I’m inviting a small group of 30 Biotron owners to
-try a very early version of the new Biotron Settings.
+I’m Andrey from Playtronica. We put most of our attention into making Biotron
+as a MIDI device and did not take enough care of the web experience around it.
 
-I want to be transparent: this is not a polished release. The visual design,
-layout and some wording will change. Some parts may still feel simple or rough.
-I’m sharing it now on purpose — before we make those decisions permanent —
-because your experience with Biotron is more useful than our guesses.
+I’ve rebuilt the first-use flow: sound is inside the page, calibration is
+guided, settings are clearer and the page can work offline after the first
+visit. It is still a private beta, and I want real complaints and strange ideas
+before deciding what it becomes.
 
-Please open **[IMMUTABLE BETA URL]** in current Chrome or Edge on your computer.
-Connect a plant and Biotron with a USB data cable, press **Hear Biotron**, then
-try one thing you genuinely want to do in Play or Settings. Ten minutes is
-enough. If something confuses you or does not work, that is useful feedback —
-you are not testing it wrong.
-
-This private beta does not replace or modify the public Playtronica Settings
-site. The page shows build **[BUILD ID]**, so I can match your feedback to the
-version you tried.
-
-Then reply to this email with:
-
-1. What were you trying to make Biotron do?
-2. Where did you hesitate or get a result you did not expect?
-3. If I changed one thing before the next version, what should it be?
-
-I personally read every reply. I’ll acknowledge concrete bug reports within two
-working days and send this group a short update each Friday: what changed, what
-we will test next and what is still unclear.
-
-For this first test, a computer with current Chrome or Edge is the reliable
-path. Mobile support is still experimental. Firmware is a separate,
-hardware-confirmed test and is not included in this general beta. If Biotron is not found, try the
-[connection checklist](https://help.playtronica.com/troubleshooting/wont-connect/),
-then reply with the exact step that stopped you.
-
-Thank you for helping while the work is still open enough to change. Your reply
-will directly shape the next version — including how it should look and feel.
+Would you be willing to try one five-minute task? Reply **YES** and I’ll send
+one private link and one thing to check. Reply **NO** if you do not want beta
+messages; that is completely fine.
 
 Andrey<br>
 Playtronica
 
-## Wave settings
+Keep the provider’s unsubscribe control enabled. A reply of NO or an
+unsubscribe suppresses further beta invitations.
 
-- Wave 1: 8 subscribed Biotron owners.
-- Wave 2: remaining 22 only after the release-checklist expansion gate.
-- Replies go directly to Andrey's Playtronica mailbox.
-- Do not add a survey requirement that makes a direct reply harder; Shopify's
-  required unsubscribe handling remains enabled.
+## Second message: one exact test after YES
+
+Replace every bracket from the frozen release record and the person’s reviewed
+context. Do not combine firmware, sound, Settings, offline and mobile into one
+test.
+
+> Thank you — this test is only about **[ONE USER TASK]**.
+>
+> Open **[IMMUTABLE PRIVATE URL]** in **[VERIFIED BROWSER/APP]** and confirm the
+> page shows build **[BUILD ID]**. **[ONE SHORT ACTION SEQUENCE]**
+>
+> Reply **[TWO OR THREE UNAMBIGUOUS RESULT TOKENS]**. If it stops, send the
+> first message you see and do not repeat or repair anything.
+
+The result tokens must answer the hypothesis. Examples:
+
+- First sound: `HEARD IT` / `SILENT` / `STUCK + step`.
+- Settings persistence: `SAVED` / `REVERTED` / `FROZE`.
+- Firmware update: `UPDATED` / `STOPPED + message` / `DID NOT TRY`.
+- iPhone connection: `CONNECTED` / `NOT FOUND` / `PERMISSION STOP`.
+
+## Reply discipline
+
+- Acknowledge an active tester promptly.
+- State exactly what their answer proved and what is still unknown.
+- Ask at most one discriminating follow-up question.
+- Do not describe a firmware-only success as “the beta works”.
+- Do not ask for a screenshot or video unless the written failure is
+  insufficient.
+- Use at most one reminder for the same task unless the person re-engages.
+
+## Cohort gate
+
+- Select people for a problem evidenced in their own Biotron history; an issue
+  with another product or a purchase alone is not sufficient relevance.
+- Record an exposure only after the exact second message was delivered.
+- Expand only after prior exact outcomes are reviewed.
+- Firmware-enabled tests remain a separate hardware-screened lane.
+- Production publication always requires a separate explicit decision.
