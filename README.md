@@ -38,6 +38,27 @@ That single command derives the visible build ID from `HEAD`, runs the complete
 Biotron release gate and writes `dist/release-evidence.json` with the commit and
 SHA-256 of every deployable file. It does not deploy or publish anything.
 
+Before a private Cloudflare preview, verify the prepared archive instead of
+deploying the checkout or its mutable `dist` directory:
+
+```bash
+/opt/homebrew/bin/python3 scripts/biotron_preview_guard.py \
+  --candidate-dir /absolute/path/to/release-candidate \
+  --build-id <12-character-build-id> \
+  --archive-sha256 <64-character-sha256>
+```
+
+The default is offline verification only. It checks the outer archive hash,
+safe archive paths, every release-manifest byte and SHA-256, the exact clean
+commit/build, the full test evidence, disabled firmware updates, security
+headers and absence of a production CNAME. It then prints one build-specific
+confirmation token. Only a second run with `--execute`, an already-installed
+Wrangler executable and that exact token can upload the extracted immutable
+archive. Production-like branch names are rejected, and the uploaded immutable
+URL is accepted only after every remote file and required response header
+matches the candidate. Never use the legacy `deploy.sh` for this beta: it builds
+the mutable checkout and force-pushes a Git branch.
+
 The hardware-confirmed firmware research build is separate:
 
 ```
