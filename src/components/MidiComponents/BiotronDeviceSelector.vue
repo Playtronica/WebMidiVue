@@ -91,7 +91,7 @@
     },
     methods: {
       matchingPorts(ports) {
-        return [...ports.values()].filter((port) => port.name && port.name.match(this.regexName));
+        return [...ports.values()].filter((port) => port.name && port.name.match(this.regexName) && !/(?:midi(?:in|out)2|port 2|midi 2)/i.test(port.name));
       },
       pairDevices(midi) {
         const inputsByIdentity = new Map();

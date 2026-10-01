@@ -192,6 +192,37 @@ async function duplicateDevicesStayDistinct() {
   assert.strictEqual(target.events.at(-1)[1], undefined)
 }
 
+async function secondaryServicePortIsNotOffered() {
+  const primaryInput = port('in-1', 'Biotron')
+  const primaryOutput = port('out-1', 'Biotron')
+  const serviceInput = port('in-2', 'MIDIIN2 (Biotron)')
+  const serviceOutput = port('out-2', 'MIDIOUT2 (Biotron)')
+  const midi = {
+    inputs: new Map([[primaryInput.id, primaryInput], [serviceInput.id, serviceInput]]),
+    outputs: new Map([[primaryOutput.id, primaryOutput], [serviceOutput.id, serviceOutput]])
+  }
+  const target = instance()
+  const pairs = target.pairDevices(midi)
+  assert.strictEqual(pairs.length, 1)
+  assert.strictEqual(pairs[0].input, primaryInput)
+  assert.strictEqual(pairs[0].output, primaryOutput)
+
+  const macServiceInput = port('mac-in-2', 'Biotron Port 2')
+  const macServiceOutput = port('mac-out-2', 'Biotron Port 2')
+  const macPairs = target.pairDevices({
+    inputs: new Map([
+      [primaryInput.id, primaryInput],
+      [macServiceInput.id, macServiceInput]
+    ]),
+    outputs: new Map([
+      [primaryOutput.id, primaryOutput],
+      [macServiceOutput.id, macServiceOutput]
+    ])
+  })
+  assert.strictEqual(macPairs.length, 1)
+  assert.strictEqual(macPairs[0].output, primaryOutput)
+}
+
 async function duplicateDetectionDoesNotHideCloseFailure() {
   const input1 = port('in-1')
   const input2 = port('in-2')
@@ -276,11 +307,12 @@ async function versionReplyUpdatesStatusAndParentContract() {
   await switchCloseFailureDoesNotClaimSuccess()
   await unmountCancelsPendingOpen()
   await duplicateDevicesStayDistinct()
+  await secondaryServicePortIsNotOffered()
   await duplicateDetectionDoesNotHideCloseFailure()
   await recalibrationRequiresExactNonceAndReportsProgress()
   await oldFirmwareTimesOutWithoutClaimingCalibration()
   await versionReplyUpdatesStatusAndParentContract()
-  console.log('MIDI lifecycle verified: permission/no-device recovery, release failure, delayed cancellation, reconnect failure, switch close failure, unmount, duplicate-device handling, version propagation, and nonce-bound recalibration progress.')
+  console.log('MIDI lifecycle verified: permission/no-device recovery, release failure, delayed cancellation, reconnect failure, switch close failure, unmount, secondary-port filtering, duplicate-device handling, version propagation, and nonce-bound recalibration progress.')
 })().catch(error => {
   console.error(error)
   process.exitCode = 1
