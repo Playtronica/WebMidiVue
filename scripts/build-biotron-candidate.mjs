@@ -60,6 +60,7 @@ export function createTestEvidence({commit, buildId, testedAt, environment}) {
       "android_identical_midi_cables_choose_primary_cable",
       "two_android_biotron_units_remain_ambiguous",
       "diagnostics_and_release_evidence",
+      "first_use_leaf_pad_prerequisite_visible",
       "sound_core_and_seven_sound_levels",
       "production_isolation",
       "biotron_beta_build",

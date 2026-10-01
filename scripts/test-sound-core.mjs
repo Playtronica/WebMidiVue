@@ -189,6 +189,7 @@ test('reveal profiles keep first-use copy plain and product-specific', () => {
   assert.doesNotMatch(beforeReveal, /\b(?:MIDI|SysEx|firmware|channel)\b/i)
   assert.match(beforeReveal, /plant/i)
   assert.match(beforeReveal, /music/i)
+  assert.match(profile.introInstruction, /both cable connectors.*LEAF-PAD CLIPS pins/i)
   assert.match(beforeReveal, /two steps away/i)
   assert.match(beforeReveal, /gentle notes and breathing green lights/i)
   assert.match(profile.explanation, /electrical change/i)
