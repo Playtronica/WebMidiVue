@@ -1,11 +1,20 @@
 import assert from "node:assert/strict"
-import {mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from "node:fs"
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
 import {tmpdir} from "node:os"
 import {resolve} from "node:path"
 import test from "node:test"
 import {
   createReleaseEvidence,
   normalizeGeneratedSourceMaps,
+  packageCandidate,
 } from "./build-biotron-candidate.mjs"
 
 test("release evidence is complete, sorted and bound to the exact commit", () => {
@@ -55,3 +64,61 @@ test("generated service-worker source map is reproducible across build paths", (
     rmSync(second, {recursive: true, force: true})
   }
 })
+
+test("candidate packaging is atomic, immutable and free of macOS metadata entries", () => {
+  const temporary = mkdtempSync(resolve(tmpdir(), "biotron-package-"))
+  const source = resolve(temporary, "source")
+  const dist = resolve(source, "dist")
+  const output = resolve(temporary, "candidates")
+  const commit = "abc123def4567890abc123def4567890abc123de"
+  const buildId = commit.slice(0, 12)
+  try {
+    mkdirSync(dist, {recursive: true})
+    writeFileSync(resolve(dist, "index.html"), `build ${buildId}`)
+    const release = createReleaseEvidence(dist, {
+      commit,
+      branch: "detached",
+      builtAt: "2026-10-01T00:00:00Z",
+    })
+    writeFileSync(resolve(dist, "release-evidence.json"), `${JSON.stringify(release)}\n`)
+    const packaged = packageCandidate(dist, output, {
+      commit,
+      buildId,
+      testedAt: "2026-10-01T00:00:00Z",
+      environment: {node: "test", npm: "test", browser: "test"},
+    })
+
+    assert.equal(packaged.archiveSha256.length, 64)
+    assert(existsSync(resolve(packaged.candidateDir, packaged.archiveName)))
+    assert.match(
+      readFileSync(resolve(packaged.candidateDir, "PHYSICAL-TEST.md"), "utf8"),
+      new RegExp(buildId),
+    )
+    const evidence = JSON.parse(
+      readFileSync(resolve(packaged.candidateDir, "test-evidence.json"), "utf8"),
+    )
+    assert.equal(evidence.status, "pass")
+    assert(evidence.verified.includes("secondary_service_midi_port_hidden_from_device_picker"))
+    assert.throws(
+      () => packageCandidate(dist, output, {
+        commit,
+        buildId,
+        testedAt: "2026-10-01T00:00:00Z",
+        environment: {},
+      }),
+      /Refusing to overwrite immutable candidate/,
+    )
+    assert.deepEqual(
+      readdirWithoutStaging(output),
+      [buildId],
+    )
+  } finally {
+    rmSync(temporary, {recursive: true, force: true})
+  }
+})
+
+function readdirWithoutStaging(directory) {
+  return existsSync(directory)
+    ? readdirSync(directory).filter(name => !name.startsWith(".preparing-"))
+    : []
+}

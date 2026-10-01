@@ -1,7 +1,18 @@
 import {execFileSync} from "node:child_process"
 import {createHash} from "node:crypto"
-import {existsSync, readdirSync, readFileSync, statSync, writeFileSync} from "node:fs"
-import {relative, resolve} from "node:path"
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs"
+import {homedir} from "node:os"
+import {basename, relative, resolve} from "node:path"
 import {pathToFileURL} from "node:url"
 
 const root = resolve(import.meta.dirname, "..")
@@ -15,6 +26,139 @@ function filesBelow(directory) {
     const path = resolve(directory, entry.name)
     return entry.isDirectory() ? filesBelow(path) : [path]
   })
+}
+
+function sha256File(path) {
+  return createHash("sha256").update(readFileSync(path)).digest("hex")
+}
+
+function runtimeEnvironment() {
+  const chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+  return {
+    node: process.version,
+    npm: execFileSync("npm", ["--version"], {encoding: "utf8"}).trim(),
+    browser: existsSync(chrome)
+      ? execFileSync(chrome, ["--version"], {encoding: "utf8"}).trim()
+      : "Chromium browser gate",
+  }
+}
+
+export function createTestEvidence({commit, buildId, testedAt, environment}) {
+  return {
+    schema: "playtronica.biotron-beta-test-evidence.v1",
+    product: "biotron",
+    commit,
+    build_id: buildId,
+    tested_at: testedAt,
+    command: "npm run test:biotron",
+    status: "pass",
+    environment,
+    verified: [
+      "lint_and_architecture",
+      "midi_lifecycle_and_settings_readback",
+      "secondary_service_midi_port_hidden_from_device_picker",
+      "android_identical_midi_cables_choose_primary_cable",
+      "two_android_biotron_units_remain_ambiguous",
+      "diagnostics_and_release_evidence",
+      "sound_core_and_seven_sound_levels",
+      "production_isolation",
+      "biotron_beta_build",
+      "pwa_install_offline_update_and_retry",
+      "responsive_desktop_pixel_compact_and_iphone_fallback",
+      "task_specific_first_sound_feedback_for_success_and_failure",
+    ],
+    notes: [
+      "No physical Biotron was attached. Hardware acceptance remains a separate gate.",
+      "The candidate keeps customer firmware updates disabled.",
+      "The archive is created only after the full release gate passes and is verified before use.",
+    ],
+  }
+}
+
+export function physicalChecklist(commit, buildId) {
+  return `# Biotron beta physical test — build \`${buildId}\`
+
+This checklist belongs only to commit \`${commit}\` and its immutable archive.
+Deploy that archive to a private preview and confirm the page shows build
+\`${buildId}\`. Do not use an older beta URL.
+
+## Release-blocking computer pass — about five minutes
+
+Use one known USB data cable and current Chrome or Edge on a computer. Close
+DAWs, MIDI monitors and other Settings tabs. Attach both leaf-pad cables to a
+plant. Do not update firmware; this candidate intentionally disables it.
+
+Stop at the first failure:
+
+1. Open **Play**, press **Hear Biotron**, keep the plant still through
+   calibration, then touch a leaf. Sound must react without a DAW.
+2. Open **Settings**. The picker must offer the responsive Biotron but not
+   \`MIDIIN2\`, \`MIDIOUT2\` or \`Biotron Port 2\`. Change one reversible setting
+   and wait for **Saved on Biotron**.
+3. Press **Release device for DAW**, open the DAW and confirm it receives notes.
+
+Pass only when all three steps succeed on this exact build. Record \`PASS\` plus
+computer, OS, browser and cable. This is owner acceptance, not a customer test.
+
+## Separate Android regression check — one task only
+
+On current Android Chrome, connect exactly one Biotron through USB host/OTG and
+a data-capable cable. Open **Settings** and confirm the page connects without
+asking you to choose between two identical \`Biotron\` entries. Change one
+reversible setting and wait for **Saved on Biotron**. Do not combine this check
+with sound, offline or firmware testing. With two physical Biotron units, the
+page must stop and ask for one to be disconnected instead of choosing silently.
+
+## If anything fails
+
+Stop. Record only the failed step, visible build ID and **Copy diagnostics for
+Andrey**. Add a short screen recording only if those do not show the problem;
+do not retry, reflash or run another checklist.
+`
+}
+
+export function packageCandidate(distDir, outputRoot, details) {
+  if (basename(distDir) !== "dist") throw new Error("Candidate input must be a dist directory")
+  const {commit, buildId, testedAt, environment} = details
+  const candidateDir = resolve(outputRoot, buildId)
+  if (existsSync(candidateDir)) {
+    throw new Error(`Refusing to overwrite immutable candidate: ${candidateDir}`)
+  }
+  mkdirSync(outputRoot, {recursive: true})
+  const staging = resolve(outputRoot, `.preparing-${buildId}-${process.pid}`)
+  mkdirSync(staging)
+  try {
+    const archiveName = `biotron-beta-${buildId}.tar.gz`
+    const archivePath = resolve(staging, archiveName)
+    copyFileSync(resolve(distDir, "release-evidence.json"), resolve(staging, "release-evidence.json"))
+    writeFileSync(
+      resolve(staging, "test-evidence.json"),
+      `${JSON.stringify(createTestEvidence(details), null, 2)}\n`,
+    )
+    writeFileSync(resolve(staging, "PHYSICAL-TEST.md"), physicalChecklist(commit, buildId))
+    execFileSync("/usr/bin/tar", ["-czf", archivePath, "dist"], {
+      cwd: resolve(distDir, ".."),
+      env: {...process.env, COPYFILE_DISABLE: "1"},
+    })
+    const members = execFileSync("/usr/bin/tar", ["-tzf", archivePath], {
+      encoding: "utf8",
+    }).trim().split("\n")
+    const unsafe = members.filter(member => (
+      !(member === "dist/" || member.startsWith("dist/"))
+      || member.split("/").some(part => part.startsWith("._"))
+    ))
+    if (unsafe.length) throw new Error(`Candidate archive contains unsafe entries: ${unsafe.join(", ")}`)
+    const archiveSha256 = sha256File(archivePath)
+    writeFileSync(
+      resolve(staging, `${archiveName}.sha256`),
+      `${archiveSha256}  ${archiveName}\n`,
+    )
+    renameSync(staging, candidateDir)
+    return {candidateDir, archiveSha256, archiveName}
+  } catch (error) {
+    rmSync(staging, {recursive: true, force: true})
+    throw error
+  }
 }
 
 export function createReleaseEvidence(distDir, {commit, branch, builtAt}) {
@@ -70,16 +214,40 @@ export function main() {
   if (!bundles.some(path => readFileSync(path, "utf8").includes(buildId))) {
     throw new Error(`Built beta does not expose expected build id ${buildId}`)
   }
+  const builtAt = new Date().toISOString()
   const manifest = createReleaseEvidence(distDir, {
-    commit, branch, builtAt: new Date().toISOString(),
+    commit, branch, builtAt,
   })
   writeFileSync(resolve(distDir, "release-evidence.json"), `${JSON.stringify(manifest, null, 2)}\n`)
+  const outputIndex = process.argv.indexOf("--output-root")
+  if (outputIndex !== -1 && !process.argv[outputIndex + 1]) {
+    throw new Error("--output-root requires a directory")
+  }
+  const outputRoot = outputIndex === -1
+    ? resolve(homedir(), "ProjectData/Playtronica/biotron-beta/release-candidates")
+    : resolve(process.argv[outputIndex + 1])
+  const packaged = packageCandidate(distDir, outputRoot, {
+    commit,
+    buildId,
+    testedAt: builtAt,
+    environment: runtimeEnvironment(),
+  })
+  const python = ["/opt/homebrew/bin/python3", "/usr/bin/python3"].find(existsSync)
+  if (!python) throw new Error("Python 3 is required to verify the candidate")
+  const verification = JSON.parse(execFileSync(python, [
+    resolve(root, "scripts/biotron_preview_guard.py"),
+    "--candidate-dir", packaged.candidateDir,
+    "--build-id", buildId,
+    "--archive-sha256", packaged.archiveSha256,
+  ], {encoding: "utf8"}))
   console.log(JSON.stringify({
     status: "candidate_ready",
     commit,
     build_id: buildId,
     files: manifest.files.length,
-    manifest: "dist/release-evidence.json",
+    candidate_dir: packaged.candidateDir,
+    archive_sha256: packaged.archiveSha256,
+    verification_status: verification.status,
   }, null, 2))
 }
 
