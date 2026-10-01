@@ -60,7 +60,7 @@ export function createTestEvidence({commit, buildId, testedAt, environment}) {
       "android_identical_midi_cables_choose_primary_cable",
       "two_android_biotron_units_remain_ambiguous",
       "diagnostics_and_release_evidence",
-      "first_use_leaf_pad_prerequisite_visible",
+      "first_use_plant_connection_prerequisite_visible",
       "sound_core_and_seven_sound_levels",
       "production_isolation",
       "biotron_beta_build",
@@ -86,8 +86,9 @@ Deploy that archive to a private preview and confirm the page shows build
 ## Release-blocking computer pass — about five minutes
 
 Use one known USB data cable and current Chrome or Edge on a computer. Close
-DAWs, MIDI monitors and other Settings tabs. Attach both leaf-pad cables to a
-plant. Do not update firmware; this candidate intentionally disables it.
+DAWs, MIDI monitors and other Settings tabs. Connect both plant contact cables
+to Biotron and clip the two contacts to separate points on the same plant. Do
+not update firmware; this candidate intentionally disables it.
 
 Stop at the first failure:
 

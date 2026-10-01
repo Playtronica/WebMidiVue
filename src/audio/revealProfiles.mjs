@@ -32,7 +32,7 @@ const biotron = validateRevealProfile(Object.freeze({
   title: 'Meet Biotron',
   promise: 'It turns tiny electrical changes through a plant into music.',
   introHeading: 'Connect a plant',
-  introInstruction: 'Push both cable connectors onto the two LEAF-PAD CLIPS pins on Biotron. Then clip both metal pads to one plant and connect USB.',
+  introInstruction: 'Push both plant contact cables onto the CONTACT PINS on Biotron. Then clip the two contacts to separate points on the same plant and connect USB.',
   startLabel: 'Hear Biotron',
   settlingHeading: 'Step back and keep still',
   settlingInstruction: 'Take two steps away from the computer, Biotron and the plant. Do not touch them while Biotron finds its starting signal.',
