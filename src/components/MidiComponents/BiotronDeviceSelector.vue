@@ -37,8 +37,8 @@
   import {buildSettingsQuery, parseSettingsResponse} from "@/biotron/settingsReadback.mjs";
   import {MIDI_PROMPT_HINT, requestSharedMidiAccess} from "@/audio/midiAccess.mjs";
   import {soundSessionState, stopPersistentSound} from "@/audio/sessionState.mjs";
-
   const portIdentity = (port) => [port.manufacturer || "", port.name || ""].join("\u0000");
+  const androidCablePair = (devices) => /android/i.test(navigator.userAgent || "") && devices.length === 2 && devices.every((device) => device.input && portIdentity(device.output) === portIdentity(devices[0].output) && portIdentity(device.input) === portIdentity(devices[0].input));
   // 123 is reserved for persisted-settings readback in firmware protocol v1.
   const RECALIBRATE_COMMAND = 125;
   const RECALIBRATE_WAITING = 1;
@@ -47,7 +47,6 @@
   const requestMidiAccess = () => {
     return requestSharedMidiAccess({sysex: true});
   };
-
   export default {
     props: {
       regexName: {
@@ -101,10 +100,12 @@
           inputsByIdentity.get(identity).push(input);
         }
 
-        return this.matchingPorts(midi.outputs).map((output) => {
+        const devices = this.matchingPorts(midi.outputs).map((output) => {
           const matchingInputs = inputsByIdentity.get(portIdentity(output)) || [];
           return {output, input: matchingInputs.shift()};
         });
+        // Android names one device's two USB MIDI cables alike; cable 0 is music/settings.
+        return androidCablePair(devices) ? [devices[0]] : devices;
       },
       hasAmbiguousIdentity(devices) {
         const counts = new Map();

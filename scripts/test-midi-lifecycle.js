@@ -9,7 +9,10 @@ let timerId = 0
 const context = {
   module: { exports: {} },
   exports: {},
-  navigator: { requestMIDIAccess: async () => ({inputs: new Map(), outputs: new Map()}) },
+  navigator: {
+    userAgent: 'Mozilla/5.0 (Macintosh) Chrome/151.0',
+    requestMIDIAccess: async () => ({inputs: new Map(), outputs: new Map()})
+  },
   requestSharedMidiAccess(options) { return context.navigator.requestMIDIAccess(options) },
   MIDI_PROMPT_HINT: 'permission hint (text lives in src/audio/midiAccess.mjs)',
   soundSessionState: {running: false},
@@ -223,6 +226,41 @@ async function secondaryServicePortIsNotOffered() {
   assert.strictEqual(macPairs[0].output, primaryOutput)
 }
 
+async function androidIdenticalCablesChooseCableZeroButTwoUnitsStayAmbiguous() {
+  const originalUserAgent = context.navigator.userAgent
+  context.navigator.userAgent = 'Mozilla/5.0 (Linux; Android 14; Pixel 7) Chrome/151.0 Mobile'
+  try {
+    const ports = prefix => [port(`${prefix}-0`, 'Biotron'), port(`${prefix}-1`, 'Biotron')]
+    const [input0, input1] = ports('in')
+    const [output0, output1] = ports('out')
+    const target = instance()
+    const oneDevice = target.pairDevices({
+      inputs: new Map([[input0.id, input0], [input1.id, input1]]),
+      outputs: new Map([[output0.id, output0], [output1.id, output1]])
+    })
+    assert.strictEqual(oneDevice.length, 1)
+    assert.strictEqual(oneDevice[0].input, input0)
+    assert.strictEqual(oneDevice[0].output, output0)
+
+    const input2 = port('in-2', 'Biotron')
+    const input3 = port('in-3', 'Biotron')
+    const output2 = port('out-2', 'Biotron')
+    const output3 = port('out-3', 'Biotron')
+    const twoDevices = target.pairDevices({
+      inputs: new Map([
+        [input0.id, input0], [input1.id, input1], [input2.id, input2], [input3.id, input3]
+      ]),
+      outputs: new Map([
+        [output0.id, output0], [output1.id, output1], [output2.id, output2], [output3.id, output3]
+      ])
+    })
+    assert.strictEqual(twoDevices.length, 4)
+    assert.strictEqual(target.hasAmbiguousIdentity(twoDevices), true)
+  } finally {
+    context.navigator.userAgent = originalUserAgent
+  }
+}
+
 async function duplicateDetectionDoesNotHideCloseFailure() {
   const input1 = port('in-1')
   const input2 = port('in-2')
@@ -308,11 +346,12 @@ async function versionReplyUpdatesStatusAndParentContract() {
   await unmountCancelsPendingOpen()
   await duplicateDevicesStayDistinct()
   await secondaryServicePortIsNotOffered()
+  await androidIdenticalCablesChooseCableZeroButTwoUnitsStayAmbiguous()
   await duplicateDetectionDoesNotHideCloseFailure()
   await recalibrationRequiresExactNonceAndReportsProgress()
   await oldFirmwareTimesOutWithoutClaimingCalibration()
   await versionReplyUpdatesStatusAndParentContract()
-  console.log('MIDI lifecycle verified: permission/no-device recovery, release failure, delayed cancellation, reconnect failure, switch close failure, unmount, secondary-port filtering, duplicate-device handling, version propagation, and nonce-bound recalibration progress.')
+  console.log('MIDI lifecycle verified: permission/no-device recovery, release failure, delayed cancellation, reconnect failure, switch close failure, unmount, secondary-port filtering, Android cable-zero selection, duplicate-device handling, version propagation, and nonce-bound recalibration progress.')
 })().catch(error => {
   console.error(error)
   process.exitCode = 1
