@@ -35,10 +35,15 @@ npm run candidate:biotron
 ```
 
 That single command derives the visible build ID from `HEAD`, runs the complete
-Biotron release gate and writes `dist/release-evidence.json` with the commit and
-SHA-256 of every deployable file. It does not deploy or publish anything.
+Biotron release gate, then atomically creates
+`~/ProjectData/Playtronica/biotron-beta/release-candidates/<build-id>/`. The
+directory contains the immutable `dist` archive and checksum, release and test
+evidence, and the short hardware checklist. The command refuses to overwrite an
+existing build ID and runs the offline preview guard before reporting
+`candidate_ready`. It does not deploy or publish anything. For an isolated test
+root, append `-- --output-root /absolute/path`.
 
-Before a private Cloudflare preview, verify the prepared archive instead of
+Before a private Cloudflare preview, re-verify that prepared archive instead of
 deploying the checkout or its mutable `dist` directory:
 
 ```bash
