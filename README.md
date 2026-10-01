@@ -54,7 +54,10 @@ commit/build, the full test evidence, disabled firmware updates, security
 headers and absence of a production CNAME. It then prints one build-specific
 confirmation token. Only a second run with `--execute`, an already-installed
 Wrangler executable and that exact token can upload the extracted immutable
-archive. Production-like branch names are rejected, and the uploaded immutable
+archive. Before uploading, the guard makes a read-only Cloudflare project-list
+request and proves that the current authenticated account can see the exact
+`biotron-settings-beta` project; expired authentication or another account fails
+closed. Production-like branch names are rejected, and the uploaded immutable
 URL is accepted only after every remote file and required response header
 matches the candidate. Never use the legacy `deploy.sh` for this beta: it builds
 the mutable checkout and force-pushes a Git branch.

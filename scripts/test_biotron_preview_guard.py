@@ -6,8 +6,10 @@ import tarfile
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
-from scripts.biotron_preview_guard import CandidateError, verify_candidate
+from scripts.biotron_preview_guard import CandidateError, cloudflare_project_preflight, verify_candidate
 
 
 class BiotronPreviewGuardTests(unittest.TestCase):
@@ -104,6 +106,37 @@ class BiotronPreviewGuardTests(unittest.TestCase):
         extract.mkdir()
         with self.assertRaisesRegex(CandidateError, "production-like branch"):
             verify_candidate(self.candidate, self.build_id, digest, "production", extract)
+
+    @patch("scripts.biotron_preview_guard.subprocess.run")
+    def test_cloudflare_preflight_requires_exact_beta_project(self, run) -> None:
+        wrangler = self.root / "wrangler"
+        run.return_value = SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps([{"name": "biotron-settings-beta"}, {"name": "other"}]),
+            stderr="",
+        )
+        result = cloudflare_project_preflight(wrangler)
+        self.assertEqual(result, {
+            "status": "verified", "project": "biotron-settings-beta", "projects_seen": 2,
+        })
+        run.assert_called_once_with(
+            [str(wrangler), "pages", "project", "list", "--json"],
+            stdout=-1, stderr=-1, text=True,
+        )
+
+    @patch("scripts.biotron_preview_guard.subprocess.run")
+    def test_cloudflare_preflight_rejects_expired_auth_before_upload(self, run) -> None:
+        run.return_value = SimpleNamespace(returncode=1, stdout="", stderr="expired")
+        with self.assertRaisesRegex(CandidateError, "authentication preflight failed before upload"):
+            cloudflare_project_preflight(self.root / "wrangler")
+
+    @patch("scripts.biotron_preview_guard.subprocess.run")
+    def test_cloudflare_preflight_rejects_wrong_account(self, run) -> None:
+        run.return_value = SimpleNamespace(
+            returncode=0, stdout=json.dumps([{"name": "production-site"}]), stderr="",
+        )
+        with self.assertRaisesRegex(CandidateError, "cannot see the required beta project"):
+            cloudflare_project_preflight(self.root / "wrangler")
 
 
 if __name__ == "__main__":

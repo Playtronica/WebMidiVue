@@ -252,6 +252,33 @@ def deployment_command(wrangler: Path, verified: dict) -> list[str]:
     ]
 
 
+def cloudflare_project_preflight(wrangler: Path) -> dict:
+    """Prove the active Cloudflare session can see the exact beta project."""
+    completed = subprocess.run(
+        [str(wrangler), "pages", "project", "list", "--json"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if completed.returncode:
+        raise CandidateError(
+            "Cloudflare authentication preflight failed before upload; run wrangler login, then verify again"
+        )
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        raise CandidateError("Cloudflare project preflight did not return JSON") from error
+    projects = payload.get("result") if isinstance(payload, dict) else payload
+    if not isinstance(projects, list):
+        raise CandidateError("Cloudflare project preflight returned an unexpected shape")
+    names = {item.get("name") for item in projects if isinstance(item, dict)}
+    if PROJECT_NAME not in names:
+        raise CandidateError(
+            f"active Cloudflare account cannot see the required beta project: {PROJECT_NAME}"
+        )
+    return {"status": "verified", "project": PROJECT_NAME, "projects_seen": len(names)}
+
+
 def unique_preview_url(output: str) -> str:
     urls = re.findall(r"https://[a-z0-9-]+\.biotron-settings-beta\.pages\.dev", output)
     for url in urls:
@@ -344,6 +371,7 @@ def main() -> None:
         wrangler = args.wrangler.resolve()
         if not wrangler.is_file() or not os.access(wrangler, os.X_OK):
             raise CandidateError(f"wrangler is not an executable file: {wrangler}")
+        print(json.dumps({"cloudflare_preflight": cloudflare_project_preflight(wrangler)}, indent=2))
         command = deployment_command(wrangler, verified)
         completed = subprocess.run(
             command,
