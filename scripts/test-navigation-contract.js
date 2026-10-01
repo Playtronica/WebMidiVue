@@ -9,6 +9,9 @@ const biotron = read('src/components/BiotronPage/BiotronPageUpdated.vue')
 const settingsReadback = read('src/biotron/settingsReadback.mjs')
 const selector = read('src/components/MidiComponents/BiotronDeviceSelector.vue')
 const sound = read('src/components/SoundLab/SoundLab.vue')
+const gate = read('src/components/CompatibilityGate.vue')
+const notice = read('src/components/CompatibilityNotice.vue')
+const compatibility = read('src/compatibility.mjs')
 
 assert(app.includes('v-if="!firstPlay && !betaBuild"'),
   'the isolated Biotron beta must not expose unrelated device navigation')
@@ -76,13 +79,16 @@ assert(sound.includes('Did you hear Biotron play from the plant?') &&
   sound.includes("firstSoundFeedbackUrl('helped')") &&
   sound.includes("firstSoundFeedbackUrl('not_yet')"),
   'first play must ask one binary outcome question after the task')
-assert(sound.includes('https://wa.me/351937910673') &&
-  sound.includes('Reached: ${stoppedAt}') &&
+assert(compatibility.includes('https://wa.me/351937910673') &&
+  compatibility.includes('Reached: ${reached}') &&
   sound.includes('Nothing is sent until you press Send.'),
   'task feedback must open the direct channel with stage and build context without sending automatically')
 assert(sound.includes("if (this.firstSoundOutcome !== 'helped') this.firstSoundOutcome = 'not_yet'") &&
   sound.includes("'Biotron disconnected': 'Biotron disconnected before first sound'") &&
   sound.includes("'Audio stopped unexpectedly': 'Audio stopped before first sound'"),
   'first-play feedback must stay visible and identify a disconnect before first sound')
+assert(gate.includes(':feedback-url="feedbackUrl"') && compatibility.includes('taskFeedbackUrl') &&
+  notice.includes('Tell Andrey where it stopped'),
+  'first-play compatibility failures must keep the same task-specific result path')
 
 console.log('Navigation contract verified: the beta is Biotron-only; Play and Settings remain device-level tasks.')

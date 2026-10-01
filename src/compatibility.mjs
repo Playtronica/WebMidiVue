@@ -1,4 +1,5 @@
 export const MIDIWEB_BROWSER_URL = 'https://apps.apple.com/us/app/midiweb-browser/id6757226617'
+export const taskFeedbackUrl = (result, reached, build, task = 'first sound') => `https://wa.me/351937910673?text=${encodeURIComponent(`${result}\n\nReached: ${reached}\nBuild: ${build}\nTask: ${task}`)}`
 
 export function detectPlatformCapabilities(runtime = globalThis) {
   const navigator = runtime.navigator || {}

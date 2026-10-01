@@ -1,11 +1,11 @@
 <template>
-  <CompatibilityNotice v-if="issue" :issue="issue" />
+  <CompatibilityNotice v-if="issue" :issue="issue" :feedback-url="feedbackUrl" />
   <slot v-else />
 </template>
 
 <script>
 import CompatibilityNotice from '@/components/CompatibilityNotice.vue'
-import {buildCompatibilityIssue, detectPlatformCapabilities} from '@/compatibility.mjs'
+import {buildCompatibilityIssue, detectPlatformCapabilities, taskFeedbackUrl} from '@/compatibility.mjs'
 
 export default {
   name: 'CompatibilityGate',
@@ -17,7 +17,8 @@ export default {
   computed: {
     issue() {
       return buildCompatibilityIssue(this.capabilities, this.route.meta || {})
-    }
+    },
+    feedbackUrl() { return this.issue && this.route.meta?.firstPlay ? taskFeedbackUrl('I could not start the Biotron first-sound test.', `Compatibility: ${this.issue.kind}`, process.env.VUE_APP_BUILD_ID || 'local-build') : '' }
   }
 }
 </script>

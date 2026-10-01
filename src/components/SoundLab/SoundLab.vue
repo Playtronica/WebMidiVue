@@ -243,7 +243,7 @@ import {getRevealProfile, selectRevealInput} from '@/audio/revealProfiles.mjs'
 import {detectSoundCapabilities, soundCapabilityMessage} from '@/audio/capabilities.mjs'
 import DeviceTaskNav from '@/components/DeviceTaskNav.vue'
 import CompatibilityNotice from '@/components/CompatibilityNotice.vue'
-import {buildMidiAdvisory, detectPlatformCapabilities} from '@/compatibility.mjs'
+import {buildMidiAdvisory, detectPlatformCapabilities, taskFeedbackUrl} from '@/compatibility.mjs'
 
 const keyboard = [
   ['KeyA', 60, 'A', 'C', false], ['KeyW', 61, 'W', 'C sharp', true],
@@ -389,9 +389,7 @@ export default {
         }))
         try { if (navigator.audioSession) navigator.audioSession.type = 'playback' } catch (error) { void error }
       }
-      // Загрузка звукового рантайма — отдельный кусок сборки. На медленной сети
-      // или слабом устройстве это заметная пауза: показываем, что идёт работа,
-      // и через 1.2 с честно говорим, что дело в скорости, а не в приборе.
+      // Keep slow sound-runtime loading visible instead of blaming the device.
       let slowTimer = null
       await this.engine.ensureReady(stage => {
         if (stage === 'loading') {
@@ -554,7 +552,7 @@ export default {
       this.firstSoundOutcome = ''
       let failure = ''
       try {
-        if (!await this.acquireTabLease()) return
+        if (!await this.acquireTabLease()) { Object.assign(this, {revealIssue: {title: 'Sound is open elsewhere', body: 'Close or stop sound in the other Settings window, then try again.'}, firstSoundOutcome: 'not_yet'}); return }
         await this.ensureEngine()
         this.status = MIDI_PROMPT_HINT
         const input = selectRevealInput(await this.midi.requestAccess(), this.revealProfile)
@@ -719,8 +717,8 @@ export default {
     firstSoundFeedbackUrl(outcome) {
       const result = outcome === 'helped' ? 'I heard Biotron play from the plant.' : 'I did not hear Biotron play from the plant yet.'
       const build = process.env.VUE_APP_BUILD_ID || 'local-build'
-      const stoppedAt = outcome === 'helped' ? 'Sound from the plant' : ({'Connect Biotron first': 'Biotron was not found', 'Allow access to Biotron': 'MIDI permission', 'No plant signal yet': 'No plant signal after 15 seconds', 'Biotron disconnected': 'Biotron disconnected before first sound', 'Audio stopped unexpectedly': 'Audio stopped before first sound', 'Biotron could not start': 'Biotron could not start'}[this.revealIssue?.title] || 'Before first sound')
-      return `https://wa.me/351937910673?text=${encodeURIComponent(`${result}\n\nReached: ${stoppedAt}\nBuild: ${build}\nTask: first sound`)}`
+      const stoppedAt = outcome === 'helped' ? 'Sound from the plant' : ({'Connect Biotron first': 'Biotron was not found', 'Allow access to Biotron': 'MIDI permission', 'No plant signal yet': 'No plant signal after 15 seconds', 'Sound is open elsewhere': 'Sound open in another tab', 'Biotron disconnected': 'Biotron disconnected before first sound', 'Audio stopped unexpectedly': 'Audio stopped before first sound', 'Biotron could not start': 'Biotron could not start'}[this.revealIssue?.title] || 'Before first sound')
+      return taskFeedbackUrl(result, stoppedAt, build)
     }
   }
 }

@@ -13,7 +13,7 @@
       <ol v-if="issue.steps.length">
         <li v-for="step in issue.steps" :key="step">{{ step }}</li>
       </ol>
-      <div v-if="issue.action || issue.copyLink" class="compatibility-notice__actions">
+      <div v-if="issue.action || issue.copyLink || feedbackUrl" class="compatibility-notice__actions">
         <a
           v-if="issue.action"
           :href="issue.action.href"
@@ -24,8 +24,10 @@
         <button v-if="issue.copyLink" type="button" class="btn btn-outline-dark" @click="copyPageLink">
           {{ copied ? 'Link copied' : 'Copy this page link' }}
         </button>
+        <a v-if="feedbackUrl" :href="feedbackUrl" class="btn btn-outline-dark" target="_blank" rel="noopener">Tell Andrey where it stopped</a>
       </div>
       <small v-if="issue.action && issue.action.note" class="compatibility-notice__action-note">{{ issue.action.note }}</small>
+      <small v-if="feedbackUrl" class="compatibility-notice__action-note">WhatsApp opens with this build and stopped stage. Nothing is sent until you press Send.</small>
       <span v-if="copyStatus" class="compatibility-notice__copy-status" role="status">{{ copyStatus }}</span>
     </div>
   </section>
@@ -34,10 +36,7 @@
 <script>
 export default {
   name: 'CompatibilityNotice',
-  props: {
-    issue: {type: Object, required: true},
-    advisory: {type: Boolean, default: false}
-  },
+  props: {issue: {type: Object, required: true}, advisory: {type: Boolean, default: false}, feedbackUrl: {type: String, default: ''}},
   data() {
     return {copied: false, copyStatus: ''}
   },
