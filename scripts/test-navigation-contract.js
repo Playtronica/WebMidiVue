@@ -77,7 +77,8 @@ assert(sound.includes('Did you hear Biotron play from the plant?') &&
   sound.includes("firstSoundFeedbackUrl('not_yet')"),
   'first play must ask one binary outcome question after the task')
 assert(sound.includes('https://wa.me/351937910673') &&
+  sound.includes('Reached: ${stoppedAt}') &&
   sound.includes('Nothing is sent until you press Send.'),
-  'task feedback must open the direct channel with build context without sending automatically')
+  'task feedback must open the direct channel with stage and build context without sending automatically')
 
 console.log('Navigation contract verified: the beta is Biotron-only; Play and Settings remain device-level tasks.')

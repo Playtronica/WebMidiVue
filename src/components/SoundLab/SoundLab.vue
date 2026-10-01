@@ -126,8 +126,8 @@
       </section>
 
       <section v-if="firstSoundOutcome" class="sound-lab__task-feedback" aria-labelledby="first-sound-feedback-title"><small>One quick answer</small><h2 id="first-sound-feedback-title">Did you hear Biotron play from the plant?</h2>
-        <div class="sound-lab__task-feedback-actions"><a :href="firstSoundFeedbackUrl('helped')" class="btn btn-dark" target="_blank" rel="noopener">Yes — send result</a><a :href="firstSoundFeedbackUrl('not_yet')" class="btn btn-outline-dark" target="_blank" rel="noopener">Not yet — send result</a></div>
-        <small>WhatsApp opens with this build number. Nothing is sent until you press Send.</small></section>
+        <div class="sound-lab__task-feedback-actions"><a :href="firstSoundFeedbackUrl('helped')" class="btn btn-dark" target="_blank" rel="noopener">Yes — open WhatsApp</a><a :href="firstSoundFeedbackUrl('not_yet')" class="btn btn-outline-dark" target="_blank" rel="noopener">Not yet — open WhatsApp</a></div>
+        <small>WhatsApp opens with this build number and where the page stopped. Nothing is sent until you press Send.</small></section>
     </template>
 
     <template v-else>
@@ -256,7 +256,6 @@ const keyboard = [
 ].map(([code, note, label, noteName, black]) => ({code, note, label, noteName, black}))
 
 const VOLUME_STORAGE_KEY = 'playtronica-sound-volume-v1'
-
 function loadVolume() {
   try { return normalizeVolume(window.localStorage?.getItem(VOLUME_STORAGE_KEY)) }
   catch (error) { void error; return DEFAULT_VOLUME }
@@ -720,7 +719,8 @@ export default {
     firstSoundFeedbackUrl(outcome) {
       const result = outcome === 'helped' ? 'I heard Biotron play from the plant.' : 'I did not hear Biotron play from the plant yet.'
       const build = process.env.VUE_APP_BUILD_ID || 'local-build'
-      return `https://wa.me/351937910673?text=${encodeURIComponent(`${result}\n\nBuild: ${build}\nTask: first sound`)}`
+      const stoppedAt = outcome === 'helped' ? 'Sound from the plant' : ({'Connect Biotron first': 'Biotron was not found', 'Allow access to Biotron': 'MIDI permission', 'No plant signal yet': 'No plant signal after 15 seconds', 'Biotron could not start': 'Biotron could not start'}[this.revealIssue?.title] || 'Before first sound')
+      return `https://wa.me/351937910673?text=${encodeURIComponent(`${result}\n\nReached: ${stoppedAt}\nBuild: ${build}\nTask: first sound`)}`
     }
   }
 }
