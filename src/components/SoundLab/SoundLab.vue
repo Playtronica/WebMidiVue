@@ -599,9 +599,7 @@ export default {
       }
       else if (event.type === 'connected') {
         this.status = `${event.input} connected`
-        if (this.revealMode) {
-          this.recognizedInput = event.input
-        }
+        if (this.revealMode) this.recognizedInput = event.input
       }
       else if (event.type === 'released') this.status = 'MIDI released'
       else if (event.type === 'disconnected') {
@@ -612,6 +610,7 @@ export default {
           this.revealStage = 'intro'
           this.recognizedInput = ''
           this.revealIssue = {title: 'Biotron disconnected', body: 'Reconnect its USB data cable, then press Hear Biotron again.'}
+          if (this.firstSoundOutcome !== 'helped') this.firstSoundOutcome = 'not_yet'
           this.resetCalibration()
         }
         this.status = 'MIDI disconnected — notes stopped'
@@ -703,6 +702,7 @@ export default {
         this.pauseInputs('Audio stopped unexpectedly — press Stop & release')
         this.audioState = 'closed'
         this.releaseBlocked = true
+        if (this.revealMode && this.firstSoundOutcome !== 'helped') Object.assign(this, {revealIssue: {title: 'Audio stopped unexpectedly', body: 'Press Stop & release, then try Hear Biotron again.'}, firstSoundOutcome: 'not_yet'})
         return
       }
       if (document.hidden) {
@@ -719,7 +719,7 @@ export default {
     firstSoundFeedbackUrl(outcome) {
       const result = outcome === 'helped' ? 'I heard Biotron play from the plant.' : 'I did not hear Biotron play from the plant yet.'
       const build = process.env.VUE_APP_BUILD_ID || 'local-build'
-      const stoppedAt = outcome === 'helped' ? 'Sound from the plant' : ({'Connect Biotron first': 'Biotron was not found', 'Allow access to Biotron': 'MIDI permission', 'No plant signal yet': 'No plant signal after 15 seconds', 'Biotron could not start': 'Biotron could not start'}[this.revealIssue?.title] || 'Before first sound')
+      const stoppedAt = outcome === 'helped' ? 'Sound from the plant' : ({'Connect Biotron first': 'Biotron was not found', 'Allow access to Biotron': 'MIDI permission', 'No plant signal yet': 'No plant signal after 15 seconds', 'Biotron disconnected': 'Biotron disconnected before first sound', 'Audio stopped unexpectedly': 'Audio stopped before first sound', 'Biotron could not start': 'Biotron could not start'}[this.revealIssue?.title] || 'Before first sound')
       return `https://wa.me/351937910673?text=${encodeURIComponent(`${result}\n\nReached: ${stoppedAt}\nBuild: ${build}\nTask: first sound`)}`
     }
   }

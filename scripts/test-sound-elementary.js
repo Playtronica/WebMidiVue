@@ -27,6 +27,11 @@ const chromePath = () => {
 
 const entryFile = path.join(root, 'scripts/_elem-engine-entry.js')
 const bundleFile = path.join(root, 'scripts/_elem-engine-bundle.js')
+const cleanupArtifacts = () => {
+  fs.rmSync(entryFile, {force: true})
+  fs.rmSync(bundleFile, {force: true})
+}
+process.once('exit', cleanupArtifacts)
 fs.writeFileSync(entryFile,
   "export {ElementarySynthEngine} from '../src/audio/elementary/engine.mjs'\n" +
   "export {SOUNDS} from '../src/audio/elementary/timbres.mjs'\n" +
@@ -314,8 +319,7 @@ const server = http.createServer((request, response) => {
   } finally {
     await browser.close()
     await new Promise(resolve => server.close(resolve))
-    fs.rmSync(entryFile, {force: true})
-    fs.rmSync(bundleFile, {force: true})
+    cleanupArtifacts()
   }
 })().catch(error => {
   console.error(error)

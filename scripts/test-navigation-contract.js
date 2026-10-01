@@ -80,5 +80,9 @@ assert(sound.includes('https://wa.me/351937910673') &&
   sound.includes('Reached: ${stoppedAt}') &&
   sound.includes('Nothing is sent until you press Send.'),
   'task feedback must open the direct channel with stage and build context without sending automatically')
+assert(sound.includes("if (this.firstSoundOutcome !== 'helped') this.firstSoundOutcome = 'not_yet'") &&
+  sound.includes("'Biotron disconnected': 'Biotron disconnected before first sound'") &&
+  sound.includes("'Audio stopped unexpectedly': 'Audio stopped before first sound'"),
+  'first-play feedback must stay visible and identify a disconnect before first sound')
 
 console.log('Navigation contract verified: the beta is Biotron-only; Play and Settings remain device-level tasks.')
