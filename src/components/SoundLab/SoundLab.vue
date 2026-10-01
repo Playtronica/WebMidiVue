@@ -124,6 +124,10 @@
           ><span>{{ preset.name }}</span></button>
         </div>
       </section>
+
+      <section v-if="firstSoundOutcome" class="sound-lab__task-feedback" aria-labelledby="first-sound-feedback-title"><small>One quick answer</small><h2 id="first-sound-feedback-title">Did you hear Biotron play from the plant?</h2>
+        <div class="sound-lab__task-feedback-actions"><a :href="firstSoundFeedbackUrl('helped')" class="btn btn-dark" target="_blank" rel="noopener">Yes — send result</a><a :href="firstSoundFeedbackUrl('not_yet')" class="btn btn-outline-dark" target="_blank" rel="noopener">Not yet — send result</a></div>
+        <small>WhatsApp opens with this build number. Nothing is sent until you press Send.</small></section>
     </template>
 
     <template v-else>
@@ -311,7 +315,8 @@ export default {
       revealStage: 'intro',
       revealExpanded: false,
       recognizedInput: '',
-      revealIssue: null
+      revealIssue: null,
+      firstSoundOutcome: ''
     }
   },
   mounted() {
@@ -547,6 +552,7 @@ export default {
       }
       this.starting = true
       this.revealIssue = null
+      this.firstSoundOutcome = ''
       let failure = ''
       try {
         if (!await this.acquireTabLease()) return
@@ -565,7 +571,8 @@ export default {
           // No calibration state within 15 s means no plant signal (clips off): say so instead of pulsing forever.
           window.clearTimeout(this.revealWatchdog)
           this.revealWatchdog = window.setTimeout(() => {
-            if (this.revealStage === 'settling') Object.assign(this, {revealStage: 'intro', status: `No plant signal in 15 s. ${this.revealProfile.introInstruction}`})
+            if (this.revealStage === 'settling') Object.assign(this, {revealStage: 'intro', status: `No plant signal in 15 s. ${this.revealProfile.introInstruction}`,
+              revealIssue: {title: 'No plant signal yet', body: this.revealProfile.introInstruction}, firstSoundOutcome: 'not_yet'})
           }, 15000)
         }
       } catch (error) {
@@ -578,6 +585,7 @@ export default {
           this.revealIssue = missingDevice
             ? {title: 'Connect Biotron first', body: 'Plug Biotron into this computer with a USB data cable, then press Hear Biotron again.'}
             : {title: denied ? 'Allow access to Biotron' : 'Biotron could not start', body: failure}
+          this.firstSoundOutcome = 'not_yet'
         }
       } finally {
         this.starting = false
@@ -652,6 +660,7 @@ export default {
       if (this.revealStage === 'ready' && message?.type === 'note-on') {
         this.revealStage = 'revealed'
         this.status = 'Biotron is making sound'
+        this.firstSoundOutcome = 'helped'
         return
       }
       if (!['settling', 'calibrating'].includes(this.revealStage)) return
@@ -707,6 +716,11 @@ export default {
       this.releaseHeldKeyboard()
       if (document.hidden || !this.engine || this.engine.context.state !== 'suspended') return
       try { await this.ensureEngine() } catch (error) { void error }
+    },
+    firstSoundFeedbackUrl(outcome) {
+      const result = outcome === 'helped' ? 'I heard Biotron play from the plant.' : 'I did not hear Biotron play from the plant yet.'
+      const build = process.env.VUE_APP_BUILD_ID || 'local-build'
+      return `https://wa.me/351937910673?text=${encodeURIComponent(`${result}\n\nBuild: ${build}\nTask: first sound`)}`
     }
   }
 }
@@ -750,13 +764,17 @@ export default {
 .sound-lab__status--reveal { display: block; margin-top: .75rem; padding-left: 0; }
 .sound-lab__after-reveal { max-width: 760px; margin: 1rem auto 0; }
 .sound-lab__reveal-variants { display: flex; flex-basis: 100%; flex-wrap: wrap; gap: .5rem; padding-top: .5rem; }
+.sound-lab__task-feedback { display:grid; gap:.7rem; max-width:760px; margin:1rem auto 0!important; padding:1rem 1.1rem; border:1px solid rgba(106,90,205,.24); border-radius:1rem; background:#f7f5ff; }
+.sound-lab__task-feedback small { color:#625e58; }
+.sound-lab__task-feedback h2 { margin:0; font-size:clamp(1.15rem,3vw,1.4rem); }
+.sound-lab__task-feedback-actions { display:flex; flex-wrap:wrap; gap:.55rem; }
 .sound-lab__keyboard { display: grid; grid-template-columns: repeat(13, minmax(44px, 1fr)); gap: 4px; overflow-x: auto; padding-bottom: .5rem; }
 .sound-lab__keyboard button { min-width: 44px; height: 120px; border: 1px solid #cbc6be; border-radius: .6rem; background: #fff; align-content: end; padding-bottom: .7rem; }
 .sound-lab__keyboard .sound-lab__black-key { height: 82px; background: #2b2b30; color: #fff; }
 .sound-lab__midi { display: flex; justify-content: space-between; gap: 1.5rem; align-items: center; border-top: 1px solid #d6d1c8; padding-top: 1.5rem; }
 .sound-lab__midi p { margin: .3rem 0 0; }
 .sound-lab__midi-actions .form-select { min-width: min(340px, 80vw); }
-@media (max-width: 640px) { .sound-lab__midi { align-items: flex-start; flex-direction: column; } .sound-lab__keyboard { grid-template-columns: repeat(13, 48px); } .sound-lab__reveal { grid-template-columns: 1fr; text-align: center; } .sound-lab__reveal-actions, .sound-lab__after-reveal { justify-content: center; } .sound-lab__volume { width: 100%; grid-template-columns: auto minmax(0, 1fr) 3.25rem; text-align: left; } }
+@media (max-width: 640px) { .sound-lab__midi { align-items: flex-start; flex-direction: column; } .sound-lab__keyboard { grid-template-columns: repeat(13, 48px); } .sound-lab__reveal { grid-template-columns: 1fr; text-align: center; } .sound-lab__reveal-actions, .sound-lab__after-reveal { justify-content: center; } .sound-lab__task-feedback-actions { display:grid; } .sound-lab__task-feedback-actions .btn { width:100%; } .sound-lab__volume { width: 100%; grid-template-columns: auto minmax(0, 1fr) 3.25rem; text-align: left; } }
 @keyframes biotron-settling { 50% { transform: scale(.96); box-shadow: 0 0 0 12px rgba(106, 90, 205, .12); } }
 @keyframes biotron-calibrating { to { transform: scale(1.02); box-shadow: 0 0 0 20px rgba(106, 90, 205, .18), 0 18px 50px rgba(69, 49, 150, .22); } }
 @keyframes biotron-note-one { 50% { transform: translateY(-50%) scaleY(1); } }

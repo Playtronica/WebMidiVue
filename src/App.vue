@@ -69,15 +69,11 @@
         </CompatibilityGate>
       </main>
 
-      <aside v-if="betaBuild" class="beta-feedback mx-auto my-4 text-start" aria-labelledby="beta-feedback-title">
+      <aside v-if="betaBuild && !firstPlay" class="beta-feedback mx-auto my-4 text-start" aria-labelledby="beta-feedback-title">
         <small class="beta-feedback__eyebrow">Built with Biotron owners</small>
         <p id="beta-feedback-title" class="beta-feedback__title">Help shape the next Biotron Settings</p>
-        <p class="text-secondary mb-3">
-          I’m Andrey from Playtronica. I read every reply myself. Send me anything: what felt confusing, what worked, or even the craziest idea. I’ll try to build it and tell testers what changed.
-        </p>
-        <a :href="feedbackMailto" class="btn beta-feedback__action">
-          Tell me what to change
-        </a>
+        <p class="text-secondary mb-3">I’m Andrey from Playtronica. I read every reply myself. Send me anything: what felt confusing, what worked, or even the craziest idea. I’ll try to build it and tell testers what changed.</p>
+        <a :href="feedbackMailto" class="btn beta-feedback__action">Tell me what to change</a>
         <small class="d-block mt-2 text-muted">Your email opens with one question and this build number. Nothing is sent automatically.</small>
         <details class="beta-compatibility">
           <summary>Browser &amp; phone compatibility</summary>
@@ -139,8 +135,7 @@ export default {
     },
     feedbackMailto() {
       const subject = `Biotron Settings beta feedback — ${this.buildId}`
-      const body = `What is the one thing you most want me to change or build — a problem, a sound, or even a crazy idea?\n\n` +
-        `Build: ${this.buildId}\nPage: ${this.$route.path}`
+      const body = `What is the one thing you most want me to change or build — a problem, a sound, or even a crazy idea?\n\nBuild: ${this.buildId}\nPage: ${this.$route.path}`
       return `mailto:manirko@playtronica.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     },
     offlineMessage() {

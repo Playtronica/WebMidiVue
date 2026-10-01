@@ -103,12 +103,16 @@ async function auditProfile(browser, origin, profile) {
   if (profile.midi) {
     await page.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
     await page.getByRole('heading', {name: 'Meet Biotron'}).waitFor()
+    assert.strictEqual(await page.locator('.beta-feedback').count(), 0,
+      `${profile.name}: first play must not duplicate the generic feedback block`)
+    await page.getByRole('button', {name: 'Hear Biotron'}).click()
+    await page.getByRole('heading', {name: 'Did you hear Biotron play from the plant?'}).waitFor()
     const feedbackGap = await page.evaluate(() => {
       const main = document.querySelector('main')
-      const feedback = document.querySelector('.beta-feedback')
+      const feedback = document.querySelector('.sound-lab__task-feedback')
       return Math.round(feedback.getBoundingClientRect().top - main.getBoundingClientRect().bottom)
     })
-    assert(feedbackGap <= 80, `${profile.name}: beta feedback is hidden behind ${feedbackGap}px of empty space`)
+    assert(feedbackGap <= 80, `${profile.name}: task feedback is hidden behind ${feedbackGap}px of empty space`)
   }
 
   await context.close()

@@ -23,6 +23,8 @@ assert(app.includes('What is the one thing you most want me to change or build')
   'the beta feedback action must ask one low-effort question')
 assert(app.includes('Nothing is sent automatically.'),
   'the feedback action must explain that opening an email does not send it')
+assert(app.includes('v-if="betaBuild && !firstPlay"'),
+  'first play must use its task-specific result prompt instead of a second generic prompt')
 assert(app.includes('More tools → Apps → Install this site as an app.'),
   'the beta must show the current Edge install path')
 assert(taskNav.includes("{id: 'play', label: 'Play'"), 'device tasks must include Play')
@@ -70,5 +72,12 @@ assert(sound.includes("{{ revealExpanded ? 'Hide sounds' : 'Choose a sound' }}")
   'sound choice action must use the same plain-language noun as the task')
 assert(sound.includes('>Settings</router-link>'),
   'first play must offer the same Settings label as the task navigation')
+assert(sound.includes('Did you hear Biotron play from the plant?') &&
+  sound.includes("firstSoundFeedbackUrl('helped')") &&
+  sound.includes("firstSoundFeedbackUrl('not_yet')"),
+  'first play must ask one binary outcome question after the task')
+assert(sound.includes('https://wa.me/351937910673') &&
+  sound.includes('Nothing is sent until you press Send.'),
+  'task feedback must open the direct channel with build context without sending automatically')
 
 console.log('Navigation contract verified: the beta is Biotron-only; Play and Settings remain device-level tasks.')
