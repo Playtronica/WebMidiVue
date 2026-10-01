@@ -1,5 +1,9 @@
 # Biotron beta — physical phone test (15 minutes)
 
+> Historical reference only. Do not use this checklist for a current candidate.
+> The immutable candidate's generated `PHYSICAL-TEST.md` is the sole manual
+> acceptance checklist; release state comes from the product-learning brief.
+
 Phone layout and USB control are separate claims. This check records both. Use
 the same dedicated beta candidate as the computer test; never production
 Settings. Firmware update is not a phone feature and Biotron must never enter

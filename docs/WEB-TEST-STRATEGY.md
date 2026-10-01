@@ -97,16 +97,14 @@ machines; it is not a substitute for field INP.
 
 ## Physical evidence remains separate
 
-- Computer: current Chrome/Edge, real USB data cable, permissions, MUTE write,
-  reconnect, offline restart, firmware guard and DAW handoff.
-- Android: exact phone/OS/Chrome/adapter/cable/power combination; emulation can
-  only prove layout and the capability-gate branch.
-- iPhone/iPad: normal browsers must stop honestly before Web MIDI Settings.
-- Firmware update: computer only; no phone test may enter BOOT.
-
-Use `BIOTRON-BETA-COMPUTER-15MIN.md` and
-`BIOTRON-BETA-PHONE-15MIN.md`. A fix creates a new commit, build and immutable
-URL; previous physical evidence does not transfer silently.
+`npm run candidate:biotron` writes one build-specific `PHYSICAL-TEST.md` beside
+the immutable archive. It is the only manual checklist: a focused computer pass
+for first sound, responsive-port selection, one saved setting and DAW release;
+then one Android Settings pass proving that a single physical Biotron does not
+appear as two indistinguishable choices. Browser automation already owns layout,
+offline/PWA, compatibility and negative-path coverage, so those checks are not
+repeated manually. A fix creates a new commit, build and checklist; physical
+evidence never transfers to it silently.
 
 ## Simplification backlog
 

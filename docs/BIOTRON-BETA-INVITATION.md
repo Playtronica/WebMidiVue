@@ -1,5 +1,9 @@
 # Biotron private beta recruitment and test handoff
 
+> Historical reference only. Current communication rules live in the
+> product-learning contract. Do not send or adapt this file as a current
+> invitation.
+
 The first message recruits a willing tester. It is not a product-validation
 exposure and must not contain the beta link. The exact link, build and one task
 are sent only after the person says yes.

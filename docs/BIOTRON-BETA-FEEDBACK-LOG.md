@@ -1,5 +1,8 @@
 # Biotron beta feedback log
 
+> Historical reference only. Do not create rows here. Product Experience is the
+> single feedback authority; raw messages remain in their source systems.
+
 Keep customer-identifying data in the authorized customer system, not in Git.
 This file defines the shared structure and decision rhythm; record only an
 anonymous participant code here if the team needs a repository summary.

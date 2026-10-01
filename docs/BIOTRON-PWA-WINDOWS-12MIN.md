@@ -1,5 +1,8 @@
 # Biotron offline PWA — Windows test (12 minutes)
 
+> Historical reference only. Do not use this checklist for a current candidate.
+> Use the immutable candidate's generated `PHYSICAL-TEST.md`.
+
 Use one Biotron, a normal Windows account, current Chrome or Edge, and REAPER.
 Do not flash firmware, run as administrator, change browser flags, or debug past
 the time limit. The beta URL must be on a dedicated non-production origin.

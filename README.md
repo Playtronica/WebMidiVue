@@ -112,12 +112,14 @@ state. The generic Sound route keeps its on-screen/keyboard audio mode when MIDI
 is unavailable and hides the unusable USB controls.
 
 Responsive layout is not evidence that USB control works. Firmware update is
-computer-only and online-only; it must remain unavailable on phones. The current
-support and evidence boundaries are recorded in:
-
-- [`docs/BIOTRON-BETA-COMPUTER-15MIN.md`](docs/BIOTRON-BETA-COMPUTER-15MIN.md)
-- [`docs/BIOTRON-BETA-PHONE-15MIN.md`](docs/BIOTRON-BETA-PHONE-15MIN.md)
-- [`docs/BIOTRON-BETA-RELEASE-CHECKLIST.md`](docs/BIOTRON-BETA-RELEASE-CHECKLIST.md)
+computer-only and online-only; it must remain unavailable on phones. Each
+immutable candidate contains its own short `PHYSICAL-TEST.md`; that generated,
+build-specific file is the only manual hardware checklist. Release progression,
+tester communication and outcome decisions belong to the product-learning
+contract in `~/Projects/Playtronica/product-experience`, whose
+`./product-loop brief --product biotron` output is the only current release
+view. This repository does not maintain a second feedback log, outreach
+template or release roadmap.
 
 Biotron first play treats firmware stabilization as its own state. Released
 firmware 1.8.2 and the current firmware branch sample the plant every 100 ms,
@@ -189,9 +191,6 @@ same document records the staged simplification plan and rejected rewrites.
 The browser lifecycle test uses an installed Chrome/Chromium (`CHROME_PATH` can
 override discovery) and covers service-worker install/control, offline direct
 navigation, the offline firmware guard, and a non-disruptive waiting update.
-
-The older Windows/REAPER-specific gate remains in
-[`docs/BIOTRON-PWA-WINDOWS-12MIN.md`](docs/BIOTRON-PWA-WINDOWS-12MIN.md).
 
 ### Lints and fixes files
 ```

@@ -1,5 +1,10 @@
 # Biotron Settings beta — release checklist
 
+> Historical reference only. Current release gates and cadence live in
+> `~/Projects/Playtronica/product-experience`; use
+> `./product-loop brief --product biotron`. The candidate's generated
+> `PHYSICAL-TEST.md` is the only current hardware checklist.
+
 This beta is shown to selected owners from a dedicated beta origin. It is not
 published into the Playtronica production account or production service-worker
 scope. A test deployment, customer email or Help draft never authorizes a

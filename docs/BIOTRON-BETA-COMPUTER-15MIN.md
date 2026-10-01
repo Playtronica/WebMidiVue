@@ -1,5 +1,9 @@
 # Biotron beta — physical computer test (15 minutes)
 
+> Historical reference only. Do not use this checklist for a current candidate.
+> The immutable candidate's generated `PHYSICAL-TEST.md` is the sole manual
+> acceptance checklist; release state comes from the product-learning brief.
+
 Use one Biotron, one known data-capable USB cable and current Chrome or Edge on
 the exact computer you normally use. Start with every DAW and other MIDI app
 closed. Do not flash firmware, change browser flags, use production Settings or
