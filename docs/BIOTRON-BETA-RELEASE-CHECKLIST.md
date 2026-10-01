@@ -55,22 +55,44 @@ production merge.
 
 ## 5. Controlled release, not production
 
-1. **26 September:** finish the exact automated candidate and Andrey's computer
-   plus phone acceptance. If both finish early enough, wave 1 may go the same
-   day; there is no reason to wait for 5 October.
-2. **Wave 1 — 8 owners:** cover the main computer/browser path and one
-   explicitly experimental Android combination only after its own pass. Ask
-   each person to try one real task and reply directly.
-3. Hold for at least 24 hours. Expand only after at least four owners complete
-   the end-to-end task, replies are reviewed, and there is no open P0/P1 issue
-   or misleading compatibility claim.
-4. **Wave 2 — remaining 22 owners:** earliest 27 September if that gate is
-   green. Stop immediately for a destructive setting, firmware risk,
-   connection regression or systematic permission failure.
-5. **30 September:** synthesize requests by task and frequency; send a short
-   update to participants even if the decision is “investigating”.
-6. **2 October:** choose beta v2 scope. Re-run affected automated and physical
-   checks; every changed candidate gets a new immutable URL and build ID.
+The 1 October 2026 evidence snapshot makes the channel boundary explicit. The
+first two email waves delivered 90 messages, with 49 opens and 5 clicks, but no
+substantive email reply. In a separate ten-person WhatsApp test, 4 of 5 people
+given a contextual permission request replied, compared with 1 of 5 who
+received a task immediately. Those groups were small, non-random and had
+different asks. Treat both results as recruitment evidence only; neither
+validates a product build.
+
+Use a relative clock so an approval delay or code change cannot make the plan
+silently stale:
+
+1. **D0 — exact preview and physical acceptance.** Deploy one immutable
+   candidate to the isolated beta origin. Complete the computer report and the
+   applicable phone/negative-path report. Any code change resets D0 and creates
+   a new URL and build ID.
+2. **D+1 — micro-cohort of 3 engaged owners.** Ask permission first. After yes,
+   give each person the same exact build, one task and one one-line outcome
+   choice. Do not use another email blast as a substitute for this cohort.
+3. **D+2 — review before expansion.** Classify every exposure as `helped`,
+   `partly_helped`, `did_not_help`, `not_tested` or `unknown`. One reminder is
+   allowed after 24 hours; silence never becomes success. Expand only when all
+   three are resolved, at least two completed the task successfully, and there
+   is no P0/P1 or repeated ambiguity.
+4. **D+3 to D+6 — expansion cohort of up to 7 new owners.** Preserve the build
+   and primary task. Choose people from directly relevant product history and
+   cover the supported Windows/macOS browser paths before experimental mobile
+   combinations. Stop and iterate when two people hit the same blocking step,
+   or immediately for destructive settings, firmware risk or connection loss.
+5. **D+7 — synthesis.** Send participants a short human update describing what
+   changed, what is still being investigated and what will be tested next. A
+   reply, open, click or successful firmware update alone is not a completed
+   end-to-end test.
+6. **Earliest D+8 — production decision, never automatic publication.** The
+   exact unchanged candidate needs at least eight completed primary-task tests
+   across the target Windows/macOS paths, at least six `helped` outcomes, no
+   open P0/P1, no unresolved repeated blocker, aligned Help/compatibility
+   claims and 72 hours without a candidate change. Any unmet gate starts
+   another beta iteration; it does not lower the threshold.
 
 Uploading the 30-customer list to SendPulse or another mail provider is a
 separate transfer of customer data and needs Andrey's explicit authorization at
@@ -88,17 +110,19 @@ Help check + human claim review: PASS / FAIL
 Internal seed: PASS / FAIL + replies reviewed
 Shopify segment query + subscribed count:
 Sender-domain status + preview checked by:
-Wave 1: HOLD / 8 USERS + send date
-Wave 1 evidence: completed tasks / replies / P0 / P1
-Wave 2: HOLD / REMAINING 22 + send date
+Micro-cohort: HOLD / 3 USERS + exact build + exposure times
+Micro evidence: helped / partly / did not / not tested / unknown / P0 / P1
+Expansion cohort: HOLD / UP TO 7 USERS + exact build + exposure times
+Expansion evidence: helped / partly / did not / not tested / unknown / P0 / P1
+Candidate unchanged since:
+Production publication: HOLD / EXPLICITLY APPROVED
 Owner and date of decision:
 Known limitations included in invitation:
 Rollback: stop invitations and retire this beta URL; production remains untouched
 ```
 
-Public production release is a later decision, not the second email wave. The
-earliest review date is **12 October 2026**, after two feedback/fix cycles. Ship
-to everyone only when the target physical matrix is evidenced, P0/P1 issues are
-closed, the candidate has stayed unchanged for at least 72 hours, Help and
-email claims match it, and production merge/deploy is explicitly authorized.
-Otherwise set a new review date instead of weakening the gate.
+Public production release is a later decision, not an email wave. D+8 is the
+earliest possible review point, not a promise to ship. Publish to everyone only
+when the recorded gates above pass and production merge/deploy is explicitly
+authorized. Otherwise reset the relative clock for the next exact candidate
+instead of weakening a gate or carrying evidence across builds.
