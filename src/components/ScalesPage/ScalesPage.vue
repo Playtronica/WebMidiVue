@@ -100,6 +100,14 @@
                   :command-object=this.commands_data.one_channel_mode
                   @input-changed="this.sys_ex_changed"
               />
+
+              <SwitchComponent
+                  class="col-sm"
+                  commandLabel="Arp Plus"
+                  :command-object=this.commands_data.arp_plus
+                  description="Arpeggio mode: a note is added automatically after it stays the same for 1.5 s (the FUNCTION button no longer adds notes or pauses)"
+                  @input-changed="this.sys_ex_changed"
+              />
             </div>
           </template>
         </GroupOfCommands>

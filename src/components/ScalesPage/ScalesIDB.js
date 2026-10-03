@@ -68,7 +68,11 @@ export let ScalesCommandsData = new Map(Object.entries({
         custom_fold: (arr, val) => {
             arr.push(val);
         }
-    })
+    }),
+    "arp_plus": new SysExCommand({
+        name: "arp_plus",
+        number_command: 9,
+    }),
 }))
 
 const default_preset = {
@@ -81,13 +85,14 @@ const default_preset = {
     "performance": 0,
     "beginning_mode": 0,
     "music_cc_num": 90,
+    "arp_plus": 0,
 }
 
 
 export class ScalesDb extends Db {
     DB_NAME = "ScaleDB"
     STORE_NAME = "Scale_Patches"
-    VERSION = 12
+    VERSION = 13
 
     constructor() {
         super(ScalesCommandsData)
