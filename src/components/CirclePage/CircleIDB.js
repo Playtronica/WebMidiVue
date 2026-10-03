@@ -172,6 +172,16 @@ export let CircleCommandsData = new Map(Object.entries({
             arr.push((val >> 7) & 0x7F);
         }
     }),
+    "pitch_bend_range": new SysExCommand({
+        name: "pitch_bend_range",
+        number_command: 17,
+        min_value: 1,
+        max_value: 4,
+    }),
+    "pitch_sticky": new SysExCommand({
+        name: "pitch_sticky",
+        number_command: 18,
+    }),
     // TODO: temporary — remove once every command pad works on hardware
     "cmd_remap_extra": new SysExCommand({
         name: "cmd_remap_extra",
@@ -276,6 +286,8 @@ const default_preset = {
     "synth_volume": 50,
     "hold_mode": 0,
     "pitch": 8192,
+    "pitch_bend_range": 2,
+    "pitch_sticky": 0,
     "cmd_remap_extra": 0,
     "cmd_remap_loop": 1,
 }
@@ -283,7 +295,7 @@ const default_preset = {
 export class CircleDb extends Db {
     DB_NAME = "CircleDB"
     STORE_NAME = "Circle_Patches"
-    VERSION = 11
+    VERSION = 12
 
     constructor() {
         super(CircleCommandsData)

@@ -51,8 +51,8 @@ export default {
     </label>
 
     <select v-model="this.Value" id="scale" class="form-control" @change="changed">
-      <option v-for="(item, index) in this.listOfVariants" v-bind:key="index" :value="index">
-        {{item}}
+      <option v-for="(item, index) in this.listOfVariants" v-bind:key="index" :value="item.value ?? index">
+        {{item.label ?? item}}
       </option>
     </select>
   </div>

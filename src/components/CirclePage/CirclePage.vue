@@ -37,6 +37,15 @@
                 description="Only one chord/note button is active at a time; pressing a new button immediately releases the previous one."
                 @input-changed="this.sys_ex_changed"
             />
+
+            <SwitchComponent
+                class="m-2"
+                commandLabel="Sticky Pitch"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.pitch_sticky"
+                description="Pitch slider mode: the bend stays where the finger left the slider instead of returning to the Pitch Bend value. Leaving Pitch mode with the Pitch/Shift button always resets it."
+                @input-changed="this.sys_ex_changed"
+            />
           </template>
         </GroupOfCommands>
 
@@ -197,7 +206,13 @@
                            :command-object="this.commands_data.pitch"
                            @input-changed="this.sys_ex_changed"
                            command-label="🎯 Pitch Bend"
-                           description="14-bit pitch bend (0–16383), 8192 = center/no bend, ±8192 maps to ±2 semitones. Applied live to all sounding voices."
+                           description="14-bit pitch bend (0–16383), 8192 = center/no bend, full scale maps to ±Bend Range semitones. Applied live to all sounding voices."
+                           class="m-2"/>
+            <SliderCommand :key="this.forceRerender"
+                           :command-object="this.commands_data.pitch_bend_range"
+                           @input-changed="this.sys_ex_changed"
+                           command-label="↕️ Bend Range"
+                           description="Semitones a full-scale bend moves the onboard synth in each direction (1–4). Applies to the Pitch slider and Pitch Bend; outgoing MIDI Pitch Bend is unaffected."
                            class="m-2"/>
           </template>
         </GroupOfCommands>
@@ -444,7 +459,12 @@ export default {
       patch_id: 0,
       is_loading: false,
       commands_data: Object.fromEntries(CircleCommandsData),
-      play_modes: ["Arpeggiator", "Chords", "Strum"],
+      // Display order differs from firmware ids
+      play_modes: [
+        {label: "Chords", value: 1},
+        {label: "Arpeggiator", value: 0},
+        {label: "Strum", value: 2},
+      ],
       arp_directions: ["Up", "Down", "Up-Down", "Down-Up", "Random", "Thirds Up", "Thirds Down", "Batch"],
       arp_rates: ["x1", "/2", "/4", "/8", "x2", "x4"],
       command_buttons: ["Extra", "Loop", "Speed", "Pitch/Shift", "Hold", "Mode"],
