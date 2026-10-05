@@ -326,14 +326,36 @@ async function oldFirmwareTimesOutWithoutClaimingCalibration() {
 }
 
 async function versionReplyUpdatesStatusAndParentContract() {
+  scheduled.clear()
   const selected = {input: port('in-1'), output: port('out-1')}
   const target = instance({selectedDevice: selected, currentMidiNum: 0})
+  assert.strictEqual(target.requestFirmwareVersion(), true)
   target.handleMidiMessage({data: [0xf0, 0x0b, 126, 0, 1, 9, 3, 0xf7]}, target.operationId)
   assert.strictEqual(target.versions[selected.output.id], 'v1.9.3')
+  assert.strictEqual(scheduled.size, 0, 'version response left a timeout armed')
   assert.strictEqual(JSON.stringify(target.events.at(-1)), JSON.stringify([
     'firmware_version',
     {version: '1.9.3', outputId: selected.output.id}
   ]))
+}
+
+async function versionTimeoutKeepsLateReplyClosed() {
+  scheduled.clear()
+  const selected = {input: port('in-1'), output: port('out-1')}
+  const target = instance({selectedDevice: selected, currentMidiNum: 0})
+  assert.strictEqual(target.requestFirmwareVersion(), true)
+  assert.strictEqual(scheduled.size, 1, 'version query had no finite timeout')
+  const timeout = [...scheduled.values()][0]
+  timeout()
+  assert.strictEqual(target.versionRequest, null)
+  assert.strictEqual(target.events.at(-1)[0], 'firmware_timeout')
+  target.handleMidiMessage({data: [0xf0, 0x0b, 126, 0, 1, 9, 3, 0xf7]}, target.operationId)
+  assert.strictEqual(target.versions[selected.output.id], undefined,
+    'late answer after timeout unlocked Settings')
+  assert.strictEqual(target.requestFirmwareVersion(), true)
+  target.handleMidiMessage({data: [0xf0, 0x0b, 126, 0, 1, 9, 3, 0xf7]}, target.operationId)
+  assert.strictEqual(target.versions[selected.output.id], 'v1.9.3')
+  assert.strictEqual(scheduled.size, 0)
 }
 
 ;(async () => {
@@ -352,6 +374,7 @@ async function versionReplyUpdatesStatusAndParentContract() {
   await recalibrationRequiresExactNonceAndReportsProgress()
   await oldFirmwareTimesOutWithoutClaimingCalibration()
   await versionReplyUpdatesStatusAndParentContract()
+  await versionTimeoutKeepsLateReplyClosed()
   console.log('MIDI lifecycle verified: permission/no-device recovery, release failure, delayed cancellation, reconnect failure, switch close failure, unmount, secondary-port filtering, Android cable-zero selection, duplicate-device handling, version propagation, and nonce-bound recalibration progress.')
 })().catch(error => {
   console.error(error)

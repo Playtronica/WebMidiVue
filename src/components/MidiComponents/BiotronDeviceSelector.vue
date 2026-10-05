@@ -67,7 +67,7 @@
         type: String,
       },
     },
-    emits: ["device_changed", "calibration_state", "firmware_version"],
+    emits: ["device_changed", "calibration_state", "firmware_version", "firmware_timeout"],
     name: "DeviceSelector",
     data() {
       return {
@@ -75,6 +75,7 @@
         versions: {},
         currentMidiNum: 0,
         updateTimeout: null,
+        versionRequest: null,
         midiAccess: null,
         selectedDevice: null,
         released: false,
@@ -129,6 +130,7 @@
         const operationId = ++this.operationId;
         const permissionAbort = new AbortController();
         this.permissionAbort = permissionAbort;
+        this.clearVersionRequest();
         this.connecting = true;
         this.midiError = "";
         try {
@@ -166,6 +168,10 @@
       clearUpdateTimeout() {
         if (this.updateTimeout !== null) clearTimeout(this.updateTimeout);
         this.updateTimeout = null;
+      },
+      clearVersionRequest() {
+        if (this.versionRequest) clearTimeout(this.versionRequest.timeout);
+        this.versionRequest = null;
       },
       clearRecalibrationRequest() {
         const request = this.recalibrationRequest;
@@ -258,6 +264,7 @@
         const operationId = ++this.operationId;
         this.connecting = true;
         this.clearUpdateTimeout();
+        this.clearVersionRequest();
         this.clearRecalibrationRequest();
         this.clearSettingsReadbackRequest(new Error("MIDI device changed."));
         this.midiError = "";
@@ -286,6 +293,7 @@
       },
       async refreshDevices() {
         if (!this.midiAccess || this.released) return;
+        this.clearVersionRequest();
         const previousOutputId = this.selectedDevice && this.selectedDevice.output.id;
         this.devices = this.pairDevices(this.midiAccess);
         if (this.hasAmbiguousIdentity(this.devices)) {
@@ -320,6 +328,7 @@
         const operationId = ++this.operationId;
         this.connecting = true;
         this.clearUpdateTimeout();
+        this.clearVersionRequest();
         this.clearRecalibrationRequest();
         this.midiError = "";
 
@@ -383,11 +392,26 @@
         }, 120);
       },
       requestFirmwareVersion() {
-        if (!this.checkVersionsFlag || !this.selectedDevice || this.released) return false;
+        if (!this.checkVersionsFlag || !this.selectedDevice || this.released || this.unmounted) return false;
+        this.clearVersionRequest();
+        const device = this.selectedDevice;
+        const request = {device, operationId: this.operationId, outputIndex: this.currentMidiNum, timeout: null};
+        this.versionRequest = request;
+        request.timeout = setTimeout(() => {
+          if (this.versionRequest !== request || this.selectedDevice !== device ||
+              this.operationId !== request.operationId || this.released || this.unmounted) return;
+          this.clearVersionRequest();
+          this.$emit("firmware_timeout", {outputId: device.output.id});
+        }, 2500);
         try {
-          this.selectedDevice.output.send([240, 20, 13, 126, this.currentMidiNum, 247]);
+          device.output.send([240, 20, 13, 126, request.outputIndex, 247]);
           return true;
-        } catch (err) { this.midiError = "Could not query the selected device."; return false; }
+        } catch (err) {
+          this.clearVersionRequest();
+          this.midiError = "Could not query the selected device.";
+          this.$emit("firmware_timeout", {outputId: device.output.id});
+          return false;
+        }
       },
       handleMidiMessage(event, operationId) {
         if (operationId !== this.operationId || this.released) return;
@@ -426,6 +450,10 @@
         const [start_sys_ex, flag_byte, num_com, id_of_output, x, y, z, end_sys_ex] = event.data;
         if (start_sys_ex === 0xF0 && end_sys_ex === 0xF7 && flag_byte === 0x0B &&
             num_com === 126 && event.data.length === 8 && id_of_output === this.currentMidiNum) {
+          const pending = this.versionRequest;
+          if (!pending || pending.device !== this.selectedDevice ||
+              pending.operationId !== operationId || pending.outputIndex !== id_of_output) return;
+          this.clearVersionRequest();
           const version = `${x}.${y}.${z}`;
           const outputId = this.selectedDevice.output.id;
           this.versions[outputId] = `v${version}`;
@@ -442,6 +470,7 @@
       this.permissionAbort?.abort();
       this.permissionAbort = null;
       this.clearUpdateTimeout();
+      this.clearVersionRequest();
       this.clearRecalibrationRequest();
       this.clearSettingsReadbackRequest(new Error("Settings page closed."));
       if (this.midiAccess) this.midiAccess.onstatechange = null;

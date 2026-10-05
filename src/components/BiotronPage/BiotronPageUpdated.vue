@@ -24,6 +24,7 @@
         @device_changed="handleDeviceChanged"
         @calibration_state="handleCalibrationState"
         @firmware_version="handleFirmwareVersion"
+        @firmware_timeout="handleFirmwareTimeout"
         text_label="🔌 Select Device"
         check-versions-flag
         allow-daw-handoff
@@ -35,13 +36,13 @@
             type="button"
             class="btn btn-outline-primary"
             @click="startCalibration"
-            :disabled="!device || calibrationBusy || is_loading"
+            :disabled="!device || calibrationBusy || is_loading || !settingsSnapshotKnown"
         >{{ calibrationBusy ? 'Calibrating…' : 'Calibrate plant again' }}</button>
         <button
             type="button"
             class="btn btn-outline-primary"
             @click="reduceExtraNotes"
-            :disabled="!device || calibrationBusy || is_loading"
+            :disabled="!device || calibrationBusy || is_loading || !settingsSnapshotKnown"
         >Reduce extra notes</button>
       </div>
       <span
@@ -55,6 +56,7 @@
     <div v-if="betaBuild && settingsMessage" class="settings-feedback alert py-2" :class="[settingsState === 'error' ? 'alert-warning' : 'alert-light', {'settings-feedback--active': ['changed', 'checking', 'saved', 'error'].includes(settingsState)}]" role="status" aria-live="polite">
       <span>{{ settingsMessage }}</span>
       <button v-if="device && settingsState === 'saved'" type="button" class="btn btn-primary btn-sm" @click="releaseForDaw">Done — use in DAW</button>
+      <button v-if="device && settingsState === 'error' && !settingsSnapshotKnown" type="button" class="btn btn-outline-primary btn-sm" @click="retrySettingsConnection">Retry settings connection</button>
     </div>
     <div v-if="betaBuild" class="diagnostic-copy mt-2">
       <button type="button" class="btn btn-outline-secondary btn-sm" @click="copyDiagnosticInfo">Copy diagnostics for Andrey</button>
@@ -319,6 +321,7 @@
                 />
               </div>
             </div>
+            <p class="small mx-2" role="status" aria-live="polite">{{ lightSensorStatus }}</p>
 
             <SliderCommand
                 command-label="🎛️ MIDI channel"
@@ -391,6 +394,7 @@
 </template>
 
 <script>
+import {createSettingsConnectionMethods} from '@/biotron/settingsConnection.mjs'
 import {withMidiWriteSession} from "@/assets/js/timing.mjs"
 
 import { saveAs } from '@progress/kendo-file-saver';
@@ -450,9 +454,21 @@ export default  {
     calibrationBusy() {
       return ["starting", "waiting", "measuring"].includes(this.calibrationState)
     },
-    settingsReady() { return ["loaded", "changed", "saved", "error"].includes(this.settingsState) }
+    settingsReady() { return Boolean(this.device && this.settingsSnapshotKnown) },
+    lightSensorStatus() {
+      if (!this.settingsReady) return "Light Sensor state unknown until Biotron settings are read."
+      const mode = this.commands_data.light_pitch_mode.value
+        ? "Pitch Bend mode: light changes plant-note pitch instead of making separate light notes."
+        : this.commands_data.light_no_velocity.value
+            ? "Light notes are muted; plant notes can still play."
+            : "Light notes are enabled."
+      if (["changed", "checking"].includes(this.settingsState)) return `${mode} Saving and checking this change…`
+      if (this.settingsState === "error") return `${mode} The latest device check failed; this state is not confirmed.`
+      return mode
+    }
   },
   methods: {
+    ...createSettingsConnectionMethods({settingsVectorFromCommands, settingsVectorsEqual, savedSettingsMessage}),
     async copyDiagnosticInfo() {
       this.diagnosticMessage = await copyBiotronDiagnostic(this, process.env.VUE_APP_BUILD_ID || "local-build")
     },
@@ -460,6 +476,7 @@ export default  {
       this.clearLiveVerification()
       this.settingsLoadId++
       this.device = device
+      this.settingsSnapshotKnown = false
       this.firmwareVersion = ""
       if (!device && this.calibrationBusy) {
         this.calibrationState = "error"
@@ -479,38 +496,27 @@ export default  {
     async handleFirmwareVersion(event) {
       if (!this.device || event?.outputId !== this.device.id) return
       this.firmwareVersion = event.version
-      if (this.betaBuild && ["connecting", "error"].includes(this.settingsState)) {
+      if (this.betaBuild && !this.settingsSnapshotKnown && ["connecting", "error"].includes(this.settingsState)) {
         await this.loadPersistedSettings(this.device)
       }
     },
+    handleFirmwareTimeout(event) {
+      if (!this.betaBuild || !this.device || event?.outputId !== this.device.id ||
+          this.settingsSnapshotKnown || this.settingsState !== "connecting") return
+      this.settingsState = "error"
+      this.settingsMessage = "Biotron did not answer the firmware check. Retry the connection; settings stay locked until they are read."
+    },
+    async retrySettingsConnection() {
+      if (!this.betaBuild || !this.device || this.settingsSnapshotKnown) return
+      if (this.firmwareVersion) {
+        await this.loadPersistedSettings(this.device)
+        return
+      }
+      this.settingsState = "connecting"
+      this.settingsMessage = "Checking Biotron firmware…"
+      this.$refs.deviceSelector?.requestFirmwareVersion()
+    },
     checkFirmware() { this.$refs.deviceSelector?.requestFirmwareVersion() },
-    async readPersistedSettingsWithRetry(device, attempts = 3) {
-      let lastError
-      for (let attempt = 0; attempt < attempts; attempt++) {
-        if (this.device !== device) throw new Error("Biotron changed.")
-        try {
-          return await this.requestPersistedSettingsWithin(3500)
-        } catch (error) {
-          lastError = error
-          if (error?.name === "AbortError") throw error
-          if (attempt + 1 < attempts) await new Promise(resolve => setTimeout(resolve, 450))
-        }
-      }
-      throw lastError
-    },
-    async requestPersistedSettingsWithin(timeoutMs) {
-      let timeout
-      try {
-        return await Promise.race([
-          this.$refs.deviceSelector.requestPersistedSettings(),
-          new Promise((resolve, reject) => {
-            timeout = setTimeout(() => reject(new Error("Saved settings check timed out.")), timeoutMs)
-          })
-        ])
-      } finally {
-        clearTimeout(timeout)
-      }
-    },
     async loadPersistedSettings(device) {
       const loadId = ++this.settingsLoadId
       this.settingsState = "loading"
@@ -519,15 +525,16 @@ export default  {
         const snapshot = await this.readPersistedSettingsWithRetry(device)
         if (this.device !== device || loadId !== this.settingsLoadId) return
         applySettingsVector(this.commands_data, snapshot.values)
+        this.settingsSnapshotKnown = true
         this.forceRerender++
         this.settingsState = "loaded"
         this.settingsMessage = "Settings loaded. Changes now apply live and save automatically."
       } catch (error) {
         if (this.device !== device || loadId !== this.settingsLoadId) return
         this.settingsState = "error"
-        this.settingsMessage = this.firmwareVersion
-            ? `Firmware ${this.firmwareVersion} is connected, but saved settings did not answer. Live changes still work; reconnect to retry verification.`
-            : "Biotron is connected, but saved settings could not be read. Live changes still work; reconnect to retry verification."
+        this.settingsMessage = this.settingsSnapshotKnown
+            ? "Saved settings could not be rechecked. Existing controls remain available; retry the check."
+            : "Saved settings could not be read. Retry the connection; nothing can be changed until Biotron answers."
       }
     },
     clearLiveVerification() {
@@ -536,30 +543,8 @@ export default  {
       this.liveVerifyId++
     },
     releaseForDaw() { this.$refs.deviceSelector?.releaseMidi() },
-    scheduleLiveVerification(device) {
-      this.clearLiveVerification()
-      const verifyId = this.liveVerifyId
-      this.liveVerifyTimer = setTimeout(async () => {
-        this.liveVerifyTimer = null
-        if (this.device !== device || verifyId !== this.liveVerifyId) return
-        try {
-          const expected = settingsVectorFromCommands(this.commands_data)
-          const snapshot = await this.readPersistedSettingsWithRetry(device, 2)
-          if (this.device !== device || verifyId !== this.liveVerifyId) return
-          if (snapshot.dirty || !settingsVectorsEqual(snapshot.values, expected)) {
-            throw new Error("Saved settings did not match the controls.")
-          }
-          this.settingsState = "saved"
-          this.settingsMessage = savedSettingsMessage(this.lastChangedSetting)
-        } catch (error) {
-          if (this.device !== device || verifyId !== this.liveVerifyId) return
-          this.settingsState = "error"
-          this.settingsMessage = "Changed live. Saved copy could not be confirmed — try Check saved settings."
-        }
-      }, 1500)
-    },
     startCalibration() {
-      if (!this.device || this.calibrationBusy) return
+      if (!this.device || this.calibrationBusy || (this.betaBuild && !this.settingsSnapshotKnown)) return
       this.settingsLoadId++
       if (this.settingsState === "loading") {
         this.settingsState = "idle"
@@ -582,7 +567,7 @@ export default  {
       updateSoundSession({calibrating: this.calibrationBusy})
     },
     async change_data_loader() {
-      if (!this.device || this.is_loading) return
+      if (!this.device || this.is_loading || (this.betaBuild && !this.settingsSnapshotKnown)) return
       const device = this.device
       const waitForPendingSave = this.betaBuild && this.settingsState === "changed"
       this.is_loading = true;
@@ -625,7 +610,8 @@ export default  {
       }
     },
     async reduceExtraNotes() {
-      if (!this.device || this.is_loading || this.calibrationBusy) return
+      if (!this.device || this.is_loading || this.calibrationBusy ||
+          (this.betaBuild && !this.settingsSnapshotKnown)) return
       const device = this.device
       this.clearLiveVerification()
       this.settingsLoadId++
@@ -721,6 +707,7 @@ export default  {
       saveAs(myFile, "biotron-preset.txt");
     },
     async loadDataFromPreset(e) {
+      if (this.betaBuild && !this.settingsSnapshotKnown) return
       await this.patchChanged();
       for (let item of JSON.parse(e).commands) {
         this.commands_data[item.name].set_value(item.value);
@@ -739,6 +726,7 @@ export default  {
       await this.saveData();
     },
     async sys_ex_changed(object) {
+      if (this.betaBuild && !this.settingsSnapshotKnown) return
       // A user gesture wins over a late startup read; never overwrite the
       // control they just changed with an older snapshot.
       this.settingsLoadId++
@@ -791,6 +779,7 @@ export default  {
       calibrationMessage: "",
       settingsState: "idle",
       settingsMessage: "",
+      settingsSnapshotKnown: false,
       settingsLoadId: 0,
       liveVerifyTimer: null,
       liveVerifyId: 0,
