@@ -17,7 +17,6 @@ const TouchMePageRelease = () => import(/* webpackChunkName: "touchme" */ '@/com
 const TouchMePageStandalone = () => import(/* webpackChunkName: "touchme" */ '@/components/TouchMePage/TouchMePageStandalone.vue')
 const PlaytronPage = () => import(/* webpackChunkName: "playtron" */ '@/components/PlaytronPage/PlaytronPage.vue')
 const TouchMePageTest = () => import(/* webpackChunkName: "touchme" */ '@/components/TouchMePage/TouchMePageTest.vue')
-const ScalesPageTest = () => import(/* webpackChunkName: "scales" */ '@/components/ScalesPage/ScalesPageTest.vue')
 const CirclePage = () => import(/* webpackChunkName: "circle" */ '@/components/CirclePage/CirclePage.vue')
 const SoundLab = () => import(/* webpackChunkName: "sound-lab" */ '@sound-lab')
 const DeviceFirstPlay = () => import(/* webpackChunkName: "sound-lab" */ '@/components/SoundLab/DeviceFirstPlay.vue')
@@ -50,8 +49,8 @@ const routes = [
     { path: '/playtron', component: PlaytronPage, props: {id: "PlaytronWebMidiId", showChords: false}, meta: deviceMeta('Playtron') },
     { path: '/playtron/test', component: PlaytronPage, props: {id: "PlaytronWebMidiId", showChords: true}, meta: deviceMeta('Playtron') },
 
-    { path: '/scales', component: ScalesPage, props: {id: "ScalesWebMidiId_1"}, meta: deviceMeta('Scales') },
-    { path: '/scales/test', component: ScalesPageTest, props: {id: "ScalesWebMidiId_1"}, meta: deviceMeta('Scales') },
+    { path: '/scales', component: ScalesPage, props: {id: "ScalesWebMidiId_1", showExtraControls: true}, meta: deviceMeta('Scales') },
+    { path: '/scales/test', component: ScalesPage, props: {id: "ScalesWebMidiId_1", showExtraControls: false}, meta: deviceMeta('Scales') },
 
     { path: "/biotron/update", component: BiotronUpdatePage, meta: deviceMeta('Biotron')},
 

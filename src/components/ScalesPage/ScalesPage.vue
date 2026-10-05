@@ -1,8 +1,8 @@
 <template>
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
   <h1 class="text-center">Scales change settings</h1>
-  <DeviceSelector regex-name="Scales" @device_changed="(x) => {this.device = x}" text_label="🔌 Select Device" class="m-2" check-versions-flag/>
-  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" text_label="📂 Preset" class="m-2"/>
+  <DeviceSelector regex-name="Scales" @device_changed="(x) => {this.device = x}" :text_label="showExtraControls ? '🔌 Select Device' : 'Select device'" class="m-2" check-versions-flag/>
+  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" :text_label="showExtraControls ? '📂 Preset' : 'Presets'" class="m-2"/>
   <div class="row gx-1 mb-5">
     <div class="col">
       <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary w-100 h-100">SEND</button>
@@ -75,7 +75,7 @@
       </template>
     </BootstrapCollapse>
 
-    <BootstrapCollapse name_of_collapse="Extra">
+    <BootstrapCollapse v-if="showExtraControls" name_of_collapse="Extra">
       <template v-slot:objects>
         <GroupOfCommands name-of-group="">
           <template v-slot:objects>
@@ -155,6 +155,7 @@ export default  {
     GroupOfCommands,
     FileDropArea},
   props: {
+    showExtraControls: {type: Boolean, default: false},
     id: {
       type: String,
       required: true,
