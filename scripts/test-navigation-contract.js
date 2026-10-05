@@ -61,9 +61,10 @@ assert(settingsReadback.includes('Note Hold changes note length, not the LEDs.')
   biotron.includes('releaseForDaw'),
   'a verified save must explain the visible result and provide a one-click DAW handoff')
 assert(biotron.includes('Copy diagnostics for Andrey') &&
-  biotron.includes('Nothing is sent automatically.') &&
+  biotron.includes('Technical events sent online.') &&
+  app.includes('What is collected') &&
   settingsReadback.includes('buildBiotronDiagnosticPacket'),
-  'the beta must offer one user-controlled diagnostic packet without automatic sending')
+  'the beta must disclose automatic technical events and retain manual detailed diagnostics')
 assert(selector.includes('RECALIBRATE_COMMAND = 125'), 'Web and firmware recalibration command must stay aligned')
 assert(selector.includes('123 is reserved for persisted-settings readback'), 'Settings readback ID must remain reserved')
 assert(selector.includes('[0xf0, 0x14, 0x0d, RECALIBRATE_COMMAND, nonce, 0xf7]'),
@@ -81,11 +82,11 @@ assert(sound.includes('Did you hear Biotron play from the plant?') &&
   'first play must ask one binary outcome question after the task')
 assert(compatibility.includes('https://wa.me/351937910673') &&
   compatibility.includes('Reached: ${reached}') &&
-  sound.includes('Nothing is sent until you press Send.'),
+  sound.includes('Press Send to share.'),
   'task feedback must open the direct channel with stage and build context without sending automatically')
 assert(sound.includes("if (this.firstSoundOutcome !== 'helped') this.firstSoundOutcome = 'not_yet'") &&
-  sound.includes("'Biotron disconnected': 'Biotron disconnected before first sound'") &&
-  sound.includes("'Audio stopped unexpectedly': 'Audio stopped before first sound'"),
+  compatibility.includes("'Biotron disconnected': 'Biotron disconnected before first sound'") &&
+  compatibility.includes("'Audio stopped unexpectedly': 'Audio stopped before first sound'"),
   'first-play feedback must stay visible and identify a disconnect before first sound')
 assert(gate.includes(':feedback-url="feedbackUrl"') && compatibility.includes('taskFeedbackUrl') &&
   notice.includes('Tell Andrey where it stopped'),

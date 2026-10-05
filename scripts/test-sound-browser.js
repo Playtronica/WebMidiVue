@@ -83,7 +83,7 @@ async function verifyCapabilityFallbacks(browser, origin) {
   const audioOnly = await audioOnlyContext.newPage()
   const audioOnlyErrors = []
   audioOnly.on('pageerror', error => audioOnlyErrors.push(error.message))
-  await audioOnly.goto(`${origin}/#/sound`, {waitUntil: 'networkidle'})
+  await audioOnly.goto(`${origin}/#/sound`, {waitUntil: 'domcontentloaded'})
   await audioOnly.locator('.sound-lab[data-audio-capability="available"][data-midi-capability="unavailable"]').waitFor()
   await audioOnly.getByRole('heading', {name: 'USB device connection isn’t available here'}).waitFor()
   await audioOnly.getByText(/still try every sound with your keyboard or screen/i).waitFor()
@@ -95,7 +95,7 @@ async function verifyCapabilityFallbacks(browser, origin) {
   await audioOnly.locator('.sound-lab[data-active-voices="1"]').waitFor()
   await audioOnly.dispatchEvent('body', 'keyup', {code: 'KeyA', key: 'a'})
   await audioOnly.getByRole('button', {name: 'Stop & release'}).click()
-  await audioOnly.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
+  await audioOnly.goto(`${origin}/#/biotron/play`, {waitUntil: 'domcontentloaded'})
   await audioOnly.getByRole('heading', {name: 'No MIDI in this browser'}).waitFor()
   await audioOnly.getByText(/Use current Chrome or Edge on a computer/i).waitFor()
   assert.strictEqual(await audioOnly.getByRole('button', {name: 'Hear Biotron'}).count(), 0)
@@ -105,7 +105,7 @@ async function verifyCapabilityFallbacks(browser, origin) {
     ['/touchme', 'TouchMe'], ['/playtron', 'Playtron'],
     ['/scales', 'Scales'], ['/circle', 'Circle'], ['/scala', 'Playtronica device']
   ]) {
-    await audioOnly.goto(`${origin}/#${route}`, {waitUntil: 'networkidle'})
+    await audioOnly.goto(`${origin}/#${route}`, {waitUntil: 'domcontentloaded'})
     await audioOnly.getByRole('heading', {name: 'No MIDI in this browser'}).waitFor()
     await audioOnly.getByText(`${product} connects over Web MIDI`).waitFor()
     assert.strictEqual(await audioOnly.getByText('Select Device', {exact: true}).count(), 0)
@@ -120,13 +120,13 @@ async function verifyCapabilityFallbacks(browser, origin) {
   const android = await androidContext.newPage()
   const androidErrors = []
   android.on('pageerror', error => androidErrors.push(error.message))
-  await android.goto(`${origin}/#/biotron`, {waitUntil: 'networkidle'})
+  await android.goto(`${origin}/#/biotron`, {waitUntil: 'domcontentloaded'})
   await android.getByRole('heading', {name: 'Settings'}).waitFor()
   assert.strictEqual(await android.locator('.compatibility-notice').count(), 0)
-  await android.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
+  await android.goto(`${origin}/#/biotron/play`, {waitUntil: 'domcontentloaded'})
   await android.getByRole('button', {name: 'Hear Biotron'}).waitFor()
   assert.strictEqual(await android.locator('.compatibility-notice').count(), 0)
-  await android.goto(`${origin}/#/sound`, {waitUntil: 'networkidle'})
+  await android.goto(`${origin}/#/sound`, {waitUntil: 'domcontentloaded'})
   assert.strictEqual(await android.locator('.compatibility-notice').count(), 0)
   assert.strictEqual(await android.locator('.sound-lab__midi').count(), 1)
   await android.getByRole('button', {name: 'Start sound'}).tap()
@@ -146,13 +146,13 @@ async function verifyCapabilityFallbacks(browser, origin) {
   const denied = await deniedContext.newPage()
   const deniedErrors = []
   denied.on('pageerror', error => deniedErrors.push(error.message))
-  await denied.goto(`${origin}/#/sound`, {waitUntil: 'networkidle'})
+  await denied.goto(`${origin}/#/sound`, {waitUntil: 'domcontentloaded'})
   await denied.getByRole('button', {name: 'Start sound'}).click()
   await denied.locator('.sound-lab[data-audio-state="running"]').waitFor()
   await denied.getByRole('button', {name: 'Find MIDI device'}).click()
   await denied.getByText(/Allow device access, then try again/i).waitFor()
   await denied.getByRole('button', {name: 'Stop & release'}).click()
-  await denied.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
+  await denied.goto(`${origin}/#/biotron/play`, {waitUntil: 'domcontentloaded'})
   await denied.getByRole('button', {name: 'Hear Biotron'}).click()
   await denied.getByText(/Allow device access, then try again/i).waitFor()
   await denied.locator('.sound-lab[data-audio-state="closed"][data-tab-lease="free"]').waitFor()
@@ -168,7 +168,7 @@ async function verifyCapabilityFallbacks(browser, origin) {
     })
   })
   const missing = await missingContext.newPage()
-  await missing.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
+  await missing.goto(`${origin}/#/biotron/play`, {waitUntil: 'domcontentloaded'})
   await missing.getByRole('button', {name: 'Hear Biotron'}).click()
   await missing.getByText('Connect Biotron first', {exact: true}).waitFor()
   await missing.getByText(/Plug Biotron into this computer with a USB data cable/i).waitFor()
@@ -186,11 +186,11 @@ async function verifyCapabilityFallbacks(browser, origin) {
   const noAudio = await noAudioContext.newPage()
   const noAudioErrors = []
   noAudio.on('pageerror', error => noAudioErrors.push(error.message))
-  await noAudio.goto(`${origin}/#/sound`, {waitUntil: 'networkidle'})
+  await noAudio.goto(`${origin}/#/sound`, {waitUntil: 'domcontentloaded'})
   await noAudio.getByRole('heading', {name: 'Sound can’t start in this browser'}).waitFor()
   assert.strictEqual(await noAudio.getByRole('button', {name: 'Start sound'}).count(), 0)
   assert.strictEqual(await noAudio.locator('.sound-lab').count(), 0)
-  await noAudio.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
+  await noAudio.goto(`${origin}/#/biotron/play`, {waitUntil: 'domcontentloaded'})
   await noAudio.getByRole('heading', {name: 'Sound can’t start in this browser'}).waitFor()
   assert.strictEqual(await noAudio.getByRole('button', {name: 'Hear Biotron'}).count(), 0)
   assert((await noAudio.getByRole('link', {name: 'Tell Andrey where it stopped'}).getAttribute('href')).includes('Reached%3A%20Compatibility%3A%20audio'))
@@ -206,15 +206,15 @@ async function verifyCapabilityFallbacks(browser, origin) {
   const iphone = await iphoneContext.newPage()
   const iphoneErrors = []
   iphone.on('pageerror', error => iphoneErrors.push(error.message))
-  await iphone.goto(`${origin}/#/biotron`, {waitUntil: 'networkidle'})
+  await iphone.goto(`${origin}/#/biotron`, {waitUntil: 'domcontentloaded'})
   await iphone.getByRole('heading', {name: 'No MIDI in this browser'}).waitFor()
   const midiWebLink = iphone.getByRole('link', {name: 'Get MIDIWeb Browser'})
   await midiWebLink.waitFor()
   assert.strictEqual(await midiWebLink.getAttribute('href'), 'https://apps.apple.com/us/app/midiweb-browser/id6757226617')
   assert.strictEqual(await iphone.getByRole('heading', {name: 'Settings'}).count(), 0)
-  await iphone.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
+  await iphone.goto(`${origin}/#/biotron/play`, {waitUntil: 'domcontentloaded'})
   assert((await iphone.getByRole('link', {name: 'Tell Andrey where it stopped'}).getAttribute('href')).includes('Reached%3A%20Compatibility%3A%20midi'))
-  await iphone.goto(`${origin}/#/sound`, {waitUntil: 'networkidle'})
+  await iphone.goto(`${origin}/#/sound`, {waitUntil: 'domcontentloaded'})
   await iphone.getByRole('heading', {name: 'USB device connection isn’t available here'}).waitFor()
   await iphone.getByRole('link', {name: 'Get MIDIWeb Browser'}).waitFor()
   assert.strictEqual(await iphone.locator('.sound-lab__midi').count(), 0)
@@ -323,6 +323,11 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
   try {
     const context = await browser.newContext()
     context.setDefaultTimeout(5000)
+    const telemetryEvents = []
+    await context.route('**/api/telemetry', route => {
+      telemetryEvents.push(JSON.parse(route.request().postData()))
+      return route.fulfill({status: 202, contentType: 'application/json', body: '{"accepted":true}'})
+    })
     await context.addInitScript(() => {
       window.__soundMidiRequests = []
       window.__soundMidiSent = []
@@ -844,6 +849,8 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     const disconnectedFeedback = page.getByRole('link', {name: 'Not yet — open WhatsApp'})
     assert((await disconnectedFeedback.getAttribute('href')).includes('Reached%3A%20Biotron%20disconnected%20before%20first%20sound'))
     await verifyCapabilityFallbacks(browser, origin)
+    assert(telemetryEvents.some(event => event.event_name === 'session.started' && event.service_name === 'biotron'))
+    assert(telemetryEvents.every(event => !('raw_midi' in event) && !('device_name' in event)))
     assert.deepStrictEqual(errors, [])
     if (realtimeSoak) writeSoakEvidence('PASS', 'suite-complete', realtimeSoak)
     console.log(`Sound browser verified: first-play Biotron reveal, Play → Settings → Speed live-save continuity, permission/audio-only/no-audio fallbacks, 7 variants, 6x-throttled Low CPU start ${constrainedStartMilliseconds} ms and burst ${constrainedBurstMilliseconds.toFixed(1)} ms, exclusive two-tab sound handoff, 100/100 lifecycle cycles in ${cycleMilliseconds} ms, 1000 burst ${burstMilliseconds.toFixed(1)} ms, 20000 soak ${soakMilliseconds.toFixed(1)} ms, optional real-time soak ${realtimeSoak ? `${realtimeSoak.elapsedMilliseconds} ms` : 'not requested'}, heap delta ${heapGrowth}, disconnect/background recovery and retryable release.`)

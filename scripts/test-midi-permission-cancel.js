@@ -107,7 +107,7 @@ const bind = (componentOptions, props = {}, withData = true) => {
     module: {exports: {}}, markRaw: value => value, AbortController,
     CompatibilityNotice: {}, DeviceTaskNav: {}, MIDI_PROMPT_HINT: 'Allow MIDI',
     selectRevealInput: inputs => inputs[0], window: {setTimeout, clearTimeout},
-    document: {}, trace() {}
+    document: {}, trace() {}, recordBiotronEvent() {}
   }
   const keyboardContext = {module: {exports: {}}}
   vm.runInNewContext(fs.readFileSync('src/audio/core.mjs', 'utf8').replace(/^export /gm, '') +

@@ -22,6 +22,7 @@ const packet = buildBiotronDiagnosticPacket({
 })
 
 assert.equal(packet.schema, "playtronica.biotron-diagnostics.v1")
+assert.match(packet.diagnostic_session_id, /^[0-9a-f-]{36}$/)
 assert.equal(packet.web_tool.build_id, "abc123def456")
 assert.equal(packet.environment.web_midi_available, true)
 assert.equal(packet.device.midi_port_name, "Biotron MIDI")

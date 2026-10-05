@@ -53,6 +53,14 @@ module.exports = {
           from: path.resolve(__dirname, 'beta-assets/_headers'),
           to: path.resolve(__dirname, 'dist')
         })
+        args[0].patterns.push({
+          from: path.resolve(__dirname, 'beta-assets/telemetry-worker.mjs'),
+          to: path.resolve(__dirname, 'dist/_worker.js')
+        })
+        args[0].patterns.push({
+          from: path.resolve(__dirname, 'beta-assets/telemetry.html'),
+          to: path.resolve(__dirname, 'dist/telemetry.html')
+        })
         return args
       })
     }
@@ -93,7 +101,7 @@ module.exports = {
       navigateFallback: 'index.html',
       // Vue CLI excludes install icons by default; cache them explicitly so the
       // installed app remains complete when the first offline launch occurs.
-      exclude: [/\.map$/, /favicon\.ico$/, /^manifest.*\.js?$/, /^firmware\//, /^_headers$/,
+      exclude: [/\.map$/, /favicon\.ico$/, /^manifest.*\.js?$/, /^firmware\//, /^_headers$/, /^_worker\.js$/,
         /^js\/(?:touchme|playtron|scales|scala|circle)\./]
     }
   }

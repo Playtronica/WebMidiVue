@@ -6,7 +6,7 @@ const zlib = require('zlib')
 const root = path.resolve(__dirname, '..', 'dist')
 const read = file => fs.readFileSync(path.join(root, file), 'utf8')
 
-for (const file of ['index.html', 'manifest.json', 'service-worker.js', '_headers']) {
+for (const file of ['index.html', 'manifest.json', 'service-worker.js', '_headers', '_worker.js', 'telemetry.html']) {
   assert(fs.existsSync(path.join(root, file)), `${file} is missing from the production build`)
 }
 assert(!fs.existsSync(path.join(root, 'firmware')), 'general beta must not ship the firmware test artifact')
@@ -28,6 +28,7 @@ for (const directive of ['X-Frame-Options: DENY', "Content-Security-Policy: fram
   assert(headers.includes(directive), `beta header is missing: ${directive}`)
 }
 assert(!serviceWorker.includes('_headers'), 'deployment headers must not enter the offline cache')
+assert(!serviceWorker.includes('_worker.js'), 'telemetry worker must not enter the offline cache')
 assert(serviceWorker.includes('precacheAndRoute'), 'Workbox precache is not enabled')
 assert(serviceWorker.includes('index.html'), 'app shell is not precached')
 assert(serviceWorker.includes('revision'), 'precache entries are not revisioned')

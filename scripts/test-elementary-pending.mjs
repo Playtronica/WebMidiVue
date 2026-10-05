@@ -161,7 +161,7 @@ function soundStartupFixture(engines) {
     },
     navigator: {}, soundSessionState: {calibrating: false}, BIOTRON_CALIBRATION: {},
     KEYBOARD_CODE_TO_NOTE,
-    trace() {}, parseBiotronCalibrationState() { return null },
+    trace() {}, recordBiotronEvent() {}, parseBiotronCalibrationState() { return null },
     updateSoundSession() {}, createRealtimeSynth: () => engines.shift(),
     MidiInputSession: class {async close() {}}
   }

@@ -40,7 +40,7 @@ async function auditProfile(browser, origin, profile) {
   const page = await context.newPage()
   const pageErrors = []
   page.on('pageerror', error => pageErrors.push(error.message))
-  await page.goto(`${origin}/#/biotron`, {waitUntil: 'networkidle'})
+  await page.goto(`${origin}/#/biotron`, {waitUntil: 'domcontentloaded'})
   await page.getByRole('heading', {name: profile.heading}).waitFor()
   await page.getByText(/Offline mode is ready/i).waitFor({timeout: 15000})
 
@@ -101,7 +101,7 @@ async function auditProfile(browser, origin, profile) {
   assert.deepStrictEqual(result.logo, {source: '/Logo-Black-280.webp', width: '280', height: '199'})
 
   if (profile.midi) {
-    await page.goto(`${origin}/#/biotron/play`, {waitUntil: 'networkidle'})
+    await page.goto(`${origin}/#/biotron/play`, {waitUntil: 'domcontentloaded'})
     await page.getByRole('heading', {name: 'Meet Biotron'}).waitFor()
     assert.strictEqual(await page.locator('.beta-feedback').count(), 0,
       `${profile.name}: first play must not duplicate the generic feedback block`)

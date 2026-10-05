@@ -14,7 +14,9 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
+import tomllib
 import tarfile
 import tempfile
 import time
@@ -29,9 +31,11 @@ PROJECT_NAME = "biotron-settings-beta"
 FORBIDDEN_BRANCHES = {"main", "master", "production", "prod", "deploy"}
 REQUIRED_FILES = {
     "_headers",
+    "_worker.js",
     "index.html",
     "manifest.json",
     "service-worker.js",
+    "telemetry.html",
 }
 REQUIRED_HEADER_LINES = {
     "X-Frame-Options: DENY",
@@ -204,6 +208,22 @@ def verify_candidate(
     if failed:
         raise CandidateError(f"release evidence failed: {', '.join(failed)}")
     validate_manifest_files(dist, outer_release, build_id)
+    config_path = candidate_dir / "wrangler.toml"
+    config_evidence = outer_release.get("deploy_config") or {}
+    if (config_evidence.get("path") != "wrangler.toml" or not config_path.is_file() or
+            config_path.stat().st_size != config_evidence.get("bytes") or
+            sha256_file(config_path) != config_evidence.get("sha256")):
+        raise CandidateError("candidate Wrangler config does not match release evidence")
+    config = tomllib.loads(config_path.read_text(encoding="utf-8"))
+    preview = config.get("env", {}).get("preview", {})
+    if (set(config) != {"name", "compatibility_date", "pages_build_output_dir", "env"} or
+            config["name"] != PROJECT_NAME or config["pages_build_output_dir"] != "./dist" or
+            config["env"].get("production") != {} or
+            preview.get("d1_databases") != [{"binding": "SESSION_EVENTS",
+                "database_name": "playtronica-session-events",
+                "database_id": "0d385f91-f646-4f8c-b508-344b4b2f8a6e"}]):
+        raise CandidateError("candidate Wrangler config targets an unexpected project or database")
+    shutil.copyfile(config_path, extract_root / "wrangler.toml")
 
     test = load_json(test_path)
     test_checks = {
@@ -214,6 +234,8 @@ def verify_candidate(
         "command": test.get("command") == "npm run test:biotron",
         "status": test.get("status") == "pass",
         "port_guard": "secondary_service_midi_port_hidden_from_device_picker"
+        in (test.get("verified") or []),
+        "telemetry_contract": "telemetry_contract_and_privacy"
         in (test.get("verified") or []),
     }
     failed_tests = [name for name, passed in test_checks.items() if not passed]
@@ -229,10 +251,11 @@ def verify_candidate(
         "build_id": build_id,
         "archive_sha256": archive_sha256,
         "file_count": len(outer_release["files"]),
-        "served_file_count": sum(item["path"] != "_headers" for item in outer_release["files"]),
-        "config_file_count": sum(item["path"] == "_headers" for item in outer_release["files"]),
+        "served_file_count": sum(item["path"] not in {"_headers", "_worker.js"} for item in outer_release["files"]),
+        "config_file_count": sum(item["path"] in {"_headers", "_worker.js"} for item in outer_release["files"]),
         "firmware_update_enabled": False,
         "dist": str(dist),
+        "deploy_cwd": str(extract_root),
         "confirmation_token": token,
         "release": outer_release,
     }
@@ -315,11 +338,14 @@ def verify_remote(url: str, verified: dict) -> dict:
             if remote_release != local_release:
                 raise CandidateError("remote release evidence is not byte-identical")
             for item in release["files"]:
-                if item["path"] == "_headers":
-                    continue  # Cloudflare applies this config; it does not serve it as an asset.
+                if item["path"] in {"_headers", "_worker.js"}:
+                    continue  # Cloudflare applies these files; neither is served as a static asset.
                 remote, _ = request_bytes(url + "/" + urllib.parse.quote(item["path"]))
                 if len(remote) != item["bytes"] or hashlib.sha256(remote).hexdigest() != item["sha256"]:
                     raise CandidateError(f"remote file mismatch: {item['path']}")
+            health, _ = request_bytes(url + "/api/telemetry")
+            if json.loads(health) != {"status": "ready"}:
+                raise CandidateError("remote telemetry storage is not ready")
             header_expectations = {
                 "X-Frame-Options": "DENY",
                 "Content-Security-Policy": "frame-ancestors 'none'",
@@ -373,7 +399,7 @@ def main() -> None:
             branch,
             Path(temporary),
         )
-        plan = {key: value for key, value in verified.items() if key not in {"dist", "release"}}
+        plan = {key: value for key, value in verified.items() if key not in {"dist", "release", "deploy_cwd"}}
         if not args.execute:
             plan["next_action"] = "rerun with --execute, --wrangler and the exact confirmation token"
             print(json.dumps(plan, indent=2, sort_keys=True))
@@ -394,6 +420,7 @@ def main() -> None:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
+            cwd=verified["deploy_cwd"],
         )
         print(completed.stdout, end="")
         url = unique_preview_url(completed.stdout)

@@ -85,7 +85,7 @@
           <span class="sound-lab__status sound-lab__status--reveal" role="status" aria-live="polite">{{ status }}</span>
           <div v-if="engine || revealIssue" class="sound-lab__diagnostic">
             <button type="button" class="btn btn-outline-secondary btn-sm" @click="copyPlayDiagnostics">Copy diagnostics for Andrey</button>
-            <small>{{ diagnosticMessage || 'Copies this build, audio and MIDI state. Nothing is sent automatically.' }}</small>
+            <small>{{ diagnosticMessage || 'Copies this build, audio and MIDI state. Technical events sent online. Copy details here.' }}</small>
           </div>
         </div>
       </section>
@@ -109,9 +109,9 @@
         </div>
       </section>
 
-      <section v-if="firstSoundOutcome" class="sound-lab__task-feedback" aria-labelledby="first-sound-feedback-title"><small>One quick answer</small><h2 id="first-sound-feedback-title">Did you hear Biotron play from the plant?</h2>
-        <div class="sound-lab__task-feedback-actions"><a :href="firstSoundFeedbackUrl('helped')" class="btn btn-dark" target="_blank" rel="noopener">Yes — open WhatsApp</a><a :href="firstSoundFeedbackUrl('not_yet')" class="btn btn-outline-dark" target="_blank" rel="noopener">Not yet — open WhatsApp</a></div>
-        <small>WhatsApp opens with this build number and where the page stopped. Nothing is sent until you press Send.</small></section>
+      <section v-if="firstSoundOutcome" class="sound-lab__connect-notice sound-lab__task-feedback" aria-labelledby="first-sound-feedback-title"><small>One quick answer</small><h2 id="first-sound-feedback-title">Did you hear Biotron play from the plant?</h2>
+        <div class="sound-lab__reveal-actions sound-lab__task-feedback-actions"><a :href="firstSoundFeedbackUrl('helped')" @click="recordFirstSound('heard')" class="btn btn-dark" target="_blank" rel="noopener">Yes — open WhatsApp</a><a :href="firstSoundFeedbackUrl('not_yet')" @click="recordFirstSound('not_heard')" class="btn btn-outline-dark" target="_blank" rel="noopener">Not yet — open WhatsApp</a></div>
+        <small>WhatsApp draft includes build and stop point. Press Send to share.</small></section>
     </template>
 
     <template v-else>
@@ -229,7 +229,7 @@ import {getRevealProfile, selectRevealInput} from '@/audio/revealProfiles.mjs'
 import {detectSoundCapabilities, soundCapabilityMessage} from '@/audio/capabilities.mjs'
 import DeviceTaskNav from '@/components/DeviceTaskNav.vue'
 import CompatibilityNotice from '@/components/CompatibilityNotice.vue'
-import {buildMidiAdvisory, detectPlatformCapabilities, taskFeedbackUrl} from '@/compatibility.mjs'
+import {biotronFirstSoundFeedbackUrl, buildMidiAdvisory, detectPlatformCapabilities, recordBiotronEvent} from '@/compatibility.mjs'
 
 const noteNames = ['C', 'C sharp', 'D', 'D sharp', 'E', 'F', 'F sharp',
   'G', 'G sharp', 'A', 'A sharp', 'B', 'C high']
@@ -374,7 +374,7 @@ export default {
     if (this.releaseBlocked) next(false)
     else next()
   },
-  watch: {revealStage(stage) { trace('stage', stage) }},
+  watch: {revealStage(stage) { trace('stage', stage); if (this.revealMode) recordBiotronEvent('play.stage_changed', {stage}) }},
   methods: {
     ...createSoundSessionEffects({resumeAudioWithin, trace, updateSoundSession,
       parseBiotronCalibrationState, BIOTRON_CALIBRATION}),
@@ -625,6 +625,7 @@ export default {
     },
     async startReveal() {
       if (this.starting) return
+      recordBiotronEvent('play.attempted')
       if (!this.canStartReveal) {
         this.status = soundCapabilityMessage(this.capabilities, {requiresMidi: true})
         return
@@ -669,6 +670,7 @@ export default {
         failure = error.message || `${this.revealProfile.productName} could not start.`
         const missingDevice = /was not found|No MIDI inputs found/i.test(failure)
         const denied = /permission was not allowed/i.test(failure)
+        recordBiotronEvent('midi.connection_changed', {result: 'failed', error_type: denied ? 'permission_denied' : missingDevice ? 'device_missing' : 'connection_failed'})
         await this.stop()
         if (!this.releaseBlocked) {
           this.status = missingDevice ? 'Biotron is not connected yet.' : 'Biotron could not start.'
@@ -685,6 +687,7 @@ export default {
       }
     },
     handleMidiState(event) {
+      if (this.revealMode && ['connected', 'disconnected', 'release-error'].includes(event.type)) recordBiotronEvent('midi.connection_changed', {midi_state: event.type})
       if (event.type === 'ports') {
         this.midiInputs = event.inputs
         if (!event.inputs.some(input => input.id === this.selectedInput)) {
@@ -747,6 +750,7 @@ export default {
       if (!running) { this.engine?.panic(); this.resetVoiceUi() }
       Object.assign(this, {audioState: state, status})
       trace('audio-state', state)
+      if (this.revealMode) recordBiotronEvent('audio.state_changed', {audio_state: state, last_midi_at: this.midi?.lastMessageAt})
       updateSoundSession({running, volume: this.volume})
     },
     handleAudioContextState(state) {
@@ -770,11 +774,9 @@ export default {
       if (document.hidden || !this.engine || !['suspended', 'interrupted'].includes(this.engine.context.state)) return
       await this.resumeSound({automatic: true})
     },
+    recordFirstSound(result) { recordBiotronEvent('play.outcome_reported', {result}) },
     firstSoundFeedbackUrl(outcome) {
-      const result = outcome === 'helped' ? 'I heard Biotron play from the plant.' : 'I did not hear Biotron play from the plant yet.'
-      const build = process.env.VUE_APP_BUILD_ID || 'local-build'
-      const stoppedAt = outcome === 'helped' ? 'Sound from the plant' : ({'Connect Biotron first': 'Biotron was not found', 'Allow access to Biotron': 'MIDI permission', 'No plant signal yet': 'No plant signal after 15 seconds', 'Calibration did not finish': 'Calibration did not finish', 'Sound is open elsewhere': 'Sound open in another tab', 'Biotron disconnected': 'Biotron disconnected before first sound', 'Audio stopped unexpectedly': 'Audio stopped before first sound', 'Biotron could not start': 'Biotron could not start'}[this.revealIssue?.title] || 'Before first sound')
-      return taskFeedbackUrl(result, stoppedAt, build)
+      return biotronFirstSoundFeedbackUrl(outcome, this.revealIssue?.title, process.env.VUE_APP_BUILD_ID || 'local-build')
     }
   }
 }
@@ -821,10 +823,9 @@ export default {
 .sound-lab__status--reveal { display: block; margin-top: .75rem; padding-left: 0; }
 .sound-lab__after-reveal { max-width: 760px; margin: 1rem auto 0; }
 .sound-lab__reveal-variants { display: flex; flex-basis: 100%; flex-wrap: wrap; gap: .5rem; padding-top: .5rem; }
-.sound-lab__task-feedback { display:grid; gap:.7rem; max-width:760px; margin:1rem auto 0!important; padding:1rem 1.1rem; border:1px solid rgba(106,90,205,.24); border-radius:1rem; background:#f7f5ff; }
+.sound-lab__task-feedback { max-width:760px; margin:1rem auto 0!important; }
 .sound-lab__task-feedback small { color:#625e58; }
 .sound-lab__task-feedback h2 { margin:0; font-size:clamp(1.15rem,3vw,1.4rem); }
-.sound-lab__task-feedback-actions { display:flex; flex-wrap:wrap; gap:.55rem; }
 .sound-lab__keyboard { display: grid; grid-template-columns: repeat(13, minmax(44px, 1fr)); gap: 4px; overflow-x: auto; padding-bottom: .5rem; }
 .sound-lab__keyboard button { min-width: 44px; height: 120px; border: 1px solid #cbc6be; border-radius: .6rem; background: #fff; align-content: end; padding-bottom: .7rem; }
 .sound-lab__keyboard .sound-lab__black-key { height: 82px; background: #2b2b30; color: #fff; }

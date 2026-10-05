@@ -60,7 +60,7 @@
     </div>
     <div v-if="betaBuild" class="diagnostic-copy mt-2">
       <button type="button" class="btn btn-outline-secondary btn-sm" @click="copyDiagnosticInfo">Copy diagnostics for Andrey</button>
-      <small class="d-block mt-1 text-muted">{{ diagnosticMessage || "Copies this build, browser, connection and device state. Nothing is sent automatically." }}</small>
+      <small class="d-block mt-1 text-muted">{{ diagnosticMessage || "Copies this build, browser, connection and device state. Technical events sent online. Copy more details here." }}</small>
     </div>
     <UpdateFirmwareComponent v-if="betaBuild && firmwareTestEnabled" class="w-100 mt-3" text="Update Firmware" repo="Playtronica/biotron-firmware" :device="device" :current-version="firmwareVersion" version-aware @check_firmware="checkFirmware"/>
     </section>
@@ -395,6 +395,7 @@
 
 <script>
 import {createSettingsConnectionMethods} from '@/biotron/settingsConnection.mjs'
+import {recordBiotronEvent, recordSettingsState} from '@/biotron/telemetry.mjs'
 import {withMidiWriteSession} from "@/assets/js/timing.mjs"
 
 import { saveAs } from '@progress/kendo-file-saver';
@@ -467,6 +468,7 @@ export default  {
       return mode
     }
   },
+  watch: {settingsState(state, previous) { if (this.betaBuild) recordSettingsState(state, previous, this.firmwareVersion) }},
   methods: {
     ...createSettingsConnectionMethods({settingsVectorFromCommands, settingsVectorsEqual, savedSettingsMessage}),
     async copyDiagnosticInfo() {
@@ -476,6 +478,7 @@ export default  {
       this.clearLiveVerification()
       this.settingsLoadId++
       this.device = device
+      if (this.betaBuild) recordBiotronEvent('midi.connection_changed', {result: device ? 'ready' : 'stopped', port_count: this.$refs.deviceSelector?.devices?.length})
       this.settingsSnapshotKnown = false
       this.firmwareVersion = ""
       if (!device && this.calibrationBusy) {
@@ -563,6 +566,7 @@ export default  {
         error: "Calibration could not start. Reconnect Biotron and try again."
       }
       this.calibrationState = event?.state || "error"
+      if (this.betaBuild) recordBiotronEvent('calibration.state_changed', {stage: this.calibrationState, result: this.calibrationState === 'ready' ? 'ready' : ['error', 'timeout', 'unsupported'].includes(this.calibrationState) ? 'failed' : 'started', error_type: this.calibrationState === 'timeout' ? 'calibration_timeout' : undefined})
       this.calibrationMessage = messages[this.calibrationState] || messages.error
       updateSoundSession({calibrating: this.calibrationBusy})
     },

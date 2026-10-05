@@ -75,6 +75,9 @@ const router = createRouter({
 })
 
 if (betaBuild) {
+    router.afterEach(to => {
+        if (to.path.startsWith('/biotron')) void import(/* webpackChunkName: 'biotron-telemetry' */ '@/biotron/telemetry.mjs').then(module => module.recordBiotronEvent('session.started')).catch(() => {})
+    })
     router.beforeEach(async (to, from) => {
         if (from.path !== '/biotron' || to.path === '/biotron/play' || !soundSessionState.running) return true
         return await stopPersistentSound()

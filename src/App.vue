@@ -24,6 +24,7 @@
     </nav>
   </header>
   <small v-if="betaBuild" class="beta-build"><span>Biotron offline beta</span> · {{ buildId }}</small>
+  <small v-if="betaBuild" class="beta-build">Technical events are sent online. <a href="/telemetry.html">What is collected</a></small>
   <div v-if="!firstPlay" class="offline-status-slot">
     <div
       v-if="offlineMessage"

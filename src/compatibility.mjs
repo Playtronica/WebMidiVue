@@ -1,6 +1,14 @@
 export const MIDIWEB_BROWSER_URL = 'https://apps.apple.com/us/app/midiweb-browser/id6757226617'
 export const taskFeedbackUrl = (result, reached, build, task = 'first sound') => `https://wa.me/351937910673?text=${encodeURIComponent(`${result}\n\nReached: ${reached}\nBuild: ${build}\nTask: ${task}`)}`
 
+export const recordBiotronEvent = (name, input) => void import(/* webpackChunkName: 'biotron-telemetry' */ './biotron/telemetry.mjs').then(module => module.recordBiotronEvent(name, input)).catch(() => {})
+
+export function biotronFirstSoundFeedbackUrl(outcome, issueTitle, build) {
+  const result = outcome === 'helped' ? 'I heard Biotron play from the plant.' : 'I did not hear Biotron play from the plant yet.'
+  const stoppedAt = outcome === 'helped' ? 'Sound from the plant' : ({'Connect Biotron first': 'Biotron was not found', 'Allow access to Biotron': 'MIDI permission', 'No plant signal yet': 'No plant signal after 15 seconds', 'Calibration did not finish': 'Calibration did not finish', 'Sound is open elsewhere': 'Sound open in another tab', 'Biotron disconnected': 'Biotron disconnected before first sound', 'Audio stopped unexpectedly': 'Audio stopped before first sound', 'Biotron could not start': 'Biotron could not start'}[issueTitle] || 'Before first sound')
+  return taskFeedbackUrl(result, stoppedAt, build)
+}
+
 export function detectPlatformCapabilities(runtime = globalThis) {
   const navigator = runtime.navigator || {}
   const userAgent = navigator.userAgent || ''

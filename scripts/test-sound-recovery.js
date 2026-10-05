@@ -25,7 +25,7 @@ function fixture() {
     module: {exports: {}}, document: {hidden: false}, markRaw: value => value, AbortController,
     KEYBOARD_CODE_TO_NOTE,
     window: {setTimeout, clearTimeout, __biotronTrace: []},
-    trace: (kind, data) => events.push([kind, data]),
+    trace: (kind, data) => events.push([kind, data]), recordBiotronEvent() {},
     CompatibilityNotice: {}, DeviceTaskNav: {},
     parseBiotronCalibrationState: message => message.calibration || null,
     selectRevealInput: inputs => inputs[0], MIDI_PROMPT_HINT: 'Allow MIDI',

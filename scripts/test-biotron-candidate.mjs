@@ -31,6 +31,7 @@ test("release evidence is complete, sorted and bound to the exact commit", () =>
     })
     assert.equal(manifest.build_id, "abc123def456")
     assert.equal(manifest.firmware_update_enabled, false)
+    assert.equal(manifest.deploy_config.path, "wrangler.toml")
     assert.deepEqual(manifest.files.map(file => file.path), ["index.html", "js/app.js"])
     assert(manifest.files.every(file => file.sha256.length === 64))
   } finally {
@@ -90,6 +91,7 @@ test("candidate packaging is atomic, immutable and free of macOS metadata entrie
 
     assert.equal(packaged.archiveSha256.length, 64)
     assert(existsSync(resolve(packaged.candidateDir, packaged.archiveName)))
+    assert(existsSync(resolve(packaged.candidateDir, "wrangler.toml")))
     assert.match(
       readFileSync(resolve(packaged.candidateDir, "PHYSICAL-TEST.md"), "utf8"),
       new RegExp(buildId),

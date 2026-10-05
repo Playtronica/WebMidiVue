@@ -105,10 +105,14 @@ its saved state; firmware recovery remains reachable when the device is
 already mounted as `RPI-RP2`. This prevents a tester from editing an
 unverified placeholder state.
 
-The beta Settings page has one user-controlled `Copy diagnostics for Andrey`
-action. It copies the exact web build, browser capabilities, connection state,
-reported firmware version and current workflow state; it never sends anything
-automatically and excludes opaque browser MIDI port IDs.
+The beta sends small, structured technical events while online: connection,
+calibration, audio, saved-settings state and the tester's explicit first-sound
+answer. It sends no raw MIDI, SysEx, audio, preset contents, port names/IDs or
+full user agent. The separate `Copy diagnostics for Andrey` action copies a
+richer packet for the tester to share manually. The in-app notice links to
+`telemetry.html`; the server-side intake is an isolated Pages Function backed by
+an EU-jurisdiction D1 database. See `docs/BIOTRON-TELEMETRY.md` for its contract,
+privacy/release checks and retention operation.
 
 Beta routes declare their required capabilities in `src/main.js`. One shared
 compatibility gate checks secure context, Web MIDI and Web Audio before mounting

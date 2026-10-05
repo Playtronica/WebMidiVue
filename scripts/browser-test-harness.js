@@ -19,6 +19,12 @@ function chromePath() {
 function createStaticServer(root, options = {}) {
   return http.createServer((request, response) => {
     const pathname = new URL(request.url, 'http://127.0.0.1').pathname
+    if (pathname === '/api/telemetry' && request.method === 'POST') {
+      request.resume()
+      response.writeHead(202, {'Content-Type': 'application/json', 'Cache-Control': 'no-store'})
+      response.end('{"accepted":true}')
+      return
+    }
     let relative = pathname === '/' ? 'index.html' : pathname.slice(1)
     let file = path.resolve(root, relative)
     if (!file.startsWith(`${root}${path.sep}`) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {

@@ -1,0 +1,12 @@
+# Downloaded from the existing biotron-settings-beta project on 2026-10-05.
+# The preview binding is the only project setting added by this candidate.
+name = "biotron-settings-beta"
+compatibility_date = "2026-08-26"
+pages_build_output_dir = "./dist"
+
+[env.production]
+
+[[env.preview.d1_databases]]
+binding = "SESSION_EVENTS"
+database_name = "playtronica-session-events"
+database_id = "0d385f91-f646-4f8c-b508-344b4b2f8a6e"

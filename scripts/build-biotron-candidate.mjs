@@ -60,6 +60,7 @@ export function createTestEvidence({commit, buildId, testedAt, environment}) {
       "android_identical_midi_cables_choose_primary_cable",
       "two_android_biotron_units_remain_ambiguous",
       "diagnostics_and_release_evidence",
+      "telemetry_contract_and_privacy",
       "first_use_plant_connection_prerequisite_visible",
       "sound_core_and_seven_sound_levels",
       "audio_interruption_state_and_foreground_recovery",
@@ -149,6 +150,7 @@ export function packageCandidate(distDir, outputRoot, details) {
     const archiveName = `biotron-beta-${buildId}.tar.gz`
     const archivePath = resolve(staging, archiveName)
     copyFileSync(resolve(distDir, "release-evidence.json"), resolve(staging, "release-evidence.json"))
+    copyFileSync(resolve(root, "wrangler.toml"), resolve(staging, "wrangler.toml"))
     writeFileSync(
       resolve(staging, "test-evidence.json"),
       `${JSON.stringify(createTestEvidence(details), null, 2)}\n`,
@@ -199,6 +201,7 @@ export function createReleaseEvidence(distDir, {commit, branch, builtAt}) {
     source_clean: true,
     firmware_update_enabled: false,
     release_gate: "npm run test:biotron",
+    deploy_config: {path: "wrangler.toml", bytes: statSync(resolve(root, "wrangler.toml")).size, sha256: sha256File(resolve(root, "wrangler.toml"))},
     files,
   }
 }

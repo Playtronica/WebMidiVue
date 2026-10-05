@@ -37,6 +37,8 @@ class BiotronPreviewGuardTests(unittest.TestCase):
             "index.html": f"<body>{self.build_id}</body>",
             "manifest.json": '{"name":"Biotron Settings Offline Beta"}',
             "service-worker.js": "self.addEventListener('fetch', () => {})",
+            "telemetry.html": "<p>Technical events</p>",
+            "_worker.js": "export default {fetch(request, env) { return env.ASSETS.fetch(request) }}",
             "_headers": "/*\n  X-Frame-Options: DENY\n  Content-Security-Policy: frame-ancestors 'none'\n  Permissions-Policy: midi=(self), camera=(), microphone=(), geolocation=()\n  Referrer-Policy: no-referrer\n  X-Robots-Tag: noindex\n",
         }
         for name, content in files.items():
@@ -46,7 +48,18 @@ class BiotronPreviewGuardTests(unittest.TestCase):
             {"path": name, "bytes": (self.dist / name).stat().st_size, "sha256": self.sha(self.dist / name)}
             for name in sorted(files)
         ]
+        config = """name = "biotron-settings-beta"
+compatibility_date = "2026-08-26"
+pages_build_output_dir = "./dist"
+[env.production]
+[[env.preview.d1_databases]]
+binding = "SESSION_EVENTS"
+database_name = "playtronica-session-events"
+database_id = "0d385f91-f646-4f8c-b508-344b4b2f8a6e"
+"""
+        (self.candidate / "wrangler.toml").write_text(config, encoding="utf-8")
         release = {
+            "deploy_config": {"path": "wrangler.toml", "bytes": len(config.encode()), "sha256": hashlib.sha256(config.encode()).hexdigest()},
             "schema": "playtronica.biotron-beta-release-evidence.v1",
             "product": "biotron",
             "commit": self.commit,
@@ -66,7 +79,7 @@ class BiotronPreviewGuardTests(unittest.TestCase):
             "build_id": self.build_id,
             "command": "npm run test:biotron",
             "status": "pass",
-            "verified": ["secondary_service_midi_port_hidden_from_device_picker"],
+            "verified": ["secondary_service_midi_port_hidden_from_device_picker", "telemetry_contract_and_privacy"],
         }), encoding="utf-8")
         archive = self.candidate / f"biotron-beta-{self.build_id}.tar.gz"
         with tarfile.open(archive, "w:gz") as bundle:
@@ -152,9 +165,10 @@ class BiotronPreviewGuardTests(unittest.TestCase):
         origin = "https://abcdef12.biotron-settings-beta.pages.dev"
         served = {
             item["path"]: (self.dist / item["path"]).read_bytes()
-            for item in verified["release"]["files"] if item["path"] != "_headers"
+            for item in verified["release"]["files"] if item["path"] not in {"_headers", "_worker.js"}
         }
         served["release-evidence.json"] = (self.dist / "release-evidence.json").read_bytes()
+        served["api/telemetry"] = b'{"status":"ready"}'
         headers = {
             "X-Frame-Options": "DENY",
             "Content-Security-Policy": "frame-ancestors 'none'",
@@ -177,10 +191,11 @@ class BiotronPreviewGuardTests(unittest.TestCase):
             "scripts.biotron_preview_guard.time.sleep"
         ):
             result = verify_remote(origin, verified)
-        self.assertEqual(result["served_file_count"], 3)
-        self.assertEqual(result["config_file_count"], 1)
+        self.assertEqual(result["served_file_count"], 4)
+        self.assertEqual(result["config_file_count"], 2)
         self.assertEqual(set(requested), set(served))
         self.assertNotIn("_headers", requested)
+        self.assertNotIn("_worker.js", requested)
         self.assertEqual(self.sha(archive), digest, "remote verification changed immutable archive")
 
     def test_remote_rejects_missing_applied_security_headers(self) -> None:

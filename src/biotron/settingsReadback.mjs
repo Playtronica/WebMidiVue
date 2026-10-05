@@ -1,4 +1,5 @@
 import {withMidiWriteSession} from "../assets/js/timing.mjs"
+import {diagnosticSessionId} from "./telemetry.mjs"
 
 export const SETTINGS_QUERY_ID = 123
 export const SETTINGS_PROTOCOL_VERSION = 1
@@ -100,6 +101,7 @@ export function buildBiotronDiagnosticPacket(state, environment = {}) {
     schema: "playtronica.biotron-diagnostics.v1",
     captured_at: (environment.now || (() => new Date().toISOString()))(),
     product: "biotron",
+    diagnostic_session_id: diagnosticSessionId(),
     web_tool: {
       build_id: diagnosticText(state.buildId),
       route: diagnosticText(state.route, "/biotron"),
