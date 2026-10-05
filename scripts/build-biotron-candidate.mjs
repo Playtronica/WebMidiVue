@@ -96,8 +96,10 @@ Stop at the first failure:
 1. Open **Play**, press **Hear Biotron**, keep the plant still through
    calibration, then touch a leaf. Sound must react without a DAW.
 2. Open **Settings**. The picker must offer the responsive Biotron but not
-   \`MIDIIN2\`, \`MIDIOUT2\` or \`Biotron Port 2\`. Change one reversible setting
-   and wait for **Saved on Biotron**.
+   \`MIDIIN2\`, \`MIDIOUT2\` or \`Biotron Port 2\`. Wait for its saved settings
+   to load before changing anything. If the read fails, press **Retry settings
+   connection** once; stop if it fails again. Check that **Light Sensor** shows a
+   known mode, change one reversible setting and wait for **Saved on Biotron**.
 3. Press **Release device for DAW**, open the DAW and confirm it receives notes.
 
 Pass only when all three steps succeed on this exact build. Record \`PASS\` plus
