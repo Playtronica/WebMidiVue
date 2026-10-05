@@ -32,38 +32,86 @@
         versions: {},
         currentMidiNum: 0,
         midiAccess: null,
-        versionTimeouts: []
+        versionTimeouts: [],
+        stateHandler: null,
+        messageHandler: null,
+        refreshId: 0,
+        disposed: false
       }
     },
     methods: {
       async midiReady(midi) {
+        if (this.disposed) return
+        if (this.midiAccess?.onstatechange === this.stateHandler) this.midiAccess.onstatechange = null
         this.midiAccess = midi
-        midi.onstatechange = (event) => {
+        this.stateHandler = (event) => {
+          if (this.disposed) return
           this.initDevices(event.target).catch(error => console.log('Could not refresh MIDI devices', error))
         };
+        midi.onstatechange = this.stateHandler
         await this.initDevices(midi);
       },
+      releaseInputs() {
+        for (const input of Object.values(this.midiIn)) {
+          if (input.onmidimessage === this.messageHandler) input.onmidimessage = null
+        }
+      },
+      async closeOutput(output) {
+        try { await output.close?.() }
+        catch (error) { console.log('Could not close MIDI output', error) }
+      },
       async initDevices(midi) {
+        if (this.disposed) return
+        const generation = ++this.refreshId
         this.clearVersionTimeouts()
+        this.releaseInputs()
+        const oldOutputs = Object.values(this.midiOut)
         this.midiIn = {};
         this.midiOut = {};
         this.versions = {};
+        if (!this.messageHandler) {
+          this.messageHandler = event => {
+            if (!this.disposed) this.handleMidiMessage(event)
+          }
+        }
 
         const inputs = midi.inputs.values();
         for (let input = inputs.next(); input && !input.done; input = inputs.next()) {
-          if (input.value.name.match(this.regexName)) {
-            this.midiIn[input.id] = input.value;
-            input.value.onmidimessage = (event) => this.handleMidiMessage(event);
+          if (input.value.state !== 'disconnected' && input.value.name.match(this.regexName)) {
+            this.midiIn[input.value.id] = input.value;
+            input.value.onmidimessage = this.messageHandler;
           }
         }
 
         let midi_output_id = 0;
         const outputs = midi.outputs.values();
         for (let output = outputs.next(); output && !output.done; output = outputs.next()) {
-          if (output.value.name.match(this.regexName)) {
+          if (output.value.state !== 'disconnected' && output.value.name.match(this.regexName)) {
             this.midiOut[midi_output_id] = output.value
-            await output.value.open()
             midi_output_id++;
+          }
+        }
+        const currentOutputs = Object.values(this.midiOut)
+        for (const output of oldOutputs) {
+          if (!currentOutputs.includes(output)) this.closeOutput(output)
+        }
+        for (const output of currentOutputs) {
+          try { await output.open() }
+          catch (error) {
+            if (this.disposed || generation !== this.refreshId) {
+              if (this.disposed || !Object.values(this.midiOut).includes(output)) await this.closeOutput(output)
+              return
+            }
+            this.releaseInputs()
+            this.midiIn = {}
+            this.midiOut = {}
+            for (const owned of currentOutputs) await this.closeOutput(owned)
+            this.deviceChanged()
+            throw error
+          }
+          if (this.disposed || generation !== this.refreshId) {
+            if (this.disposed || !Object.values(this.midiOut).includes(output)) await this.closeOutput(output)
+            return
           }
         }
 
@@ -73,7 +121,8 @@
 
         for (const [key, midi_output] of Object.entries(this.midiOut)) {
           const timeout = setTimeout(() => {
-            if (midi_output.state !== 'disconnected' && midi_output.connection !== 'closed') {
+            if (!this.disposed && generation === this.refreshId &&
+                midi_output.state !== 'disconnected' && midi_output.connection !== 'closed') {
               midi_output.send([240, 20, 13, 126, Number(key), 247])
             }
           }, 3000)
@@ -105,10 +154,15 @@
             .catch((err) => console.log('Something went wrong', err));
     },
     beforeUnmount() {
+      this.disposed = true
+      this.refreshId += 1
       this.clearVersionTimeouts()
-      if (this.midiAccess) this.midiAccess.onstatechange = null
-      for (const input of Object.values(this.midiIn)) input.onmidimessage = null
-      for (const output of Object.values(this.midiOut)) output.close?.().catch(() => {})
+      if (this.midiAccess?.onstatechange === this.stateHandler) this.midiAccess.onstatechange = null
+      this.releaseInputs()
+      for (const output of Object.values(this.midiOut)) this.closeOutput(output)
+      this.midiIn = {}
+      this.midiOut = {}
+      this.midiAccess = null
       this.$emit("device_changed", undefined)
     }
   }
