@@ -5,11 +5,12 @@ import json
 import tarfile
 import tempfile
 import unittest
+import urllib.parse
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from scripts.biotron_preview_guard import CandidateError, cloudflare_project_preflight, verify_candidate
+from scripts.biotron_preview_guard import CandidateError, cloudflare_project_preflight, verify_candidate, verify_remote
 
 
 class BiotronPreviewGuardTests(unittest.TestCase):
@@ -123,6 +124,91 @@ class BiotronPreviewGuardTests(unittest.TestCase):
             [str(wrangler), "pages", "project", "list", "--json"],
             stdout=-1, stderr=-1, text=True,
         )
+
+    @patch("scripts.biotron_preview_guard.subprocess.run")
+    def test_cloudflare_preflight_accepts_project_name_json(self, run) -> None:
+        run.return_value = SimpleNamespace(returncode=0, stdout=json.dumps({
+            "result": [{"Project Name": "biotron-settings-beta"}, {"Project Name": "other"}]
+        }), stderr="")
+        self.assertEqual(cloudflare_project_preflight(self.root / "wrangler")["projects_seen"], 2)
+
+    @patch("scripts.biotron_preview_guard.subprocess.run")
+    def test_cloudflare_preflight_rejects_malformed_json_and_conflicting_names(self, run) -> None:
+        run.return_value = SimpleNamespace(returncode=0, stdout="not JSON", stderr="")
+        with self.assertRaisesRegex(CandidateError, "did not return JSON"):
+            cloudflare_project_preflight(self.root / "wrangler")
+        run.return_value.stdout = json.dumps([{
+            "name": "biotron-settings-beta", "Project Name": "production-site"
+        }])
+        with self.assertRaisesRegex(CandidateError, "conflicting project names"):
+            cloudflare_project_preflight(self.root / "wrangler")
+        run.return_value.stdout = json.dumps([{"unrelated": "biotron-settings-beta"}])
+        with self.assertRaisesRegex(CandidateError, "without a name"):
+            cloudflare_project_preflight(self.root / "wrangler")
+
+    def remote_fixture(self):
+        archive, digest = self.prepare()
+        verified = self.verify(digest)
+        origin = "https://abcdef12.biotron-settings-beta.pages.dev"
+        served = {
+            item["path"]: (self.dist / item["path"]).read_bytes()
+            for item in verified["release"]["files"] if item["path"] != "_headers"
+        }
+        served["release-evidence.json"] = (self.dist / "release-evidence.json").read_bytes()
+        headers = {
+            "X-Frame-Options": "DENY",
+            "Content-Security-Policy": "frame-ancestors 'none'",
+            "Permissions-Policy": "midi=(self), camera=(), microphone=(), geolocation=()",
+            "Referrer-Policy": "no-referrer",
+            "X-Robots-Tag": "noindex",
+        }
+        return archive, digest, verified, origin, served, headers
+
+    def test_remote_verifies_every_served_asset_without_fetching_headers_config(self) -> None:
+        archive, digest, verified, origin, served, headers = self.remote_fixture()
+        requested = []
+        def fetch(url):
+            name = urllib.parse.unquote(url.removeprefix(origin + "/"))
+            requested.append(name)
+            if name not in served:
+                raise AssertionError(f"unexpected remote fetch: {name}")
+            return served[name], headers if name == "release-evidence.json" else {}
+        with patch("scripts.biotron_preview_guard.request_bytes", side_effect=fetch), patch(
+            "scripts.biotron_preview_guard.time.sleep"
+        ):
+            result = verify_remote(origin, verified)
+        self.assertEqual(result["served_file_count"], 3)
+        self.assertEqual(result["config_file_count"], 1)
+        self.assertEqual(set(requested), set(served))
+        self.assertNotIn("_headers", requested)
+        self.assertEqual(self.sha(archive), digest, "remote verification changed immutable archive")
+
+    def test_remote_rejects_missing_applied_security_headers(self) -> None:
+        _, _, verified, origin, served, headers = self.remote_fixture()
+        headers.pop("X-Robots-Tag")
+        def fetch(url):
+            name = urllib.parse.unquote(url.removeprefix(origin + "/"))
+            return served[name], headers if name == "release-evidence.json" else {}
+        with patch("scripts.biotron_preview_guard.request_bytes", side_effect=fetch), patch(
+            "scripts.biotron_preview_guard.time.sleep"
+        ):
+            with self.assertRaisesRegex(CandidateError, "remote security headers differ"):
+                verify_remote(origin, verified)
+
+    def test_remote_rejects_corrupted_asset_and_spa_fallback_for_javascript(self) -> None:
+        _, _, verified, origin, served, headers = self.remote_fixture()
+        for name in ("index.html", "manifest.json", "service-worker.js"):
+            with self.subTest(name=name):
+                corrupted = dict(served)
+                corrupted[name] = (served["index.html"] if name == "service-worker.js" else b"corrupt")
+                def fetch(url):
+                    path = urllib.parse.unquote(url.removeprefix(origin + "/"))
+                    return corrupted[path], headers if path == "release-evidence.json" else {}
+                with patch("scripts.biotron_preview_guard.request_bytes", side_effect=fetch), patch(
+                    "scripts.biotron_preview_guard.time.sleep"
+                ):
+                    with self.assertRaisesRegex(CandidateError, f"remote file mismatch: {name}"):
+                        verify_remote(origin, verified)
 
     @patch("scripts.biotron_preview_guard.subprocess.run")
     def test_cloudflare_preflight_rejects_expired_auth_before_upload(self, run) -> None:

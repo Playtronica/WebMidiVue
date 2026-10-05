@@ -229,6 +229,8 @@ def verify_candidate(
         "build_id": build_id,
         "archive_sha256": archive_sha256,
         "file_count": len(outer_release["files"]),
+        "served_file_count": sum(item["path"] != "_headers" for item in outer_release["files"]),
+        "config_file_count": sum(item["path"] == "_headers" for item in outer_release["files"]),
         "firmware_update_enabled": False,
         "dist": str(dist),
         "confirmation_token": token,
@@ -271,7 +273,16 @@ def cloudflare_project_preflight(wrangler: Path) -> dict:
     projects = payload.get("result") if isinstance(payload, dict) else payload
     if not isinstance(projects, list):
         raise CandidateError("Cloudflare project preflight returned an unexpected shape")
-    names = {item.get("name") for item in projects if isinstance(item, dict)}
+    names = set()
+    for item in projects:
+        if not isinstance(item, dict):
+            raise CandidateError("Cloudflare project preflight returned a malformed project")
+        available = [item[key] for key in ("name", "Project Name") if key in item]
+        if not available or any(not isinstance(name, str) or not name for name in available):
+            raise CandidateError("Cloudflare project preflight returned a project without a name")
+        if len(set(available)) != 1:
+            raise CandidateError("Cloudflare project preflight returned conflicting project names")
+        names.add(available[0])
     if PROJECT_NAME not in names:
         raise CandidateError(
             f"active Cloudflare account cannot see the required beta project: {PROJECT_NAME}"
@@ -304,6 +315,8 @@ def verify_remote(url: str, verified: dict) -> dict:
             if remote_release != local_release:
                 raise CandidateError("remote release evidence is not byte-identical")
             for item in release["files"]:
+                if item["path"] == "_headers":
+                    continue  # Cloudflare applies this config; it does not serve it as an asset.
                 remote, _ = request_bytes(url + "/" + urllib.parse.quote(item["path"]))
                 if len(remote) != item["bytes"] or hashlib.sha256(remote).hexdigest() != item["sha256"]:
                     raise CandidateError(f"remote file mismatch: {item['path']}")
@@ -328,6 +341,8 @@ def verify_remote(url: str, verified: dict) -> dict:
                 "commit": verified["commit"],
                 "archive_sha256": verified["archive_sha256"],
                 "file_count": verified["file_count"],
+                "served_file_count": verified["served_file_count"],
+                "config_file_count": verified["config_file_count"],
             }
         except Exception as error:  # network/propagation errors are retried as one unit
             last_error = error
