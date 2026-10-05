@@ -103,16 +103,38 @@ export class MidiInputSession {
 
   async sendToPairedOutput(data) {
     if (!this.access || !this.input) throw new Error('Connect the MIDI input first.')
+    const operationId = this.operationId
+    const access = this.access
+    const input = this.input
+    this.assertActive(operationId)
     // Same name and manufacturer as the input; when a platform names every cable alike (Android), pair by index.
     const alike = port => port.state !== 'disconnected' &&
-      ['name', 'manufacturer'].every(key => (port[key] || '') === (this.input[key] || ''))
-    const inputs = [...this.access.inputs.values()].filter(alike)
-    const outputs = [...this.access.outputs.values()].filter(alike)
-    const output = inputs.length === outputs.length ? outputs[inputs.indexOf(this.input)] : null
+      ['name', 'manufacturer'].every(key => (port[key] || '') === (input[key] || ''))
+    const inputs = [...access.inputs.values()].filter(alike)
+    const outputs = [...access.outputs.values()].filter(alike)
+    const output = inputs.length === outputs.length ? outputs[inputs.indexOf(input)] : null
     if (!output) throw new Error('Biotron control port could not be matched safely.')
-    await output.open()
-    try { output.send(data); trace('out', [...data]) }
-    finally { await output.close() }
+    let primaryError = null
+    try {
+      await output.open()
+      this.assertActive(operationId)
+      if (this.access !== access || this.input !== input || output.state === 'disconnected') {
+        throw new Error('MIDI connection was cancelled.')
+      }
+      output.send(data)
+      trace('out', [...data])
+    } catch (error) {
+      primaryError = error
+    }
+    try {
+      await output.close()
+    } catch (cleanupError) {
+      if (primaryError) {
+        throw new AggregateError([primaryError, cleanupError], 'MIDI output failed and cleanup failed.')
+      }
+      throw cleanupError
+    }
+    if (primaryError) throw primaryError
   }
 
   async release() {

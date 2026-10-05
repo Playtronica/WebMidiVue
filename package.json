@@ -15,7 +15,7 @@
     "test:production-isolation": "npm run build && node scripts/test-production-isolation.js",
     "test:firmware": "node scripts/test-firmware-update.js",
     "test:pwa:browser": "node scripts/test-pwa-browser.js",
-    "test:sound": "node --test scripts/test-sound-core.mjs scripts/test-sound-recovery.js",
+    "test:sound": "node --test scripts/test-sound-core.mjs scripts/test-sound-recovery.js scripts/test-midi-output-lifecycle.mjs",
     "test:sound:levels": "node scripts/test-sound-elementary.js",
     "test:sound:browser": "node scripts/test-sound-browser.js",
     "test:quality:browser": "node scripts/test-quality-browser.js",
