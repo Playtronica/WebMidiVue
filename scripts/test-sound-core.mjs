@@ -5,11 +5,13 @@ import {
   DEFAULT_VOLUME,
   KEYBOARD_CODE_TO_NOTE,
   makeNoteKey,
+  midiPitchBendRatio,
   normalizeVolume,
   noteForKeyboardCode,
   parseMidiMessage,
   VoiceLedger
 } from '../src/audio/core.mjs'
+import {ElementarySynthEngine} from '../src/audio/elementary/engine.mjs'
 import {SOUNDS, TIMBRES, toSound} from '../src/audio/elementary/timbres.mjs'
 import {describeMidiAccessError, MidiInputSession} from '../src/audio/midi.mjs'
 import {ExclusiveTabLease} from '../src/audio/tabLease.mjs'
@@ -50,6 +52,8 @@ test('MIDI note-on, velocity-zero note-off and panic are accepted', () => {
   assert.deepEqual(parseMidiMessage([0x91, 60, 0]), {type: 'note-off', channel: 1, note: 60})
   assert.deepEqual(parseMidiMessage([0xb0, 123, 0]), {type: 'panic', channel: 0})
   assert.deepEqual(parseMidiMessage([0xb1, 90, 72]), {type: 'controller', channel: 1, controller: 90, value: 72})
+  assert.deepEqual(parseMidiMessage([0xe1, 0, 64]), {type: 'pitch-bend', channel: 1, value: 8192})
+  assert.deepEqual(parseMidiMessage([0xe2, 127, 127]), {type: 'pitch-bend', channel: 2, value: 16383})
   assert.deepEqual(parseMidiMessage([0xf0, 0x0b, 125, 0, 1, 0xf7]),
     {type: 'system-exclusive', data: [0xf0, 0x0b, 125, 0, 1, 0xf7]})
 })
@@ -121,6 +125,54 @@ test('MIDI state exposes the parsed event without exposing SysEx access', () => 
     count: 1,
     message: {type: 'note-on', channel: 1, note: 64, velocity: 100}
   }])
+})
+
+test('MIDI pitch bend is forwarded to the synth on its exact channel', () => {
+  const bends = []
+  const engine = {
+    activeVoiceCount: 0,
+    panic() {},
+    pitchBend(...args) { bends.push(args) }
+  }
+  const session = new MidiInputSession(engine)
+  session.input = {id: 'biotron-music'}
+  session.onMessage({data: [0xe1, 0, 64]})
+  session.onMessage({data: [0xe2, 127, 127]})
+  assert.deepEqual(bends, [
+    ['biotron-music', 1, 8192],
+    ['biotron-music', 2, 16383]
+  ])
+})
+
+test('Elementary voices follow two-semitone pitch bend on their own source and channel', () => {
+  const context = {currentTime: 0, state: 'suspended', addEventListener() {}, removeEventListener() {}}
+  const engine = new ElementarySynthEngine(context)
+  engine.noteOn('biotron', 1, 69, 100)
+  engine.noteOn('biotron', 2, 69, 100)
+  engine.pitchBend('biotron', 1, 16383)
+  assert(Math.abs(engine.values.freq[0] - 440 * midiPitchBendRatio(16383)) < 1e-9)
+  assert.equal(engine.values.freq[1], 440)
+  engine.pitchBend('biotron', 1, 8192)
+  assert.equal(engine.values.freq[0], 440)
+  engine.panic()
+  assert.equal(engine.pitchBends.size, 0)
+})
+
+test('pitch bend keeps source and channel separate, including notes started after bend', () => {
+  const context = {currentTime: 0, state: 'suspended', addEventListener() {}, removeEventListener() {}}
+  const engine = new ElementarySynthEngine(context)
+  engine.noteOn('music', 1, 69, 100)
+  engine.noteOn('music', 2, 69, 100)
+  engine.noteOn('other', 1, 69, 100)
+  engine.pitchBend('music', 1, 0)
+  assert(Math.abs(engine.values.freq[0] - 440 * midiPitchBendRatio(0)) < 1e-9)
+  assert.equal(engine.values.freq[1], 440)
+  assert.equal(engine.values.freq[2], 440)
+  engine.noteOn('music', 1, 71, 100)
+  assert(Math.abs(engine.values.freq[3] - 493.8833012561241 * midiPitchBendRatio(0)) < 1e-7)
+  engine.panic()
+  engine.noteOn('music', 1, 69, 100)
+  assert.equal(engine.values.freq[0], 440)
 })
 
 test('Biotron recalibration writes only to the exact paired output and releases it', async () => {

@@ -15,7 +15,7 @@
 // ref resets it to its creation-time value, not whatever a later setter()
 // call moved it to (measured 2026-09-04, see _resyncRefs()).
 import {el} from '@elemaudio/core'
-import {clamp, makeNoteKey, midiNoteToFrequency, normalizeVolume, VoiceLedger} from '../core.mjs'
+import {clamp, makeNoteKey, midiNoteToFrequency, midiPitchBendRatio, normalizeMidiByte, normalizeVolume, VoiceLedger} from '../core.mjs'
 // Громкость только ослабляет: 0…1 до потолка, как в chromatone/elements. Множитель
 // ×5, компенсировавший компрессор прежнего движка, сплющивал аккорд из 16 голосов
 // до 3.2 дБ динамики (замер 2026-09-04); без него держится 8.6 дБ.
@@ -98,6 +98,7 @@ export class ElementarySynthEngine {
     this._pending = new Set()
     this._pendingFailure = null
     this._idleWaiters = 0
+    this.pitchBends = new Map(); this.voicePitch = new Array(this.poolSize).fill(null)
     // Current live value of every ref. Elementary refs are write-only from
     // here (no getter), so this is what applyPreset()'s resync replays.
     this.values = {
@@ -245,7 +246,10 @@ export class ElementarySynthEngine {
     const time = Number.isFinite(when) ? when : this.context.currentTime
     const slot = this.pool.claim(key, time)
     const normalizedVelocity = clamp(velocity, 1, 127, 100) / 127 * clamp(levelScale, 0, 1, 1)
-    const freq = midiNoteToFrequency(note)
+    const baseFrequency = midiNoteToFrequency(note), bendKey = makeNoteKey(sourceId, channel, 0)
+    const freq = baseFrequency * (this.pitchBends.get(bendKey) || 1)
+    this.voicePitch[slot] = {sourceId: String(sourceId || 'unknown'),
+      channel: normalizeMidiByte(channel) & 0x0f, baseFrequency}
     this.values.freq[slot] = freq
     this.values.vel[slot] = normalizedVelocity
     this.values.gate[slot] = 1
@@ -255,6 +259,20 @@ export class ElementarySynthEngine {
       this._track(this.gateSetters[slot]({value: 1}))
     }
     return key
+  }
+
+  pitchBend(sourceId, channel, value) {
+    const normalizedSource = String(sourceId || 'unknown'), normalizedChannel = normalizeMidiByte(channel) & 0x0f
+    const bendKey = makeNoteKey(normalizedSource, normalizedChannel, 0)
+    const ratio = midiPitchBendRatio(value)
+    this.pitchBends.set(bendKey, ratio)
+    for (let slot = 0; slot < this.poolSize; slot += 1) {
+      const voice = this.voicePitch[slot]
+      if (!voice || voice.sourceId !== normalizedSource || voice.channel !== normalizedChannel) continue
+      const freq = voice.baseFrequency * ratio
+      this.values.freq[slot] = freq
+      if (this.ready) this._track(this.freqSetters[slot]({value: freq}))
+    }
   }
 
   noteOff(sourceId, channel, note, when = this.context.currentTime) {
@@ -276,6 +294,7 @@ export class ElementarySynthEngine {
       if (this.ready) this._track(this.gateSetters[slot]({value: 0}))
     }
     this.pool.clear()
+    this.pitchBends.clear(); this.voicePitch.fill(null)
   }
 
   async stop() {

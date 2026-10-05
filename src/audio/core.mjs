@@ -14,6 +14,8 @@ export function clamp(value, min, max, fallback = min) {
 
 export const normalizeMidiByte = value => Math.round(clamp(value, 0, 127, 0))
 export const midiNoteToFrequency = note => 440 * 2 ** ((normalizeMidiByte(note) - 69) / 12)
+export const midiPitchBendRatio = (value, rangeSemitones = 2) =>
+  2 ** (((Math.round(clamp(value, 0, 16383, 8192)) - 8192) / 8192 * clamp(rangeSemitones, 0, 24, 2)) / 12)
 export const makeNoteKey = (sourceId, channel, note) =>
   `${String(sourceId || 'unknown')}:${normalizeMidiByte(channel) & 0x0f}:${normalizeMidiByte(note)}`
 
@@ -27,7 +29,7 @@ export function parseMidiMessage(data) {
   const status = Math.round(rawStatus) & 0xff
   const kind = status & 0xf0
   const channel = status & 0x0f
-  if ((kind === 0x80 || kind === 0x90 || kind === 0xb0) && data.length < 3) {
+  if ((kind === 0x80 || kind === 0x90 || kind === 0xb0 || kind === 0xe0) && data.length < 3) {
     return {type: 'ignored', channel}
   }
   const note = normalizeMidiByte(data[1])
@@ -36,6 +38,7 @@ export function parseMidiMessage(data) {
   if (kind === 0x80 || (kind === 0x90 && value === 0)) return {type: 'note-off', channel, note}
   if (kind === 0xb0 && (note === 120 || note === 123)) return {type: 'panic', channel}
   if (kind === 0xb0) return {type: 'controller', channel, controller: note, value}
+  if (kind === 0xe0) return {type: 'pitch-bend', channel, value: note | (value << 7)}
   return {type: 'ignored', channel}
 }
 

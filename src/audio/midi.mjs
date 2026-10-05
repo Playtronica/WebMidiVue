@@ -216,6 +216,7 @@ export class MidiInputSession {
     if (message.type === 'note-on') this.engine.noteOn(source, message.channel, message.note, message.velocity,
       this.engine.context?.currentTime, level)
     else if (message.type === 'note-off') this.engine.noteOff(source, message.channel, message.note)
+    else if (message.type === 'pitch-bend') this.engine.pitchBend(source, message.channel, message.value)
     else if (message.type === 'panic') this.engine.panic()
     this.onState({type: 'voices', count: this.engine.activeVoiceCount, message})
   }
