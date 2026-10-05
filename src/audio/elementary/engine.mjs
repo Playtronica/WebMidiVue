@@ -92,7 +92,9 @@ export class ElementarySynthEngine {
     this.onStateChange = typeof options.onStateChange === 'function' ? options.onStateChange : () => {}
     this.boundStateChange = () => this.onStateChange(this.context.state)
     this.context.addEventListener?.('statechange', this.boundStateChange)
-    this._pending = []
+    this._pending = new Set()
+    this._pendingFailure = null
+    this._idleWaiters = 0
     // Current live value of every ref. Elementary refs are write-only from
     // here (no getter), so this is what applyPreset()'s resync replays.
     this.values = {
@@ -171,8 +173,29 @@ export class ElementarySynthEngine {
   // await this; whenIdle() exists so an offline test using
   // context.suspend()/resume() for sample-accurate scheduling can wait for
   // every queued update to actually land before resuming.
-  _track(promise) { this._pending.push(promise); return promise }
-  async whenIdle() { await Promise.all(this._pending); this._pending = [] }
+  _track(promise) {
+    const task = Promise.resolve(promise)
+    const tracked = task.then(
+      () => { this._pending.delete(tracked) },
+      error => {
+        this._pending.delete(tracked)
+        if (!this._pendingFailure) this._pendingFailure = {error}
+      }
+    )
+    this._pending.add(tracked)
+    return task
+  }
+
+  async whenIdle() {
+    this._idleWaiters += 1
+    try {
+      while (this._pending.size) await Promise.all(this._pending)
+      if (this._pendingFailure) throw this._pendingFailure.error
+    } finally {
+      this._idleWaiters -= 1
+      if (this._idleWaiters === 0) this._pendingFailure = null
+    }
+  }
 
   async _resyncRefs() {
     for (let slot = 0; slot < this.poolSize; slot += 1) {
