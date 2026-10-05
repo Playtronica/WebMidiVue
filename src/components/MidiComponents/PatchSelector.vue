@@ -13,16 +13,16 @@
                   type="button"  data-bs-toggle="modal" @click="this.modelOpen"
                   :data-bs-target="this.button_state === 'Save' ? '#saveModal' : '#deleteModel'"
                   :style="{display: active_button_enabled ? 'block' : 'none'}">
-            {{ this.button_state }}</button>
+            {{ this.button_state === "Save" ? "Save in browser" : "Delete browser preset" }}</button>
       </div>
     </div>
-
+    <p v-if="storageMessage" class="small mt-2" :class="storageError ? 'text-danger' : 'text-success'" role="status" aria-live="polite">{{ storageMessage }}</p>
 
     <div class="modal fade" id="saveModal" tabindex="-1" aria-labelledby="saveModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="saveModalLabel">Save Patch</h5>
+            <h5 class="modal-title" id="saveModalLabel">Save preset in this browser</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cancel"></button>
           </div>
           <div class="modal-body">
@@ -34,7 +34,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" @click="this.savePatch">Save</button>
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" @click="this.savePatch">Save in browser</button>
           </div>
         </div>
       </div>
@@ -87,6 +87,8 @@
         button_state: "Save",
         patchName: "",
         forceRerender: 0,
+        storageMessage: "",
+        storageError: false,
       }
     },
     watch: {
@@ -94,7 +96,7 @@
     },
     methods: {
       patchChanged() {
-        console.log()
+        this.storageMessage = ""
         localStorage.setItem(this.page_id, this.id)
 
         if (!this.patches) return;
@@ -118,9 +120,11 @@
         document.dispatchEvent(new CustomEvent('PatchChanged'));
       },
       savePatch() {
+        this.storageMessage = "Saving in browser…"
         document.dispatchEvent(new CustomEvent('PatchSave', {detail: this.patchName}));
       },
       deletePatch() {
+        this.storageMessage = "Deleting browser preset…"
         document.dispatchEvent(new CustomEvent('PatchDelete'));
       },
       modelOpen() {
@@ -129,6 +133,20 @@
     },
     mounted() {
       this.listenerScope = createListenerScope()
+      this.listenerScope.on(document, 'PresetStorageResult', event => {
+        const {pageId, action, ok, message} = event.detail
+        if (pageId !== this.page_id) return
+        this.storageError = !ok
+        this.storageMessage = ok
+          ? action === 'save' ? 'Saved in this browser.'
+            : action === 'delete' ? 'Deleted from this browser.' : ''
+          : `Browser preset ${action} failed: ${message}`
+        if (ok && action === 'save') this.button_state = 'Delete'
+        if (ok && action === 'delete') {
+          this.id = 1
+          this.active_button_enabled = false
+        }
+      })
       this.id = parseInt(localStorage.getItem(this.page_id))
 
       if (!this.patches) return;

@@ -306,10 +306,8 @@ export class TouchMeDb extends Db {
 
     constructor() {
         super(TouchMeCommandsData);
-        this.openDB().then((is_initial) => {
-            if (is_initial) {
-                this.createNoEditablePatch(default_preset, "Default")
-            }
-        })
+        this.ready = this.initialize([
+            {data: default_preset, name: "Default"},
+        ])
     }
 }

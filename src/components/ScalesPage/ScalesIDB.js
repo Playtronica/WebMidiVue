@@ -91,10 +91,8 @@ export class ScalesDb extends Db {
 
     constructor() {
         super(ScalesCommandsData)
-        this.openDB().then((is_initial) => {
-            if (is_initial) {
-                this.createNoEditablePatch(default_preset, "Default")
-            }
-        })
+        this.ready = this.initialize([
+            {data: default_preset, name: "Default"},
+        ])
     }
 }

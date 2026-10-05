@@ -64,6 +64,7 @@ import FileDropArea from "@/components/MidiComponents/FileDropArea.vue";
 import UpdateFirmwareComponent from "@/components/MidiComponents/UpdateFirmwareComponent.vue";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
 import {createListenerScope} from "@/assets/js/ListenerScope.mjs";
+import {withPresetFeedback} from "@/assets/js/PresetsIDB.js";
 
 export default  {
   components: {
@@ -166,7 +167,7 @@ export default  {
       for (let item of JSON.parse(e).commands) {
         this.commands_data[item.name].set_value(item.value);
       }
-      this.saveData();
+      await this.saveData();
       this.forceRerender++;
     },
     async patchChanged() {
@@ -177,7 +178,7 @@ export default  {
         this.patches = await this.db.getPatch();
         localStorage.setItem(this.id, patch_id);
       }
-      this.saveData();
+      await this.saveData();
     },
     saveData() {
       let state = {}
@@ -185,7 +186,8 @@ export default  {
         state[val.name] = val.value
       }
 
-      this.db.updatePatch(localStorage.getItem(this.id), state)
+      return withPresetFeedback(this.id, "autosave", () =>
+        this.db.updatePatch(localStorage.getItem(this.id), state))
     },
     async sys_ex_changed(object) {
       await this.patchChanged();
@@ -204,7 +206,7 @@ export default  {
     }
 
     this.db = new PlaytronDb();
-    await this.db.openDB();
+    await this.db.ready;
 
     this.patches = await this.db.getPatch();
     this.patch_id = parseInt(localStorage.getItem(this.id));
@@ -227,16 +229,20 @@ export default  {
       this.forceRerender++;
     })
     this.listenerScope.on(document, "PatchSave", async (ev) => {
-      this.db.savePatch(localStorage.getItem(this.id), ev.detail)
-      this.patches = await this.db.getPatch()
-      this.patchRerender++;
+      await withPresetFeedback(this.id, "save", async () => {
+        await this.db.savePatch(localStorage.getItem(this.id), ev.detail)
+        this.patches = await this.db.getPatch()
+        this.patchRerender++;
+      })
     })
     this.listenerScope.on(document, 'PatchDelete', async () => {
-      this.db.deletePatch(parseInt(localStorage.getItem(this.id)))
-      localStorage.setItem(this.id, "1")
-      this.patches = await this.db.getPatch()
-      await this.loadData();
-      this.forceRerender++;
+      await withPresetFeedback(this.id, "delete", async () => {
+        await this.db.deletePatch(parseInt(localStorage.getItem(this.id)))
+        localStorage.setItem(this.id, "1")
+        this.patches = await this.db.getPatch()
+        await this.loadData();
+        this.forceRerender++;
+      })
     })
   },
   beforeUnmount() {

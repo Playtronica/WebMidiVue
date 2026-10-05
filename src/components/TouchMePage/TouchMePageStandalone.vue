@@ -315,6 +315,7 @@ import {
 import {withMidiWriteSession} from "@/assets/js/timing.mjs";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
 import {createListenerScope} from "@/assets/js/ListenerScope.mjs";
+import {withPresetFeedback} from "@/assets/js/PresetsIDB.js";
 
 
 export default  {
@@ -368,7 +369,8 @@ export default  {
       for (let val of Object.values(this.commands_data)) {
         state[val.name] = val.value
       }
-      this.db.updatePatch(localStorage.getItem(this.id), state)
+      return withPresetFeedback(this.id, "autosave", () =>
+        this.db.updatePatch(localStorage.getItem(this.id), state))
     },
     async loadData() {
       let preset = await this.db.getPatch(localStorage.getItem(this.id))
@@ -391,7 +393,7 @@ export default  {
       for (let item of JSON.parse(e).commands) {
         this.commands_data[item.name].set_value(item.value);
       }
-      this.saveData();
+      await this.saveData();
       this.forceRerender++;
     },
 
@@ -415,7 +417,7 @@ export default  {
         this.patches = await this.db.getPatch();
         localStorage.setItem(this.id, patch_id);
       }
-      this.saveData();
+      await this.saveData();
     },
 
     async sys_ex_changed(object) {
@@ -443,7 +445,7 @@ export default  {
         presetCommand.sendToMidi(this.device);
       }
 
-      this.saveData();
+      await this.saveData();
       this.forceRerender++;
       this.patchRerender++;
     },
@@ -481,7 +483,7 @@ export default  {
     }
 
     this.db = new TouchMeDb();
-    await this.db.openDB();
+    await this.db.ready;
 
     this.patches = await this.db.getPatch();
     this.patch_id = parseInt(localStorage.getItem(this.id));
@@ -496,16 +498,20 @@ export default  {
       this.forceRerender++;
     })
     this.listenerScope.on(document, "PatchSave", async (ev) => {
-      this.db.savePatch(localStorage.getItem(this.id), ev.detail)
-      this.patches = await this.db.getPatch()
-      this.patchRerender++;
+      await withPresetFeedback(this.id, "save", async () => {
+        await this.db.savePatch(localStorage.getItem(this.id), ev.detail)
+        this.patches = await this.db.getPatch()
+        this.patchRerender++;
+      })
     })
     this.listenerScope.on(document, 'PatchDelete', async () => {
-      this.db.deletePatch(parseInt(localStorage.getItem(this.id)))
-      localStorage.setItem(this.id, "1")
-      this.patches = await this.db.getPatch()
-      await this.loadData();
-      this.forceRerender++;
+      await withPresetFeedback(this.id, "delete", async () => {
+        await this.db.deletePatch(parseInt(localStorage.getItem(this.id)))
+        localStorage.setItem(this.id, "1")
+        this.patches = await this.db.getPatch()
+        await this.loadData();
+        this.forceRerender++;
+      })
     })
   },
   beforeUnmount() {
