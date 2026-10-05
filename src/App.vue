@@ -151,7 +151,8 @@ export default {
       if (this.offlineStatus.state === "error") {
         const messages = {
           SW_FIRST_INSTALL_OFFLINE: "Connect once to install the offline copy, then press Retry.",
-          SW_NO_CONTROLLER: "Close every Settings window, reopen this page, then press Retry."
+          SW_SETUP_TIMEOUT: "Offline setup timed out. Check the connection, then press Retry.",
+          SW_CACHE_INCOMPLETE: "The offline copy is incomplete. Connect, then press Retry."
         }
         return messages[this.offlineStatus.code] || "Offline setup did not finish. Check the connection, then press Retry."
       }
