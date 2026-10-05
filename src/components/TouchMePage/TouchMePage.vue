@@ -66,21 +66,31 @@
             </div>
           </div>
 
-          <SelectCommand
-              :key="this.forceRerender"
+          <SelectCommand v-if="showPagedModes"
+              :key="'mode-page-' + forceRerender"
               :list-of-variants="this.play_mode_pages"
               :command-object="this.commands_data.play_mode_page"
               @input-changed="this.play_mode_page_changed"
               command-label="🎼 Modes Page"
               class="m-3"
           />
-          <SelectCommand
-              :key="this.forceRerender"
+          <SelectCommand v-if="showPagedModes"
+              :key="'mode-' + forceRerender"
               :list-of-variants="this.modes_on_page"
               :slider_active="false"
               :command-object="this.commands_data.PlayMode"
               @input-changed="this.sys_ex_changed"
               command-label="🎼 Mode"
+              description="A set of notes that shape the melody and feel of the music. Choose a scale to define the sound of your composition."
+              class="m-3"
+          />
+
+          <SelectCommand v-else
+              :key="'scale-' + forceRerender"
+              :list-of-variants="this.scales"
+              :command-object="this.commands_data.PlayMode"
+              @input-changed="this.sys_ex_changed"
+              command-label="🎼 Scale"
               description="A set of notes that shape the melody and feel of the music. Choose a scale to define the sound of your composition."
               class="m-3"
           />
@@ -178,7 +188,7 @@ import {withPresetFeedback} from "@/assets/js/PresetsIDB.js";
 
 
 export default {
-  name: "TouchMePageTest",
+  name: "TouchMePage",
   components: {
     BootstrapCollapse,
     LoaderComponent,
@@ -193,6 +203,7 @@ export default {
     SelectCommand
   },
   props: {
+    showPagedModes: {type: Boolean, default: false},
     id: {
       type: String,
       required: true,
@@ -304,6 +315,9 @@ export default {
   },
   data() {
     return {
+      scales: ["Major", "Minor", "Chrom", "Dorian", "Mixolydian",
+        "Lydian", "Wholetone", "Minblues", "Majblues", "Minpen",
+        "Majpen", "Diminished"],
       play_modes: {
         0: "Major",
         1: "Minor",

@@ -13,10 +13,9 @@ const ScalaPage = () => import(/* webpackChunkName: "scala" */ '@/components/Ext
 const BiotronUpdatePage = () => import(/* webpackChunkName: "biotron" */ '@/components/BiotronPage/BiotronUpdatePage.vue')
 const ScalesPage = () => import(/* webpackChunkName: "scales" */ '@/components/ScalesPage/ScalesPage.vue')
 const BiotronPageUpdated = () => import(/* webpackChunkName: "biotron" */ '@/components/BiotronPage/BiotronPageUpdated.vue')
-const TouchMePageRelease = () => import(/* webpackChunkName: "touchme" */ '@/components/TouchMePage/TouchMePageRelease.vue')
+const TouchMePage = () => import(/* webpackChunkName: "touchme" */ '@/components/TouchMePage/TouchMePage.vue')
 const TouchMePageStandalone = () => import(/* webpackChunkName: "touchme" */ '@/components/TouchMePage/TouchMePageStandalone.vue')
 const PlaytronPage = () => import(/* webpackChunkName: "playtron" */ '@/components/PlaytronPage/PlaytronPage.vue')
-const TouchMePageTest = () => import(/* webpackChunkName: "touchme" */ '@/components/TouchMePage/TouchMePageTest.vue')
 const CirclePage = () => import(/* webpackChunkName: "circle" */ '@/components/CirclePage/CirclePage.vue')
 const SoundLab = () => import(/* webpackChunkName: "sound-lab" */ '@sound-lab')
 const DeviceFirstPlay = () => import(/* webpackChunkName: "sound-lab" */ '@/components/SoundLab/DeviceFirstPlay.vue')
@@ -42,8 +41,8 @@ const routes = [
     { path: '/', component: HomeComponent},
     { path: '/biotron', component: BiotronPageUpdated, props: {id: "BiotronWebMidiId_2" }, meta: deviceMeta('Biotron') },
 
-    { path: '/touchme', component: TouchMePageRelease, props: {id: "TouchmeWebMidiId_2"}, meta: deviceMeta('TouchMe') },
-    { path: '/touchme/test', component: TouchMePageTest, props: {id: "TouchmeWebMidiId_2"}, meta: deviceMeta('TouchMe') },
+    { path: '/touchme', component: TouchMePage, props: {id: "TouchmeWebMidiId_2", showPagedModes: false}, meta: deviceMeta('TouchMe') },
+    { path: '/touchme/test', component: TouchMePage, props: {id: "TouchmeWebMidiId_2", showPagedModes: true}, meta: deviceMeta('TouchMe') },
     { path: '/touchme/standalone', component: TouchMePageStandalone, props: {id: "TouchmeWebMidiId_standalone"}, meta: deviceMeta('TouchMe') },
 
     { path: '/playtron', component: PlaytronPage, props: {id: "PlaytronWebMidiId", showChords: false}, meta: deviceMeta('Playtron') },
