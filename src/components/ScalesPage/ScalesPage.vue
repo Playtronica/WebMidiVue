@@ -165,9 +165,6 @@ export default  {
       default: false
     },
   },
-  computed: {
-
-  },
   methods: {
     async change_data_loader() {
       if (!this.device || this.is_loading) return

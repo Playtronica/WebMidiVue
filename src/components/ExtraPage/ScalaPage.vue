@@ -27,9 +27,6 @@ export default  {
     FileDropArea,
     DeviceSelector
   },
-  props: {
-
-  },
   methods: {
     /* eslint-disable */
     async loadFile(e) {

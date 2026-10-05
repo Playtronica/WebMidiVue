@@ -299,7 +299,6 @@ export default {
 
     async play_mode_page_changed(object) {
       const minKey = Math.min(...Object.keys(this.modes_on_page).map(Number));
-      console.log(minKey);
       this.commands_data.PlayMode.value = minKey;
       await this.sys_ex_changed(object)
     }

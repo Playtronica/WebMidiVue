@@ -51,7 +51,6 @@ export default {
   methods: {
     selectColor(color) {
       this.selectedColor = color;
-      console.log(this.selectedColor);
       this.changed()
     },
     getBrightnessColor() {

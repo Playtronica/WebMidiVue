@@ -92,9 +92,6 @@ export default  {
     PatchSelector,
     DeviceSelector,
   },
-  computed: {
-
-  },
   props: {
     id: {
       type: String,

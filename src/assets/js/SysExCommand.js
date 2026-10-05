@@ -95,8 +95,6 @@ export class SysExCommand {
 
         sys_ex_message.push(0xF7);
 
-        console.log(sys_ex_message);
-
         device.send(sys_ex_message)
     }
 

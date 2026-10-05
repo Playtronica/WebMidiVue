@@ -15,11 +15,6 @@
         type: String,
       }
     },
-    data() {
-      return {
-
-      }
-    },
   }
 </script>
 

@@ -380,9 +380,7 @@ export default  {
       }
 
       for (const [key, value] of Object.entries(preset.data)) {
-        console.log(key);
         this.commands_data[key].set_value(value);
-        console.log(this.commands_data[key].value);
       }
 
       this.forceRerender++;

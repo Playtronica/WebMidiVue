@@ -171,7 +171,6 @@ export default {
     }
   },
   mounted() {
-    console.log("Hello! You`re curious, aren`t you?")
     if (this.betaBuild) document.title = 'Biotron Settings Beta — Playtronica'
     window.addEventListener(OFFLINE_STATUS_EVENT, this.handleOfflineStatus)
     window.addEventListener("online", this.handleConnectionChange)
