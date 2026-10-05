@@ -180,6 +180,9 @@ tap targets below 44 px. These emulated profiles prove layout and browser
 behavior, not a physical USB connection. The complete strategy and remaining
 manual gates are in
 [`docs/WEB-TEST-STRATEGY.md`](docs/WEB-TEST-STRATEGY.md).
+The dated research corpus for browser, MIDI, audio, PWA, storage, telemetry,
+accessibility and release failure modes is in
+[`docs/research/web-apps/`](docs/research/web-apps/README.md).
 
 Use scripts and the local browser tests before asking for human review; reserve
 model review for architecture, customer claims and release decisions. No test
