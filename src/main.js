@@ -15,8 +15,7 @@ const ScalesPage = () => import(/* webpackChunkName: "scales" */ '@/components/S
 const BiotronPageUpdated = () => import(/* webpackChunkName: "biotron" */ '@/components/BiotronPage/BiotronPageUpdated.vue')
 const TouchMePageRelease = () => import(/* webpackChunkName: "touchme" */ '@/components/TouchMePage/TouchMePageRelease.vue')
 const TouchMePageStandalone = () => import(/* webpackChunkName: "touchme" */ '@/components/TouchMePage/TouchMePageStandalone.vue')
-const PlaytronPageRelease = () => import(/* webpackChunkName: "playtron" */ '@/components/PlaytronPage/PlaytronPageRelease.vue')
-const PlaytronPageTest = () => import(/* webpackChunkName: "playtron" */ '@/components/PlaytronPage/PlaytronPageTest.vue')
+const PlaytronPage = () => import(/* webpackChunkName: "playtron" */ '@/components/PlaytronPage/PlaytronPage.vue')
 const TouchMePageTest = () => import(/* webpackChunkName: "touchme" */ '@/components/TouchMePage/TouchMePageTest.vue')
 const ScalesPageTest = () => import(/* webpackChunkName: "scales" */ '@/components/ScalesPage/ScalesPageTest.vue')
 const CirclePage = () => import(/* webpackChunkName: "circle" */ '@/components/CirclePage/CirclePage.vue')
@@ -48,8 +47,8 @@ const routes = [
     { path: '/touchme/test', component: TouchMePageTest, props: {id: "TouchmeWebMidiId_2"}, meta: deviceMeta('TouchMe') },
     { path: '/touchme/standalone', component: TouchMePageStandalone, props: {id: "TouchmeWebMidiId_standalone"}, meta: deviceMeta('TouchMe') },
 
-    { path: '/playtron', component: PlaytronPageRelease, props: {id: "PlaytronWebMidiId"}, meta: deviceMeta('Playtron') },
-    { path: '/playtron/test', component: PlaytronPageTest, props: {id: "PlaytronWebMidiId"}, meta: deviceMeta('Playtron') },
+    { path: '/playtron', component: PlaytronPage, props: {id: "PlaytronWebMidiId", showChords: false}, meta: deviceMeta('Playtron') },
+    { path: '/playtron/test', component: PlaytronPage, props: {id: "PlaytronWebMidiId", showChords: true}, meta: deviceMeta('Playtron') },
 
     { path: '/scales', component: ScalesPage, props: {id: "ScalesWebMidiId_1"}, meta: deviceMeta('Scales') },
     { path: '/scales/test', component: ScalesPageTest, props: {id: "ScalesWebMidiId_1"}, meta: deviceMeta('Scales') },

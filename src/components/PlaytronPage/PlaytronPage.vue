@@ -46,7 +46,7 @@
         </template>
       </GroupOfCommands>
 
-      <GroupOfCommands>
+      <GroupOfCommands v-if="showChords">
         <template v-slot:objects>
           <SelectCommand
               command-label="🎼 Chords Mode"
@@ -100,6 +100,7 @@ export default  {
       type: String,
       required: true,
     },
+    showChords: {type: Boolean, default: false},
   },
   data() {
     return {
