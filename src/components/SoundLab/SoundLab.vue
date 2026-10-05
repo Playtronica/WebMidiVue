@@ -81,7 +81,7 @@
               type="button"
               class="btn btn-outline-dark"
               @click="stop"
-              :disabled="starting"
+              :disabled="starting && !midiOpening"
             >Stop &amp; release</button>
             <button
               v-if="engine && revealStage !== 'intro'"
@@ -142,7 +142,7 @@
 
     <section class="sound-lab__controls" aria-label="Sound controls">
       <button type="button" class="btn btn-dark" @click="start" :disabled="starting || releaseBlocked || !capabilities.audio">Start sound</button>
-      <button type="button" class="btn btn-outline-dark" @click="stop" :disabled="starting || (!engine && !midi)">Stop &amp; release</button>
+      <button type="button" class="btn btn-outline-dark" @click="stop" :disabled="(starting && !midiOpening) || (!engine && !midi)">Stop &amp; release</button>
       <button type="button" class="btn btn-outline-danger" @click="panic" :disabled="!engine">Stop notes</button>
       <label class="sound-lab__quality">
         <input
@@ -300,6 +300,7 @@ export default {
       voiceCount: 0,
       lowCpu: this.mode === 'reveal',
       starting: false,
+      midiOpening: false,
       permissionPending: false,
       permissionAbort: null,
       permissionAttemptId: 0,
@@ -356,8 +357,9 @@ export default {
   },
   async beforeRouteLeave(to, from, next) {
     void from
+    const wasOpening = this.midiOpening
     this.cancelMidiPermission({silent: true})
-    if (this.revealMode && to.path === this.revealProfile.settingsRoute) {
+    if (this.revealMode && to.path === this.revealProfile.settingsRoute && !wasOpening) {
       this.releaseHeldKeyboard()
       next()
       return
@@ -454,6 +456,8 @@ export default {
       finally { this.starting = false }
     },
     async stop() {
+      this.cancelMidiPermission({silent: true})
+      this.midiOpening = false
       this.starting = true
       let midiFailed = false
       let audioFailed = false
@@ -563,13 +567,22 @@ export default {
         await this.ensureEngine()
         if (attemptId !== this.permissionAttemptId) return
         if (!this.midiInputs.length) {
-          this.midiInputs = await this.requestMidiPermission()
-          this.selectedInput = this.midiInputs[0]?.id || ''
+          const inputs = await this.requestMidiPermission()
+          if (attemptId !== this.permissionAttemptId) return
+          this.midiInputs = inputs
+          this.selectedInput = inputs[0]?.id || ''
           if (!this.selectedInput) throw new Error('No MIDI inputs found.')
         }
+        this.midiOpening = true
         await this.midi.connect(this.selectedInput)
-      } catch (error) { if (error?.name !== 'AbortError') this.status = error.message }
-      finally { if (attemptId === this.permissionAttemptId) this.starting = false }
+      } catch (error) {
+        if (attemptId === this.permissionAttemptId && error?.name !== 'AbortError') this.status = error.message
+      } finally {
+        if (attemptId === this.permissionAttemptId) {
+          this.midiOpening = false
+          this.starting = false
+        }
+      }
     },
     async startReveal() {
       if (this.starting) return
@@ -588,16 +601,21 @@ export default {
         await this.ensureEngine()
         if (attemptId !== this.permissionAttemptId) return
         this.status = MIDI_PROMPT_HINT
-        const input = selectRevealInput(await this.requestMidiPermission(), this.revealProfile)
+        const inputs = await this.requestMidiPermission()
+        if (attemptId !== this.permissionAttemptId) return
+        const input = selectRevealInput(inputs, this.revealProfile)
         this.midiInputs = [input]
         this.selectedInput = input.id
+        this.midiOpening = true
         await this.midi.connect(input.id)
+        if (attemptId !== this.permissionAttemptId) return
         this.recognizedInput = [input.manufacturer, input.name].filter(Boolean).join(' — ')
         this.resetCalibration()
         this.revealStage = 'settling'
         this.status = this.revealProfile.settlingStatus
         if (this.revealProfile.id === 'biotron') {
           await this.midi.sendToPairedOutput([0xf0, 0x14, 0x0d, 125, Date.now() % 127 + 1, 0xf7])
+          if (attemptId !== this.permissionAttemptId) return
           // No calibration state within 15 s means no plant signal (clips off): say so instead of pulsing forever.
           window.clearTimeout(this.revealWatchdog)
           this.revealWatchdog = window.setTimeout(() => {
@@ -606,7 +624,7 @@ export default {
           }, 15000)
         }
       } catch (error) {
-        if (error?.name === 'AbortError') return
+        if (attemptId !== this.permissionAttemptId || error?.name === 'AbortError') return
         failure = error.message || `${this.revealProfile.productName} could not start.`
         const missingDevice = /was not found|No MIDI inputs found/i.test(failure)
         const denied = /permission was not allowed/i.test(failure)
@@ -619,7 +637,10 @@ export default {
           this.firstSoundOutcome = 'not_yet'
         }
       } finally {
-        if (attemptId === this.permissionAttemptId) this.starting = false
+        if (attemptId === this.permissionAttemptId) {
+          this.midiOpening = false
+          this.starting = false
+        }
       }
     },
     handleMidiState(event) {

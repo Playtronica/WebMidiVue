@@ -137,3 +137,107 @@ test('replacement of selected input while output opens cancels old command', asy
   assert.deepEqual(f.sent, [])
   assert.equal(f.output.closeCalls, 1)
 })
+
+test('Stop returns an explicit pending result when MIDI input open never settles, then retry succeeds', async () => {
+  const opening = deferred()
+  const started = deferred()
+  let closeCalls = 0
+  const input = {
+    id: 'delayed-input', name: 'Biotron', state: 'connected',
+    open() { started.resolve(); return opening.promise },
+    async close() { closeCalls++ },
+    addEventListener() {}, removeEventListener() {}
+  }
+  const session = new MidiInputSession({panic() {}}, () => {}, {cleanupTimeoutMs: 25})
+  session.access = {inputs: new Map([[input.id, input]]), removeEventListener() {}}
+  const connecting = session.connect(input.id)
+  const cancelledConnect = assert.rejects(connecting, /cancelled/i)
+  await started.promise
+  const bounded = promise => Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Stop remained blocked')), 300))
+  ])
+  await assert.rejects(bounded(session.close()), /still pending/i)
+  assert.equal(session.closed, true)
+  assert.equal(closeCalls, 0, 'an unresolved open cannot be claimed as released')
+  await assert.rejects(bounded(session.close()), /still pending/i)
+  opening.resolve()
+  await cancelledConnect
+  assert.equal(closeCalls, 1, 'late open did not close the port')
+  await bounded(session.close())
+  assert.equal(session.input, null)
+})
+
+test('late input cleanup failure stays visible and Stop can retry the same port', async () => {
+  const opening = deferred()
+  const started = deferred()
+  let closeCalls = 0
+  const input = {
+    id: 'failed-cleanup', name: 'Biotron', state: 'connected',
+    open() { started.resolve(); return opening.promise },
+    async close() {
+      closeCalls++
+      if (closeCalls === 1) throw new Error('driver refused close')
+    },
+    addEventListener() {}, removeEventListener() {}
+  }
+  const session = new MidiInputSession({panic() {}}, () => {}, {cleanupTimeoutMs: 100})
+  session.access = {inputs: new Map([[input.id, input]]), removeEventListener() {}}
+  const connecting = session.connect(input.id)
+  const failedConnect = assert.rejects(connecting, /driver refused close/)
+  await started.promise
+  const closing = assert.rejects(session.close(), /driver refused close/)
+  opening.resolve()
+  await Promise.all([failedConnect, closing])
+  assert.equal(session.input, input, 'failed cleanup lost the only retryable port reference')
+  await session.close()
+  assert.equal(closeCalls, 2)
+  assert.equal(session.input, null)
+})
+
+test('a hanging input close is bounded, shared by repeated Stop, and silences MIDI immediately', async () => {
+  const closing = deferred()
+  let closeCalls = 0
+  let notes = 0
+  const input = {
+    id: 'slow-close', name: 'Biotron', state: 'connected',
+    async open() {},
+    close() { closeCalls++; return closing.promise },
+    addEventListener() {}, removeEventListener() {}
+  }
+  const session = new MidiInputSession({activeVoiceCount: 0, panic() {}, noteOn() { notes++ }},
+    () => {}, {cleanupTimeoutMs: 25})
+  session.access = {inputs: new Map([[input.id, input]]), removeEventListener() {}}
+  await session.connect(input.id)
+  await Promise.all([
+    assert.rejects(session.close(), /still pending/i),
+    assert.rejects(session.close(), /still pending/i)
+  ])
+  assert.equal(closeCalls, 1, 'repeated Stop started parallel port closes')
+  session.onMessage({data: [0x90, 60, 100]})
+  assert.equal(notes, 0, 'MIDI continued after Stop')
+  closing.resolve()
+  await session.close()
+  assert.equal(session.input, null)
+})
+
+test('late input open rejection after Stop still closes a partially opened port', async () => {
+  const opening = deferred()
+  const started = deferred()
+  let closeCalls = 0
+  const input = {
+    id: 'rejecting-open', name: 'Biotron', state: 'connected',
+    open() { started.resolve(); return opening.promise },
+    async close() { closeCalls++ },
+    addEventListener() {}, removeEventListener() {}
+  }
+  const session = new MidiInputSession({panic() {}}, () => {}, {cleanupTimeoutMs: 100})
+  session.access = {inputs: new Map([[input.id, input]]), removeEventListener() {}}
+  const connecting = assert.rejects(session.connect(input.id), /cancelled/i)
+  await started.promise
+  const closing = session.close()
+  opening.reject(new Error('driver rejected open'))
+  await Promise.all([connecting, closing])
+  assert.equal(closeCalls, 1)
+  assert.equal(session.input, null)
+})

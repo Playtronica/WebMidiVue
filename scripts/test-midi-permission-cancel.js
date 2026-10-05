@@ -165,5 +165,57 @@ const bind = (componentOptions, props = {}, withData = true) => {
   await bounded(routePlayAttempt)
   assert.equal(connects, 1, 'Play connected after route change')
 
-  console.log('MIDI permission cancellation verified: one shared browser request, immediate Cancel, late grant, retry, route change, distinct no-device state')
+  const {MidiInputSession} = await import('../src/audio/midi.mjs')
+  const openingPort = deferred()
+  const portStarted = deferred()
+  let lateCloseCalls = 0
+  const input = {
+    id: 'slow-biotron', name: 'Biotron', state: 'connected',
+    open() { portStarted.resolve(); return openingPort.promise },
+    async close() { lateCloseCalls++ },
+    addEventListener() {}, removeEventListener() {}
+  }
+  const engine = {activeVoiceCount: 0, panic() {}, async stop() {}}
+  const midi = new MidiInputSession(engine, () => {}, {cleanupTimeoutMs: 25})
+  midi.access = {inputs: new Map([[input.id, input]]), removeEventListener() {}}
+  soundContext.updateSoundSession = () => {}
+  const stoppingPlay = bind(sound, {
+    canStartReveal: true, starting: false, midiOpening: false, permissionPending: false,
+    permissionAbort: null, permissionAttemptId: 0, releaseBlocked: false,
+    revealProfile: {id: 'test', productName: 'Biotron', settlingStatus: 'Settling'},
+    revealStage: 'intro', midiInputs: [], status: '', midi, engine, volume: 65,
+    tabLease: {release() {}}
+  }, false)
+  stoppingPlay.acquireTabLease = async () => true
+  stoppingPlay.ensureEngine = async () => {}
+  stoppingPlay.resetVoiceUi = () => {}
+  stoppingPlay.resetCalibration = () => {}
+  stoppingPlay.stopAudioClockMonitor = () => {}
+  const openingPlay = stoppingPlay.startReveal()
+  await portStarted.promise
+  assert.equal(stoppingPlay.midiOpening, true, 'Stop is unavailable during MIDI input open')
+  await bounded(stoppingPlay.stop())
+  assert.equal(stoppingPlay.releaseBlocked, true, 'Stop claimed an unresolved port was released')
+  assert.match(stoppingPlay.status, /did not release/i)
+  openingPort.resolve()
+  await bounded(openingPlay)
+  assert.equal(lateCloseCalls, 1)
+  assert.match(stoppingPlay.status, /did not release/i, 'Late open overwrote the Stop warning')
+  await bounded(stoppingPlay.stop())
+  assert.equal(stoppingPlay.releaseBlocked, false)
+  assert.equal(stoppingPlay.midi, null)
+
+  const routeOpening = bind(sound, {
+    midiOpening: true, starting: true, permissionPending: false,
+    permissionAttemptId: 1, revealMode: true,
+    revealProfile: {settingsRoute: '/biotron'}, releaseBlocked: false, midi: {}
+  }, false)
+  let routeStops = 0
+  routeOpening.stop = async () => { routeStops++; routeOpening.releaseBlocked = true }
+  let routeResult = 'unset'
+  await sound.beforeRouteLeave.call(routeOpening, {path: '/biotron'}, {}, result => { routeResult = result })
+  assert.equal(routeStops, 1, 'Route change skipped release during pending MIDI open')
+  assert.equal(routeResult, false, 'Route change claimed release after an unresolved MIDI open')
+
+  console.log('MIDI permission and Stop cancellation verified: one browser request, late grant, bounded open, retry and route change')
 })().catch(error => { console.error(error); process.exitCode = 1 })

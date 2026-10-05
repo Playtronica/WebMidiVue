@@ -1,6 +1,16 @@
 import {parseMidiMessage} from './core.mjs'
 import {requestSharedMidiAccess} from './midiAccess.mjs'
 
+const cancelledConnection = () => Object.assign(new Error('MIDI connection was cancelled.'), {name: 'AbortError'})
+
+function releaseDeadline(task, milliseconds) {
+  let timer
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('MIDI release is still pending. Press Stop again after the device responds.')), milliseconds)
+  })
+  return Promise.race([task, timeout]).finally(() => clearTimeout(timer))
+}
+
 export function describeMidiAccessError(error) {
   if (error?.name === 'NotAllowedError') {
     return 'MIDI permission was not allowed. Allow device access, then try again.'
@@ -31,13 +41,15 @@ export class MidiInputSession {
     // Late permission/open completions must never reacquire a released port.
     this.operationId = 0
     this.pendingConnect = null
+    this.pendingRelease = null
+    this.cleanupTimeoutMs = options.cleanupTimeoutMs ?? 2000
     this.boundMessage = event => this.onMessage(event)
     this.boundState = event => this.onStateChange(event)
   }
 
   assertActive(operationId) {
     if (this.closed || operationId !== this.operationId) {
-      throw new Error('MIDI connection was cancelled.')
+      throw cancelledConnection()
     }
   }
 
@@ -87,15 +99,19 @@ export class MidiInputSession {
     if (!input) throw new Error('That MIDI input is no longer available.')
     await this.releaseCurrent()
     this.assertActive(operationId)
-    await input.open()
-    if (this.closed || operationId !== this.operationId) {
+    let openError = null
+    try { await input.open() } catch (error) { openError = error }
+    const cancelled = this.closed || operationId !== this.operationId
+    if (openError || cancelled) {
       try { await input.close() }
-      catch (error) {
+      catch (cleanupError) {
         this.input = input
-        this.onState({type: 'release-error', input: input.name || 'MIDI input', error})
-        throw error
+        this.onState({type: 'release-error', input: input.name || 'MIDI input', error: cleanupError})
+        if (openError) throw new AggregateError([openError, cleanupError], 'MIDI input open and cleanup failed.')
+        throw cleanupError
       }
-      throw new Error('MIDI connection was cancelled.')
+      if (cancelled) throw cancelledConnection()
+      throw openError
     }
     input.addEventListener('midimessage', this.boundMessage)
     this.input = input
@@ -138,38 +154,50 @@ export class MidiInputSession {
     if (primaryError) throw primaryError
   }
 
-  async release() {
-    await this.invalidatePendingConnect()
-    await this.releaseCurrent()
+  release() {
+    const pending = this.invalidatePendingConnect()
+    return this.finishRelease(pending)
   }
 
-  async invalidatePendingConnect() {
+  invalidatePendingConnect() {
     this.operationId += 1
-    const pending = this.pendingConnect
-    if (pending) try { await pending } catch (error) { void error }
+    return this.pendingConnect
+  }
+
+  async finishRelease(pending) {
+    const connection = pending?.catch(error => {
+      if (error?.name !== 'AbortError') throw error
+    })
+    await releaseDeadline(Promise.all([this.releaseCurrent(), connection]), this.cleanupTimeoutMs)
   }
 
   async releaseCurrent() {
+    if (this.pendingRelease) return this.pendingRelease
     if (!this.input) return
     const input = this.input
-    input.removeEventListener('midimessage', this.boundMessage)
-    this.engine.panic()
-    try {
-      await input.close()
-    } catch (error) {
-      this.onState({type: 'release-error', input: input.name || 'MIDI input', error})
-      throw error
-    }
-    if (this.input === input) this.input = null
-    this.onState({type: 'released', input: input.name || 'MIDI input'})
+    const task = (async () => {
+      input.removeEventListener('midimessage', this.boundMessage)
+      this.engine.panic()
+      try { await input.close() }
+      catch (error) {
+        this.onState({type: 'release-error', input: input.name || 'MIDI input', error})
+        throw error
+      }
+      if (this.input === input) this.input = null
+      this.onState({type: 'released', input: input.name || 'MIDI input'})
+    })()
+    this.pendingRelease = task
+    try { await task }
+    finally { if (this.pendingRelease === task) this.pendingRelease = null }
   }
 
-  async close() {
+  close() {
     this.closed = true
-    await this.invalidatePendingConnect()
-    await this.releaseCurrent()
+    this.setEnabled(false)
+    const pending = this.invalidatePendingConnect()
     this.access?.removeEventListener('statechange', this.boundState)
     this.access = null
+    return this.finishRelease(pending)
   }
 
   setEnabled(enabled) {
@@ -180,7 +208,7 @@ export class MidiInputSession {
   }
 
   onMessage(event) {
-    if (!this.enabled) return
+    if (this.closed || !this.enabled) return
     const message = parseMidiMessage(event.data)
     const level = message.type === 'note-on' ? this.voiceLevel(message) : undefined
     trace('in', level === undefined ? [...event.data].slice(0, 12) : {bytes: [...event.data], level})
@@ -193,6 +221,7 @@ export class MidiInputSession {
   }
 
   onStateChange(event) {
+    if (this.closed) return
     if (this.input && event.port?.id === this.input.id && event.port.state === 'disconnected') {
       this.input.removeEventListener('midimessage', this.boundMessage)
       this.engine.panic()
