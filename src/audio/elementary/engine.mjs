@@ -26,6 +26,7 @@ export {DEFAULT_VOLUME, normalizeVolume} from '../core.mjs'
 
 // Denis Starov's chromatone/elements uses el.tau2pole(0.001) for every ref.
 const REF_SMOOTH_TAU = 0.001
+const cancelledAudioStart = () => Object.assign(new Error('Audio start cancelled.'), {name: 'AbortError'})
 
 // Voice slots on top of the victim rules VoiceLedger already has (releasing
 // before active, oldest first, tie by token); only the slot<->key bookkeeping
@@ -87,6 +88,8 @@ export class ElementarySynthEngine {
     this.volume = normalizeVolume(options.volume)
     this.core = null
     this.ready = false
+    this.stopped = false
+    this._closeTask = null
     // Сообщать о состоянии контекста обязан движок: интерфейс слушает только его.
     // Без этого страница не узнаёт, что звук пошёл, и остаётся в 'closed'.
     this.onStateChange = typeof options.onStateChange === 'function' ? options.onStateChange : () => {}
@@ -109,24 +112,32 @@ export class ElementarySynthEngine {
   // 92% из них — вшитые worklet и wasm). На медленной сети это заметная пауза,
   // и человек должен видеть, что идёт работа, а не гадать.
   async ensureReady(onProgress = () => {}) {
+    if (this.stopped) throw cancelledAudioStart()
     if (this.ready) return
     if (!this.core) {
       onProgress('loading')
       const {default: WebRenderer} = await import(
         /* webpackChunkName: "elementary-runtime" */ '@elemaudio/web-renderer')
+      if (this.stopped) throw cancelledAudioStart()
       this.core = new WebRenderer()
     }
     onProgress('starting')
-    this.node = await this.core.initialize(this.context, {
+    const node = await this.core.initialize(this.context, {
       numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1]
     })
+    if (this.stopped) {
+      node?.disconnect?.()
+      throw cancelledAudioStart()
+    }
+    this.node = node
     this.input = this.context.createGain()
-    this.input.connect(this.node)
+    this.input.connect(node)
     this.output = this.context.createGain()
-    this.node.connect(this.output)
+    node.connect(this.output)
     this.output.connect(this.context.destination)
     this._createRefs()
     await this._render()
+    if (this.stopped) throw cancelledAudioStart()
     this.ready = true
     onProgress('ready')
   }
@@ -268,9 +279,20 @@ export class ElementarySynthEngine {
   }
 
   async stop() {
+    this.stopped = true
     this.context.removeEventListener?.('statechange', this.boundStateChange)
     this.panic()
-    if (this.ownsContext && this.context.state !== 'closed') await this.context.close()
+    this.input?.disconnect?.()
+    this.output?.disconnect?.()
+    this.node?.disconnect?.()
+    if (!this.ownsContext || (!this._closeTask && this.context.state === 'closed')) return
+    const task = this._closeTask || Promise.resolve().then(() => this.context.close())
+    this._closeTask = task
+    try { await task }
+    catch (error) {
+      if (this._closeTask === task) this._closeTask = null
+      throw error
+    }
   }
 }
 

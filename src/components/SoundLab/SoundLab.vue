@@ -81,7 +81,7 @@
               type="button"
               class="btn btn-outline-dark"
               @click="stop"
-              :disabled="starting && !midiOpening"
+              :disabled="starting && !midiOpening && !audioStarting"
             >Stop &amp; release</button>
             <button
               v-if="engine && revealStage !== 'intro'"
@@ -142,7 +142,7 @@
 
     <section class="sound-lab__controls" aria-label="Sound controls">
       <button type="button" class="btn btn-dark" @click="start" :disabled="starting || releaseBlocked || !capabilities.audio">Start sound</button>
-      <button type="button" class="btn btn-outline-dark" @click="stop" :disabled="(starting && !midiOpening) || (!engine && !midi)">Stop &amp; release</button>
+      <button type="button" class="btn btn-outline-dark" @click="stop" :disabled="(starting && !midiOpening && !audioStarting) || (!engine && !midi)">Stop &amp; release</button>
       <button type="button" class="btn btn-outline-danger" @click="panic" :disabled="!engine">Stop notes</button>
       <label class="sound-lab__quality">
         <input
@@ -266,6 +266,14 @@ function saveVolume(volume) {
   try { window.localStorage?.setItem(VOLUME_STORAGE_KEY, String(volume)) }
   catch (error) { void error }
 }
+function audioWithin(task, milliseconds, message) {
+  let timer
+  const timeout = new Promise((_, reject) => {
+    timer = window.setTimeout(() => reject(new Error(message)), milliseconds)
+  })
+  return Promise.race([task, timeout]).finally(() => window.clearTimeout(timer))
+}
+const resumeAudioWithin = engine => audioWithin(engine.resume(), 3500, 'Audio resume timed out.')
 export default {
   name: 'SoundLab',
   components: {CompatibilityNotice, DeviceTaskNav},
@@ -300,6 +308,7 @@ export default {
       voiceCount: 0,
       lowCpu: this.mode === 'reveal',
       starting: false,
+      audioStarting: false,
       midiOpening: false,
       permissionPending: false,
       permissionAbort: null,
@@ -357,9 +366,9 @@ export default {
   },
   async beforeRouteLeave(to, from, next) {
     void from
-    const wasOpening = this.midiOpening
+    const wasStarting = this.audioStarting || this.midiOpening
     this.cancelMidiPermission({silent: true})
-    if (this.revealMode && to.path === this.revealProfile.settingsRoute && !wasOpening) {
+    if (this.revealMode && to.path === this.revealProfile.settingsRoute && !wasStarting) {
       this.releaseHeldKeyboard()
       next()
       return
@@ -419,50 +428,84 @@ export default {
         }))
         try { if (navigator.audioSession) navigator.audioSession.type = 'playback' } catch (error) { void error }
       }
-      // Keep slow sound-runtime loading visible instead of blaming the device.
+      const engine = this.engine
+      const wasReady = engine.ready
       let slowTimer = null
-      await this.engine.ensureReady(stage => {
-        if (stage === 'loading') {
-          this.status = 'Loading the sound engine…'
-          slowTimer = window.setTimeout(() => { this.status = 'Still loading the sound engine — slow connection, it is cached after the first time.' }, 1200)
+      this.audioStarting = true
+      try {
+        await audioWithin(engine.ensureReady(stage => {
+          if (this.engine !== engine || engine.stopped) return
+          if (stage === 'loading') {
+            this.status = 'Loading the sound engine…'
+            slowTimer = window.setTimeout(() => { if (this.engine === engine && !engine.stopped) this.status = 'Still loading the sound engine — slow connection, it is cached after the first time.' }, 1200)
+          }
+          if (stage === 'starting') this.status = 'Starting sound…'
+        }), 12000, 'Sound engine loading timed out.')
+        if (this.engine !== engine || engine.stopped) return
+        if (await resumeAudioWithin(engine) !== 'running') throw new Error('Audio could not start.')
+        if (this.engine !== engine || engine.stopped) return
+        this.setAudioState('running', 'Sound ready')
+        return engine
+      } catch (error) {
+        if (this.engine === engine && !engine.stopped && !wasReady) {
+          this.audioStarting = false
+          try { await audioWithin(engine.stop(), 3500, 'Audio release timed out.') }
+          catch (cleanupError) {
+            this.releaseBlocked = true
+            this.audioState = 'error'
+            throw cleanupError
+          }
+          this.engine = null
+          this.midi = null
+          this.audioState = 'closed'
+          this.tabLease?.release()
+          this.tabLeaseState = 'free'
         }
-        if (stage === 'starting') this.status = 'Starting sound…'
-        // Статус после готовности ставит вызывающий: у страницы звука нет профиля знакомства.
-        if (stage === 'ready') window.clearTimeout(slowTimer)
-      })
-      if (await this.engine.resume() !== 'running') throw new Error('Audio could not start.')
-      this.setAudioState('running', 'Sound ready')
-      return this.engine
+        throw error
+      } finally {
+        window.clearTimeout(slowTimer)
+        if (this.engine === engine || !this.engine) this.audioStarting = false
+      }
     },
     async start() {
       if (!this.capabilities.audio) {
         this.status = soundCapabilityMessage(this.capabilities)
         return
       }
+      if (this.starting) return
+      const attemptId = ++this.permissionAttemptId
       this.starting = true
       try {
         if (!await this.acquireTabLease()) return
+        if (attemptId !== this.permissionAttemptId) return
         await this.ensureEngine()
+        if (attemptId !== this.permissionAttemptId) return
         if (!this.tabLease.protected) this.status = 'Sound ready — keep one Settings window open'
       } catch (error) {
+        if (attemptId !== this.permissionAttemptId) return
         this.status = error.message
-        try { await this.engine?.stop() } catch (stopError) { void stopError }
+        try { await audioWithin(this.engine?.stop(), 3500, 'Audio release timed out.') }
+        catch (cleanupError) {
+          this.releaseBlocked = true
+          this.status = cleanupError.message
+          return
+        }
         this.engine = null
         this.midi = null
         this.audioState = 'closed'
         this.tabLease.release()
         this.tabLeaseState = 'free'
-      }
-      finally { this.starting = false }
+      } finally { if (attemptId === this.permissionAttemptId) this.starting = false }
     },
     async stop() {
       this.cancelMidiPermission({silent: true})
       this.midiOpening = false
+      this.audioStarting = false
       this.starting = true
       let midiFailed = false
       let audioFailed = false
       try { await this.midi?.close() } catch (error) { midiFailed = true }
-      try { await this.engine?.stop() } catch (error) { audioFailed = true }
+      try { await audioWithin(this.engine?.stop(), 3500, 'Audio release timed out.') } catch (error) { audioFailed = true }
       if (!midiFailed) this.midi = null
       if (!audioFailed) this.engine = null
       this.audioState = audioFailed ? 'error' : 'closed'

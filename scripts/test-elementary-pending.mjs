@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {setImmediate} from 'node:timers/promises'
+import {readFileSync} from 'node:fs'
+import vm from 'node:vm'
 import {ElementarySynthEngine} from '../src/audio/elementary/engine.mjs'
 
 function deferred() {
@@ -79,4 +81,250 @@ test('concurrent idle barriers both receive the same setter failure', async () =
   assert.deepEqual(results.map(result => result.status), ['rejected', 'rejected'])
   assert(results.every(result => result.reason === failure))
   await engine.whenIdle()
+})
+
+function startupContext(close = async () => {}) {
+  const context = {
+    state: 'running', currentTime: 0, destination: {}, gainCount: 0,
+    addEventListener() {}, removeEventListener() {},
+    createGain() {
+      this.gainCount++
+      return {connect() {}, disconnect() {}}
+    },
+    async close() { await close(); this.state = 'closed' }
+  }
+  return context
+}
+
+test('late renderer initialize after Stop cannot create an audio graph', async () => {
+  const gate = deferred()
+  const context = startupContext()
+  let disconnected = 0
+  const node = {connect() {}, disconnect() { disconnected++ }}
+  const engine = new ElementarySynthEngine(context, {ownsContext: true})
+  engine.core = {initialize: () => gate.promise}
+  const starting = engine.ensureReady()
+  const cancelled = assert.rejects(starting, {name: 'AbortError'})
+  await engine.stop()
+  gate.resolve(node)
+  await cancelled
+  assert.equal(context.gainCount, 0)
+  assert.equal(disconnected, 1)
+  assert.equal(engine.ready, false)
+  assert.equal(context.state, 'closed')
+})
+
+test('late render after Stop never reports ready and disconnects its partial graph', async () => {
+  const gate = deferred()
+  const context = startupContext()
+  let disconnected = 0
+  const node = {connect() {}, disconnect() { disconnected++ }}
+  const engine = new ElementarySynthEngine(context, {ownsContext: true})
+  engine.core = {initialize: async () => node}
+  engine._createRefs = () => {}
+  engine._render = () => gate.promise
+  const starting = engine.ensureReady()
+  const cancelled = assert.rejects(starting, {name: 'AbortError'})
+  await setImmediate()
+  assert.equal(context.gainCount, 2)
+  await engine.stop()
+  gate.resolve()
+  await cancelled
+  assert.equal(disconnected, 1)
+  assert.equal(engine.ready, false)
+})
+
+test('repeated Stop shares one pending AudioContext close', async () => {
+  const gate = deferred()
+  let closeCalls = 0
+  const context = startupContext(async () => { closeCalls++; await gate.promise })
+  const engine = new ElementarySynthEngine(context, {ownsContext: true})
+  const first = engine.stop()
+  const second = engine.stop()
+  await setImmediate()
+  assert.equal(closeCalls, 1)
+  gate.resolve()
+  await Promise.all([first, second])
+  assert.equal(context.state, 'closed')
+})
+
+function soundStartupFixture(engines) {
+  const timers = new Map()
+  let nextTimer = 0
+  let releases = 0
+  const context = {
+    module: {exports: {}}, markRaw: value => value, CompatibilityNotice: {}, DeviceTaskNav: {},
+    window: {
+      setTimeout(callback, delay) { timers.set(++nextTimer, {callback, delay}); return nextTimer },
+      clearTimeout(id) { timers.delete(id) }
+    },
+    navigator: {}, soundSessionState: {calibrating: false}, BIOTRON_CALIBRATION: {},
+    updateSoundSession() {}, createRealtimeSynth: () => engines.shift(),
+    MidiInputSession: class {async close() {}}
+  }
+  const script = readFileSync('src/components/SoundLab/SoundLab.vue', 'utf8')
+    .match(/<script>([\s\S]*?)<\/script>/)[1]
+    .replace(/^import .*$/gm, '').replace('export default', 'module.exports =')
+  vm.runInNewContext(script, context)
+  const target = {
+    engine: null, midi: null, variants: [{}], currentVariant: 0, lowCpu: true,
+    volume: 65, revealMode: true, revealProfile: {id: 'biotron', settingsRoute: '/biotron'},
+    audioStarting: false, starting: true, midiOpening: false, permissionPending: false,
+    permissionAbort: null, permissionAttemptId: 0, audioState: 'closed', releaseBlocked: false,
+    midiInputs: [], selectedInput: '', revealStage: 'intro', revealExpanded: false,
+    recognizedInput: '', revealIssue: null, status: '',
+    tabLease: {release() { releases++ }}, tabLeaseState: 'held'
+  }
+  for (const [name, method] of Object.entries(context.module.exports.methods)) target[name] = method.bind(target)
+  target.setAudioState = (state, status) => { target.audioState = state; target.status = status }
+  target.resetVoiceUi = () => {}
+  target.resetCalibration = () => {}
+  target.startAudioClockMonitor = () => {}
+  target.stopAudioClockMonitor = () => {}
+  return {target, timers, releases: () => releases, sound: context.module.exports}
+}
+
+function fakeStartupEngine(ensureReady) {
+  return {
+    state: 'running', ready: false, stopped: false, resumeCalls: 0, stopCalls: 0,
+    ensureReady,
+    async resume() { this.resumeCalls++; return 'running' },
+    async stop() { this.stopCalls++; this.stopped = true }
+  }
+}
+
+test('hung sound loading times out, releases the first engine, and a user retry starts one new engine', async () => {
+  const pending = deferred()
+  const first = fakeStartupEngine(progress => { progress('loading'); return pending.promise })
+  const second = fakeStartupEngine(async () => { second.ready = true })
+  const {target, timers, releases} = soundStartupFixture([first, second])
+  const starting = target.ensureEngine()
+  await setImmediate()
+  assert.equal(target.audioStarting, true)
+  const deadline = [...timers.values()].find(timer => timer.delay === 12000)
+  assert(deadline, 'initial renderer load has no deadline')
+  deadline.callback()
+  await assert.rejects(starting, /loading timed out/i)
+  assert.equal(first.stopCalls, 1)
+  assert.equal(target.engine, null)
+  assert.equal(target.audioStarting, false)
+  assert.equal(releases(), 1)
+  await target.ensureEngine()
+  assert.equal(target.engine, second)
+  assert.equal(second.resumeCalls, 1)
+  assert.equal(target.audioState, 'running')
+  pending.resolve()
+  await setImmediate()
+  assert.equal(first.resumeCalls, 0, 'late initialization revived the abandoned engine')
+})
+
+test('renderer init rejection cleans up and leaves a retryable start', async () => {
+  const first = fakeStartupEngine(async () => { throw new Error('worklet init failed') })
+  const second = fakeStartupEngine(async () => { second.ready = true })
+  const {target} = soundStartupFixture([first, second])
+  await assert.rejects(target.ensureEngine(), /worklet init failed/)
+  assert.equal(first.stopCalls, 1)
+  assert.equal(target.engine, null)
+  await target.ensureEngine()
+  assert.equal(target.engine, second)
+})
+
+test('Stop during renderer loading ends UI intent and late completion cannot resume sound', async () => {
+  const pending = deferred()
+  const first = fakeStartupEngine(() => pending.promise)
+  const {target} = soundStartupFixture([first])
+  const starting = target.ensureEngine()
+  await setImmediate()
+  assert.equal(target.audioStarting, true)
+  await target.stop()
+  assert.equal(target.starting, false)
+  assert.equal(target.audioStarting, false)
+  assert.equal(target.engine, null)
+  pending.resolve()
+  await starting
+  assert.equal(first.resumeCalls, 0)
+  assert.equal(target.audioState, 'closed')
+})
+
+test('a failed Resume on an existing ready engine preserves its MIDI session for retry', async () => {
+  const engine = fakeStartupEngine(async () => {})
+  engine.ready = true
+  engine.resume = async () => { throw new Error('resume failed') }
+  const {target} = soundStartupFixture([])
+  target.engine = engine
+  const midi = target.midi = {async close() { throw new Error('must not close MIDI') }}
+  await assert.rejects(target.ensureEngine(), /resume failed/)
+  assert.equal(target.engine, engine)
+  assert.equal(target.midi, midi)
+  assert.equal(engine.stopCalls, 0)
+})
+
+test('initial suspended or interrupted audio never reports ready and can be retried', async () => {
+  for (const state of ['suspended', 'interrupted']) {
+    const first = fakeStartupEngine(async () => { first.ready = true })
+    first.resume = async () => state
+    const second = fakeStartupEngine(async () => { second.ready = true })
+    const {target} = soundStartupFixture([first, second])
+    await assert.rejects(target.ensureEngine(), /Audio could not start/)
+    assert.equal(first.stopCalls, 1, state)
+    assert.equal(target.engine, null, state)
+    await target.ensureEngine()
+    assert.equal(target.engine, second, state)
+    assert.equal(target.audioState, 'running', state)
+  }
+})
+
+test('hung AudioContext close leaves Stop visibly incomplete until a later retry', async () => {
+  const gate = deferred()
+  const engine = fakeStartupEngine(async () => {})
+  engine.stop = () => { engine.stopped = true; return gate.promise }
+  const {target, timers} = soundStartupFixture([])
+  target.engine = engine
+  target.starting = false
+  const stopping = target.stop()
+  await setImmediate()
+  const deadline = [...timers.values()].find(timer => timer.delay === 3500)
+  assert(deadline, 'AudioContext close has no deadline')
+  deadline.callback()
+  await stopping
+  assert.equal(target.releaseBlocked, true)
+  assert.equal(target.engine, engine, 'unconfirmed close was claimed released')
+  assert.match(target.status, /Audio did not close/i)
+  const retry = target.stop()
+  gate.resolve()
+  await retry
+  assert.equal(target.releaseBlocked, false)
+  assert.equal(target.engine, null)
+})
+
+test('Play to Settings waits for bounded Stop during audio startup', async () => {
+  const engine = fakeStartupEngine(async () => {})
+  const {target, sound} = soundStartupFixture([])
+  target.engine = engine
+  target.audioStarting = true
+  let stops = 0
+  target.stop = async () => { stops++; target.releaseBlocked = false }
+  let routeResult = 'unset'
+  await sound.beforeRouteLeave.call(target, {path: '/biotron'}, {}, result => { routeResult = result })
+  assert.equal(stops, 1, 'route change preserved a still-starting audio engine')
+  assert.equal(routeResult, undefined)
+})
+
+test('audio-only Start cancelled by Stop cannot claim sound ready after late init', async () => {
+  const pending = deferred()
+  const engine = fakeStartupEngine(() => pending.promise)
+  const {target} = soundStartupFixture([engine])
+  target.starting = false
+  target.capabilities = {audio: true}
+  target.tabLease.acquire = async () => true
+  target.tabLease.protected = false
+  const starting = target.start()
+  await setImmediate()
+  assert.equal(target.audioStarting, true)
+  await target.stop()
+  pending.resolve()
+  await starting
+  assert.equal(target.engine, null)
+  assert.equal(target.starting, false)
+  assert.match(target.status, /Stopped/i)
 })
