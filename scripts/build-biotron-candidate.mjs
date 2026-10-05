@@ -62,6 +62,7 @@ export function createTestEvidence({commit, buildId, testedAt, environment}) {
       "diagnostics_and_release_evidence",
       "first_use_plant_connection_prerequisite_visible",
       "sound_core_and_seven_sound_levels",
+      "audio_interruption_state_and_foreground_recovery",
       "production_isolation",
       "biotron_beta_build",
       "pwa_install_offline_update_and_retry",
@@ -110,6 +111,19 @@ asking you to choose between two identical \`Biotron\` entries. Change one
 reversible setting and wait for **Saved on Biotron**. Do not combine this check
 with sound, offline or firmware testing. With two physical Biotron units, the
 page must stop and ask for one to be disconnected instead of choosing silently.
+
+## Separate iPhone check — required before claiming an iOS fix
+
+Use MIDIWeb Browser, one Biotron and the same potted plant, with the phone model,
+iOS version, MIDIWeb version and cable/adapter recorded. Open the exact preview
+directly at \`/#/biotron/play\`. Do not update firmware.
+
+First confirm plant-triggered sound while the app stays visible. Then, as a
+separate check, briefly lock the phone or switch apps and return. If the browser
+paused audio, the page must show that state and offer **Resume sound**; MIDI must
+work again after audio resumes. Stop at the first failure. This is a recovery
+test, not a promise of uninterrupted background playback or a diagnosis of every
+intermittent stop. A passing computer or Android check is not an iPhone pass.
 
 ## If anything fails
 

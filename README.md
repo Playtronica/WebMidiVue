@@ -78,6 +78,12 @@ It must not be sent to an unscreened customer segment. Firmware installation is
 desktop Chrome/Edge plus internet only, and each board revision must be
 confirmed before receiving its link.
 
+The candidate handles browser audio interruptions explicitly: MIDI pauses with
+the audio context, resumes when audio really returns, and retries on foreground
+return rather than in a hidden retry loop. The automated test simulates WebKit's
+`interrupted` state; it does not prove an iPhone or MIDIWeb defect is fixed. The
+candidate hardware checklist includes a separate iPhone recovery check.
+
 The primary beta test path is current Chrome/Edge on a Windows, macOS or Linux
 computer. It is not an `.exe`: the browser installs a standalone app after the
 first online visit. Android Chrome is an experimental field-test path and also

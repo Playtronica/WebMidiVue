@@ -602,10 +602,9 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
       Object.defineProperty(document, 'hidden', {configurable: true, get: () => true})
       await window.__soundContext.suspend()
     })
-    await page.waitForFunction(() => window.__soundContext.state === 'running')
-    await page.locator('.sound-lab[data-audio-state="running"]').waitFor()
+    await page.locator('.sound-lab[data-audio-state="suspended"]').waitFor()
     await page.evaluate(() => window.__emitSoundMidi([0x90, 67, 100]))
-    await page.locator('.sound-lab[data-active-voices="1"]').waitFor()
+    await page.locator('.sound-lab[data-active-voices="0"]').waitFor()
     await page.evaluate(() => window.__emitSoundMidi([0x80, 67, 0]))
     await page.evaluate(() => {
       Object.defineProperty(document, 'hidden', {configurable: true, get: () => false})
@@ -616,6 +615,20 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     await page.evaluate(() => window.__emitSoundMidi([0x90, 69, 100]))
     await page.locator('.sound-lab[data-active-voices="1"]').waitFor()
     await page.evaluate(() => window.__emitSoundMidi([0x80, 69, 0]))
+    // Chromium does not emit WebKit's interrupted state: inject only that boundary,
+    // keeping the real audio engine, MIDI session and Vue lifecycle under test.
+    await page.evaluate(() => {
+      Object.defineProperty(window.__soundContext, 'state', {configurable: true, get: () => 'interrupted'})
+      window.__soundContext.dispatchEvent(new Event('statechange'))
+    })
+    await page.locator('.sound-lab[data-audio-state="interrupted"]').waitFor()
+    await page.evaluate(() => window.__emitSoundMidi([0x90, 70, 100]))
+    await page.locator('.sound-lab[data-active-voices="0"]').waitFor()
+    await page.evaluate(() => {
+      delete window.__soundContext.state
+      window.__soundContext.dispatchEvent(new Event('statechange'))
+    })
+    await page.locator('.sound-lab[data-audio-state="running"]').waitFor()
     await page.evaluate(() => window.__emitSoundMidi([0x90, 67, 100]))
     await page.locator('.sound-lab[data-active-voices="1"]').waitFor()
     await page.getByRole('button', {name: 'Stop notes'}).click()

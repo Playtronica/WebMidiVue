@@ -401,10 +401,7 @@ export default {
         if (stage === 'ready') window.clearTimeout(slowTimer)
       })
       if (await this.engine.resume() !== 'running') throw new Error('Audio could not start.')
-      this.midi?.setEnabled(true)
-      this.audioState = 'running'
-      updateSoundSession({running: true, volume: this.volume})
-      this.status = 'Sound ready'
+      this.setAudioState('running', 'Sound ready')
       return this.engine
     },
     async start() {
@@ -682,36 +679,32 @@ export default {
       }
       else if (state === 'activity') this.finishCalibration()
     },
-    pauseInputs(status) {
-      if (this.midi) this.midi.setEnabled(false)
-      else this.engine?.panic()
-      this.resetVoiceUi()
-      this.status = status
-    },
-    markAudioSuspended(status) {
-      this.pauseInputs(status)
-      this.audioState = 'suspended'
-      updateSoundSession({running: false, volume: this.volume})
+    setAudioState(state, status) {
+      const running = state === 'running'
+      this.midi?.setEnabled(running)
+      if (!running) { this.engine?.panic(); this.resetVoiceUi() }
+      Object.assign(this, {audioState: state, status})
+      updateSoundSession({running, volume: this.volume})
     },
     handleAudioContextState(state) {
-      if (!this.engine || state === 'running') return
+      if (!this.engine) return
+      if (state === 'running') {
+        if (!this.starting && !this.releaseBlocked && ['suspended', 'interrupted'].includes(this.audioState))
+          this.setAudioState('running', 'Sound ready')
+        return
+      }
       if (state === 'closed') {
-        updateSoundSession({running: false, volume: this.volume})
-        this.pauseInputs('Audio stopped unexpectedly — press Stop & release')
-        this.audioState = 'closed'
+        this.setAudioState('closed', 'Audio stopped unexpectedly — press Stop & release')
         this.releaseBlocked = true
         if (this.revealMode && this.firstSoundOutcome !== 'helped') Object.assign(this, {revealIssue: {title: 'Audio stopped unexpectedly', body: 'Press Stop & release, then try Hear Biotron again.'}, firstSoundOutcome: 'not_yet'})
         return
       }
-      if (document.hidden) {
-        void this.ensureEngine().catch(() => this.markAudioSuspended('Background audio was paused by the browser'))
-        return
-      }
-      this.markAudioSuspended('Audio paused — press Start sound')
+      // Respect an OS interruption; retry on foreground return or a user gesture, never in a hidden loop.
+      this.setAudioState(state, `Audio paused — press ${this.revealMode ? 'Resume sound' : 'Start sound'}`)
     },
     async handleVisibility() {
       this.releaseHeldKeyboard()
-      if (document.hidden || !this.engine || this.engine.context.state !== 'suspended') return
+      if (document.hidden || !this.engine || !['suspended', 'interrupted'].includes(this.engine.context.state)) return
       try { await this.ensureEngine() } catch (error) { void error }
     },
     firstSoundFeedbackUrl(outcome) {
