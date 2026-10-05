@@ -109,6 +109,18 @@ const bind = (componentOptions, props = {}, withData = true) => {
     selectRevealInput: inputs => inputs[0], window: {setTimeout, clearTimeout},
     document: {}, trace() {}
   }
+  const keyboardContext = {module: {exports: {}}}
+  vm.runInNewContext(fs.readFileSync('src/audio/core.mjs', 'utf8').replace(/^export /gm, '') +
+    '\nmodule.exports = {KEYBOARD_CODE_TO_NOTE}', keyboardContext)
+  soundContext.KEYBOARD_CODE_TO_NOTE = keyboardContext.module.exports.KEYBOARD_CODE_TO_NOTE
+  soundContext.updateSoundSession = () => {}
+  soundContext.parseBiotronCalibrationState = () => null
+  soundContext.BIOTRON_CALIBRATION = {}
+  const effectsContext = {module: {exports: {}}}
+  vm.runInNewContext(fs.readFileSync('src/audio/soundSessionEffects.mjs', 'utf8')
+    .replace('export function createSoundSessionEffects', 'function createSoundSessionEffects') +
+    '\nmodule.exports = createSoundSessionEffects', effectsContext)
+  soundContext.createSoundSessionEffects = effectsContext.module.exports
   const sound = component('src/components/SoundLab/SoundLab.vue', soundContext)
   let connects = 0
   const play = bind(sound, {
