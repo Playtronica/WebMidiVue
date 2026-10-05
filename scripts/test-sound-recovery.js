@@ -9,11 +9,11 @@ const script = source.match(/<script>([\s\S]*?)<\/script>/)[1]
   .replace(/^import .*$/gm, '').replace('export default', 'module.exports =')
 function fixture() {
   const session = {running: true}
-  const context = {module: {exports: {}}, document: {hidden: false},
+  const context = {module: {exports: {}}, document: {hidden: false}, markRaw: value => value, AbortController,
     CompatibilityNotice: {}, DeviceTaskNav: {}, updateSoundSession: patch => Object.assign(session, patch)}
   vm.runInNewContext(script, context)
   const target = {engine: {context: {state: 'running'}, panic() {}}, midi: {setEnabled(value) { this.enabled = value }},
-    audioState: 'running', volume: 65, revealMode: true, firstSoundOutcome: 'helped', starting: false, releaseBlocked: false}
+    audioState: 'running', volume: 65, revealMode: true, firstSoundOutcome: 'helped', starting: false, permissionAttemptId: 0, releaseBlocked: false}
   for (const [name, method] of Object.entries(context.module.exports.methods)) target[name] = method.bind(target)
   target.resetVoiceUi = () => {}
   target.releaseHeldKeyboard = () => {}

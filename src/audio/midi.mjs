@@ -41,13 +41,14 @@ export class MidiInputSession {
     }
   }
 
-  async requestAccess(operationId = this.operationId) {
+  async requestAccess(operationId = this.operationId, signal) {
     this.assertActive(operationId)
     if (!this.access) {
       let access
       try {
-        access = await requestSharedMidiAccess({sysex: this.sysex})
+        access = await requestSharedMidiAccess({sysex: this.sysex, signal})
       } catch (error) {
+        if (error?.name === 'AbortError') throw error
         this.assertActive(operationId)
         throw new Error(describeMidiAccessError(error))
       }

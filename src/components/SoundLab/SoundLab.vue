@@ -75,6 +75,7 @@
               @click="startReveal"
               :disabled="starting || releaseBlocked || !canStartReveal"
             >{{ revealStage === 'intro' ? revealProfile.startLabel : 'Resume sound' }}</button>
+            <button v-if="permissionPending" type="button" class="btn btn-outline-secondary" @click="cancelMidiPermission()">Cancel MIDI request</button>
             <button
               v-if="engine || midi"
               type="button"
@@ -223,6 +224,7 @@
         <button type="button" class="btn btn-primary" @click="connectMidi" :disabled="starting || releaseBlocked || !capabilities.audio || !capabilities.midi">
           {{ midiInputs.length ? 'Connect selected' : 'Find MIDI device' }}
         </button>
+        <button v-if="permissionPending" type="button" class="btn btn-outline-secondary" @click="cancelMidiPermission()">Cancel MIDI request</button>
       </div>
     </section>
     </template>
@@ -298,6 +300,9 @@ export default {
       voiceCount: 0,
       lowCpu: this.mode === 'reveal',
       starting: false,
+      permissionPending: false,
+      permissionAbort: null,
+      permissionAttemptId: 0,
       releaseBlocked: false,
       calibrationTracker: markRaw(new BiotronCalibrationTracker()),
       calibrationCandidateTimer: null,
@@ -331,6 +336,7 @@ export default {
     document.addEventListener('visibilitychange', this.visibilityHandler)
   },
   beforeUnmount() {
+    this.cancelMidiPermission({silent: true})
     unregisterSoundController(this)
     updateSoundSession({running: false, volume: this.volume})
     window.removeEventListener('keydown', this.keyDownHandler)
@@ -350,6 +356,7 @@ export default {
   },
   async beforeRouteLeave(to, from, next) {
     void from
+    this.cancelMidiPermission({silent: true})
     if (this.revealMode && to.path === this.revealProfile.settingsRoute) {
       this.releaseHeldKeyboard()
       next()
@@ -365,6 +372,27 @@ export default {
   },
   watch: {revealStage(stage) { trace('stage', stage) }},
   methods: {
+    async requestMidiPermission() {
+      const controller = markRaw(new AbortController())
+      this.permissionAbort = controller
+      this.permissionPending = true
+      try { return await this.midi.requestAccess(undefined, controller.signal) }
+      finally {
+        if (this.permissionAbort === controller) {
+          this.permissionAbort = null
+          this.permissionPending = false
+        }
+      }
+    },
+    cancelMidiPermission({silent = false} = {}) {
+      if (!this.permissionPending && !this.starting) return
+      this.permissionAttemptId++
+      this.permissionAbort?.abort()
+      this.permissionAbort = null
+      this.permissionPending = false
+      this.starting = false
+      if (!silent) this.status = 'MIDI request cancelled. The browser prompt may remain open; press Start again after answering it.'
+    },
     async acquireTabLease() {
       if (await this.tabLease.acquire()) {
         this.tabLeaseState = this.tabLease.protected ? 'held' : 'unprotected'
@@ -522,37 +550,45 @@ export default {
       }
     },
     async connectMidi() {
+      if (this.starting) return
       if (!this.capabilities.audio || !this.capabilities.midi) {
         this.status = soundCapabilityMessage(this.capabilities, {requiresMidi: true})
         return
       }
+      const attemptId = ++this.permissionAttemptId
       this.starting = true
       try {
         if (!await this.acquireTabLease()) return
+        if (attemptId !== this.permissionAttemptId) return
         await this.ensureEngine()
+        if (attemptId !== this.permissionAttemptId) return
         if (!this.midiInputs.length) {
-          this.midiInputs = await this.midi.requestAccess()
+          this.midiInputs = await this.requestMidiPermission()
           this.selectedInput = this.midiInputs[0]?.id || ''
           if (!this.selectedInput) throw new Error('No MIDI inputs found.')
         }
         await this.midi.connect(this.selectedInput)
-      } catch (error) { this.status = error.message }
-      finally { this.starting = false }
+      } catch (error) { if (error?.name !== 'AbortError') this.status = error.message }
+      finally { if (attemptId === this.permissionAttemptId) this.starting = false }
     },
     async startReveal() {
+      if (this.starting) return
       if (!this.canStartReveal) {
         this.status = soundCapabilityMessage(this.capabilities, {requiresMidi: true})
         return
       }
+      const attemptId = ++this.permissionAttemptId
       this.starting = true
       this.revealIssue = null
       this.firstSoundOutcome = ''
       let failure = ''
       try {
         if (!await this.acquireTabLease()) { Object.assign(this, {revealIssue: {title: 'Sound is open elsewhere', body: 'Close or stop sound in the other Settings window, then try again.'}, firstSoundOutcome: 'not_yet'}); return }
+        if (attemptId !== this.permissionAttemptId) return
         await this.ensureEngine()
+        if (attemptId !== this.permissionAttemptId) return
         this.status = MIDI_PROMPT_HINT
-        const input = selectRevealInput(await this.midi.requestAccess(), this.revealProfile)
+        const input = selectRevealInput(await this.requestMidiPermission(), this.revealProfile)
         this.midiInputs = [input]
         this.selectedInput = input.id
         await this.midi.connect(input.id)
@@ -570,6 +606,7 @@ export default {
           }, 15000)
         }
       } catch (error) {
+        if (error?.name === 'AbortError') return
         failure = error.message || `${this.revealProfile.productName} could not start.`
         const missingDevice = /was not found|No MIDI inputs found/i.test(failure)
         const denied = /permission was not allowed/i.test(failure)
@@ -582,7 +619,7 @@ export default {
           this.firstSoundOutcome = 'not_yet'
         }
       } finally {
-        this.starting = false
+        if (attemptId === this.permissionAttemptId) this.starting = false
       }
     },
     handleMidiState(event) {

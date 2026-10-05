@@ -9,6 +9,7 @@
       <label for="biotron-device">{{ text_label }}</label>
     </div>
     <small v-if="connecting && !selectedDevice" class="text-muted">{{ promptHint }}</small>
+    <button v-if="connecting && !selectedDevice" type="button" class="btn btn-outline-secondary mt-2" @click="cancelConnection">Cancel connection</button>
     <div v-if="allowDawHandoff" class="daw-handoff d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center mt-2">
       <button v-if="!released" type="button" class="btn btn-outline-primary daw-handoff__button" @click="releaseMidi" :disabled="connecting || !selectedDevice">
         Release device for DAW
@@ -44,8 +45,8 @@
   const RECALIBRATE_WAITING = 1;
   const RECALIBRATE_MEASURING = 2;
   const RECALIBRATE_READY = 3;
-  const requestMidiAccess = () => {
-    return requestSharedMidiAccess({sysex: true});
+  const requestMidiAccess = (signal) => {
+    return requestSharedMidiAccess({sysex: true, signal});
   };
   export default {
     props: {
@@ -78,6 +79,7 @@
         selectedDevice: null,
         released: false,
         connecting: false,
+        permissionAbort: null,
         midiError: "",
         promptHint: MIDI_PROMPT_HINT,
         operationId: 0,
@@ -123,11 +125,14 @@
         return this.refreshDevices();
       },
       async connectMidi() {
+        if (this.connecting) return;
         const operationId = ++this.operationId;
+        const permissionAbort = new AbortController();
+        this.permissionAbort = permissionAbort;
         this.connecting = true;
         this.midiError = "";
         try {
-          const midi = this.midiAccess || await requestMidiAccess();
+          const midi = this.midiAccess || await requestMidiAccess(permissionAbort.signal);
           if (operationId !== this.operationId || this.unmounted) return;
           this.released = false;
           await this.midiReady(midi);
@@ -141,10 +146,22 @@
               this.midiError = "Could not open the MIDI port. Close your DAW or other MIDI apps, then retry.";
             }
           }
-          console.log('Something went wrong', err);
+          if (err?.name !== 'AbortError') console.log('Something went wrong', err);
         } finally {
+          if (this.permissionAbort === permissionAbort) this.permissionAbort = null;
           if (operationId === this.operationId && !this.unmounted) this.connecting = false;
         }
+      },
+      cancelConnection() {
+        if (!this.connecting) return;
+        ++this.operationId;
+        this.permissionAbort?.abort();
+        this.permissionAbort = null;
+        if (this.midiAccess) this.midiAccess.onstatechange = null;
+        this.selectedDevice = null;
+        this.$emit('device_changed', undefined);
+        this.connecting = false;
+        this.midiError = 'MIDI connection cancelled. The browser permission prompt may remain open; press Retry after answering it.';
       },
       clearUpdateTimeout() {
         if (this.updateTimeout !== null) clearTimeout(this.updateTimeout);
@@ -422,6 +439,8 @@
     beforeUnmount() {
       this.unmounted = true;
       ++this.operationId;
+      this.permissionAbort?.abort();
+      this.permissionAbort = null;
       this.clearUpdateTimeout();
       this.clearRecalibrationRequest();
       this.clearSettingsReadbackRequest(new Error("Settings page closed."));

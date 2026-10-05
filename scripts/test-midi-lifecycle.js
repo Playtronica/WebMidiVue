@@ -7,6 +7,7 @@ const script = source.match(/<script>([\s\S]*?)<\/script>/)[1]
 const scheduled = new Map()
 let timerId = 0
 const context = {
+  AbortController,
   module: { exports: {} },
   exports: {},
   navigator: {
