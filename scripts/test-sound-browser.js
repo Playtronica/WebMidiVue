@@ -332,6 +332,12 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
       let finishDeferredOpen = null
       const AudioContextClass = window.AudioContext || window.webkitAudioContext
       const nativeAudioClose = AudioContextClass?.prototype.close
+      const nativeConnect = AudioNode.prototype.connect
+      AudioNode.prototype.connect = function(destination, ...args) {
+        if (destination === this.context.destination && this.context === window.__soundContext)
+          window.__soundOutputNode = this
+        return nativeConnect.call(this, destination, ...args)
+      }
       if (nativeAudioClose) {
         AudioContextClass.prototype.close = function(...args) {
           if (window.__failSoundAudioCloseOnce) {
@@ -742,12 +748,42 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     await page.getByRole('heading', {name: 'Biotron is ready'}).waitFor()
     await page.evaluate(() => window.__emitSoundMidi([0x91, 64, 100]))
     await page.locator('.sound-lab[data-reveal-stage="revealed"][data-active-voices="1"]').waitFor()
-    await page.getByText(/detected a tiny electrical change through the plant and sent a MIDI note/i).waitFor()
+    await page.getByText(/Notes are reaching this page. Can you hear them/i).waitFor()
     await page.getByRole('heading', {name: 'Did you hear Biotron play from the plant?'}).waitFor()
     const helpedFeedback = page.getByRole('link', {name: 'Yes — open WhatsApp'})
     assert((await helpedFeedback.getAttribute('href')).includes('wa.me/351937910673'))
     assert((await helpedFeedback.getAttribute('href')).includes('I%20heard%20Biotron%20play%20from%20the%20plant'))
     assert((await helpedFeedback.getAttribute('href')).includes('Reached%3A%20Sound%20from%20the%20plant'))
+    await page.evaluate(() => window.__emitSoundMidi([0x81, 64, 0]))
+    const calibrationCount = await page.evaluate(() => window.__soundMidiSent
+      .filter(message => message[0] === 0xf0 && message[3] === 125).length)
+    await page.evaluate(() => window.__soundContext.suspend())
+    await page.locator('.sound-lab[data-audio-state="suspended"]').waitFor()
+    await page.getByRole('button', {name: 'Resume sound'}).click()
+    await page.locator('.sound-lab[data-audio-state="running"][data-reveal-stage="revealed"]').waitFor()
+    assert.strictEqual(await page.evaluate(() => window.__soundMidiSent
+      .filter(message => message[0] === 0xf0 && message[3] === 125).length), calibrationCount,
+    'manual Resume unexpectedly restarted calibration')
+    assert.strictEqual(await page.evaluate(() => window.__soundInput.connection), 'open')
+    const resumedSignalRms = await page.evaluate(async () => {
+      const output = window.__soundOutputNode
+      if (!output) throw new Error('Sound engine output unavailable for signal check')
+      const analyser = window.__soundContext.createAnalyser()
+      analyser.fftSize = 2048
+      output.connect(analyser)
+      window.__emitSoundMidi([0x91, 69, 110])
+      let rms = 0
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        const data = new Float32Array(analyser.fftSize)
+        analyser.getFloatTimeDomainData(data)
+        rms = Math.max(rms, Math.sqrt(data.reduce((sum, sample) => sum + sample * sample, 0) / data.length))
+      }
+      window.__emitSoundMidi([0x81, 69, 0])
+      output.disconnect(analyser)
+      return rms
+    })
+    assert(resumedSignalRms > 0.001, `no measurable audio after manual Resume: RMS ${resumedSignalRms}`)
     await page.getByRole('button', {name: 'Choose a sound'}).click()
     assert.strictEqual(await page.locator('.sound-lab__reveal-variants .sound-lab__variant').count(), 7)
     await page.evaluate(() => window.__emitSoundMidi([0x91, 64, 0]))

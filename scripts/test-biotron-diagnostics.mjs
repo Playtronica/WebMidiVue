@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import {buildBiotronDiagnosticPacket} from "../src/biotron/settingsReadback.mjs"
+import {buildBiotronDiagnosticPacket, buildBiotronPlayDiagnosticPacket} from "../src/biotron/settingsReadback.mjs"
 
 const packet = buildBiotronDiagnosticPacket({
   buildId: "abc123def456",
@@ -31,5 +31,25 @@ assert.equal(packet.workflow.calibration_state, "ready")
 assert.equal(packet.workflow.sound_running, true)
 assert(!JSON.stringify(packet).includes("private-port-id"),
   "opaque browser MIDI IDs must not enter a support packet")
+
+const playPacket = buildBiotronPlayDiagnosticPacket({
+  buildId: 'new-build-exact', route: '/biotron/play', device: {id: 'secret-id', name: 'Biotron'},
+  revealStage: 'revealed', stoppedStage: 'revealed', audioState: 'interrupted',
+  midiLastMessageAt: 4000, resumeOutcome: 'timed_out',
+  trace: [{kind: 'in', data: [0x90, 60, 99], t: 4700},
+    {kind: 'stage', data: 'revealed', t: 4600}, {kind: 'resume', data: 'timed_out', t: 4900}],
+}, {
+  performance: {now: () => 5000}, document: {visibilityState: 'visible'},
+  navigator: {onLine: true, userAgent: 'Test Browser', requestMIDIAccess() {}},
+  location: {origin: 'https://beta.example'}, now: () => '2026-10-05T00:00:00.000Z',
+})
+assert.equal(playPacket.web_tool.build_id, 'new-build-exact')
+assert.equal(playPacket.workflow.task_stage, 'revealed')
+assert.equal(playPacket.workflow.audio_state, 'interrupted')
+assert.equal(playPacket.workflow.last_midi_message_age_ms, 1000)
+assert.equal(playPacket.workflow.resume_outcome, 'timed_out')
+assert.equal(playPacket.workflow.recent_events.length, 2)
+assert(!JSON.stringify(playPacket).includes('secret-id'))
+assert(!JSON.stringify(playPacket).includes('99'), 'raw MIDI payload entered support packet')
 
 console.log("Biotron diagnostics contract: PASS")

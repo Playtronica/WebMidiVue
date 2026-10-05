@@ -4,6 +4,7 @@ import {setImmediate} from 'node:timers/promises'
 import {readFileSync} from 'node:fs'
 import vm from 'node:vm'
 import {ElementarySynthEngine} from '../src/audio/elementary/engine.mjs'
+import {KEYBOARD_CODE_TO_NOTE} from '../src/audio/core.mjs'
 
 function deferred() {
   let resolve
@@ -159,12 +160,20 @@ function soundStartupFixture(engines) {
       clearTimeout(id) { timers.delete(id) }
     },
     navigator: {}, soundSessionState: {calibrating: false}, BIOTRON_CALIBRATION: {},
+    KEYBOARD_CODE_TO_NOTE,
+    trace() {}, parseBiotronCalibrationState() { return null },
     updateSoundSession() {}, createRealtimeSynth: () => engines.shift(),
     MidiInputSession: class {async close() {}}
   }
   const script = readFileSync('src/components/SoundLab/SoundLab.vue', 'utf8')
     .match(/<script>([\s\S]*?)<\/script>/)[1]
     .replace(/^import .*$/gm, '').replace('export default', 'module.exports =')
+  const effectsSource = readFileSync('src/audio/soundSessionEffects.mjs', 'utf8')
+    .replace('export function createSoundSessionEffects', 'function createSoundSessionEffects') +
+    '\nmodule.exports = createSoundSessionEffects'
+  const effectsContext = {...context, module: {exports: {}}}
+  vm.runInNewContext(effectsSource, effectsContext)
+  context.createSoundSessionEffects = effectsContext.module.exports
   vm.runInNewContext(script, context)
   const target = {
     engine: null, midi: null, variants: [{}], currentVariant: 0, lowCpu: true,

@@ -125,6 +125,54 @@ export function buildBiotronDiagnosticPacket(state, environment = {}) {
   }
 }
 
+export function buildBiotronPlayDiagnosticPacket(state, environment = {}) {
+  const navigatorRef = environment.navigator || globalThis.navigator || {}
+  const documentRef = environment.document || globalThis.document || {}
+  const nowMs = (environment.performance || globalThis.performance)?.now?.() ?? null
+  const base = buildBiotronDiagnosticPacket({
+    buildId: state.buildId,
+    route: state.route,
+    device: state.device,
+    firmwareVersion: state.firmwareVersion,
+    settingsState: 'not_opened',
+    calibrationState: state.revealStage,
+    soundRunning: state.audioState === 'running',
+  }, environment)
+  const recentEvents = (state.trace || []).filter(event =>
+    ['stage', 'audio-state', 'resume'].includes(event.kind)
+  ).slice(-12).map(event => ({
+    kind: event.kind,
+    state: typeof event.data === 'string' ? event.data : event.data?.state || 'unknown',
+    age_ms: Number.isFinite(nowMs) && Number.isFinite(event.t)
+      ? Math.max(0, Math.round(nowMs - event.t)) : null,
+  }))
+  return {
+    ...base,
+    workflow: {
+      ...base.workflow,
+      task_stage: state.revealStage || 'unknown',
+      stopped_stage: state.stoppedStage || null,
+      audio_state: state.audioState || 'unknown',
+      last_midi_message_age_ms: Number.isFinite(nowMs) && Number.isFinite(state.midiLastMessageAt)
+        ? Math.max(0, Math.round(nowMs - state.midiLastMessageAt)) : null,
+      visibility: documentRef.visibilityState || (documentRef.hidden ? 'hidden' : 'visible'),
+      resume_outcome: state.resumeOutcome || 'not_attempted',
+      recent_events: recentEvents,
+    },
+    environment: {...base.environment, online: navigatorRef.onLine !== false},
+  }
+}
+
+export async function copyBiotronPlayDiagnostic(state, environment = {}) {
+  const navigatorRef = environment.navigator || globalThis.navigator || {}
+  try {
+    await navigatorRef.clipboard.writeText(JSON.stringify(buildBiotronPlayDiagnosticPacket(state, environment), null, 2))
+    return 'Copied — paste it into your email or WhatsApp message.'
+  } catch {
+    return 'Copy was blocked by the browser. Send the build number shown at the top instead.'
+  }
+}
+
 export async function copyBiotronDiagnostic(page, buildId, environment = {}) {
   const navigatorRef = environment.navigator || globalThis.navigator || {}
   const packet = buildBiotronDiagnosticPacket({

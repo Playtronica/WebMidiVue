@@ -37,30 +37,9 @@
           <span v-if="revealStage === 'calibrating'" class="sound-lab__calibration-note sound-lab__calibration-note--two"></span>
         </div>
         <div class="sound-lab__reveal-copy">
-          <template v-if="revealStage === 'intro'">
-            <h2 id="device-reveal-title">{{ revealProfile.introHeading }}</h2>
-            <p>{{ revealProfile.introInstruction }}</p>
-          </template>
-          <template v-else-if="revealStage === 'settling'">
-            <small class="sound-lab__recognized" :title="recognizedInput">{{ revealProfile.productName }} connected</small>
-            <h2 id="device-reveal-title">{{ revealProfile.settlingHeading }}</h2>
-            <p>{{ revealProfile.settlingInstruction }}</p>
-          </template>
-          <template v-else-if="revealStage === 'calibrating'">
-            <small class="sound-lab__recognized" :title="recognizedInput">{{ revealProfile.productName }} connected</small>
-            <h2 id="device-reveal-title">{{ revealProfile.calibratingHeading }}</h2>
-            <p>{{ revealProfile.calibratingInstruction }}</p>
-          </template>
-          <template v-else-if="revealStage === 'ready'">
-            <small class="sound-lab__recognized" :title="recognizedInput">{{ revealProfile.productName }} connected</small>
-            <h2 id="device-reveal-title">{{ revealProfile.readyHeading }}</h2>
-            <p>{{ revealProfile.readyInstruction }}</p>
-          </template>
-          <template v-else>
-            <small class="sound-lab__recognized" :title="recognizedInput">{{ revealProfile.productName }} connected</small>
-            <h2 id="device-reveal-title">{{ revealProfile.revealedHeading }}</h2>
-            <p>{{ revealProfile.explanation }}</p>
-          </template>
+          <small v-if="revealStage !== 'intro'" class="sound-lab__recognized" :title="recognizedInput">{{ revealProfile.productName }} connected</small>
+          <h2 id="device-reveal-title">{{ revealCopy.heading }}</h2>
+          <p>{{ revealCopy.instruction }}</p>
 
           <div v-if="revealIssue" class="sound-lab__connect-notice" role="status" aria-live="polite">
             <strong>{{ revealIssue.title }}</strong>
@@ -69,10 +48,10 @@
 
           <div class="sound-lab__reveal-actions">
             <button
-              v-if="revealStage === 'intro' || (engine && audioState !== 'running' && !releaseBlocked)"
+              v-if="revealStage === 'intro' || (engine && ['suspended', 'interrupted'].includes(audioState) && !releaseBlocked)"
               type="button"
               class="btn btn-dark"
-              @click="startReveal"
+              @click="revealStage === 'intro' ? startReveal() : resumeSound()"
               :disabled="starting || releaseBlocked || !canStartReveal"
             >{{ revealStage === 'intro' ? revealProfile.startLabel : 'Resume sound' }}</button>
             <button v-if="permissionPending" type="button" class="btn btn-outline-secondary" @click="cancelMidiPermission()">Cancel MIDI request</button>
@@ -104,6 +83,10 @@
             <output for="biotron-play-volume">{{ volume }}{{ volume > 100 ? '% boost' : '%' }}</output>
           </label>
           <span class="sound-lab__status sound-lab__status--reveal" role="status" aria-live="polite">{{ status }}</span>
+          <div v-if="engine || revealIssue" class="sound-lab__diagnostic">
+            <button type="button" class="btn btn-outline-secondary btn-sm" @click="copyPlayDiagnostics">Copy diagnostics for Andrey</button>
+            <small>{{ diagnosticMessage || 'Copies this build, audio and MIDI state. Nothing is sent automatically.' }}</small>
+          </div>
         </div>
       </section>
 
@@ -233,10 +216,11 @@
 
 <script>
 import {markRaw} from 'vue'
-import {noteForKeyboardCode} from '@/audio/core.mjs'
+import {KEYBOARD_CODE_TO_NOTE, noteForKeyboardCode} from '@/audio/core.mjs'
 import {createRealtimeElementarySynth as createRealtimeSynth, DEFAULT_VOLUME, normalizeVolume} from '@/audio/elementary/engine.mjs'
 import {registerSoundController, soundSessionState, unregisterSoundController, updateSoundSession} from '@/audio/sessionState.mjs'
 import {trace, MidiInputSession} from '@/audio/midi.mjs'
+import {createSoundSessionEffects} from '@/audio/soundSessionEffects.mjs'
 import {MIDI_PROMPT_HINT} from '@/audio/midiAccess.mjs'
 import {SOUNDS} from '@/audio/elementary/timbres.mjs'
 import {createExclusiveTabLease} from '@/audio/tabLease.mjs'
@@ -247,15 +231,12 @@ import DeviceTaskNav from '@/components/DeviceTaskNav.vue'
 import CompatibilityNotice from '@/components/CompatibilityNotice.vue'
 import {buildMidiAdvisory, detectPlatformCapabilities, taskFeedbackUrl} from '@/compatibility.mjs'
 
-const keyboard = [
-  ['KeyA', 60, 'A', 'C', false], ['KeyW', 61, 'W', 'C sharp', true],
-  ['KeyS', 62, 'S', 'D', false], ['KeyE', 63, 'E', 'D sharp', true],
-  ['KeyD', 64, 'D', 'E', false], ['KeyF', 65, 'F', 'F', false],
-  ['KeyT', 66, 'T', 'F sharp', true], ['KeyG', 67, 'G', 'G', false],
-  ['KeyY', 68, 'Y', 'G sharp', true], ['KeyH', 69, 'H', 'A', false],
-  ['KeyU', 70, 'U', 'A sharp', true], ['KeyJ', 71, 'J', 'B', false],
-  ['KeyK', 72, 'K', 'C high', false]
-].map(([code, note, label, noteName, black]) => ({code, note, label, noteName, black}))
+const noteNames = ['C', 'C sharp', 'D', 'D sharp', 'E', 'F', 'F sharp',
+  'G', 'G sharp', 'A', 'A sharp', 'B', 'C high']
+const keyboard = Object.entries(KEYBOARD_CODE_TO_NOTE).map(([code, note]) => ({
+  code, note, label: code.slice(3), noteName: noteNames[note - 60],
+  black: noteNames[note - 60].includes('sharp')
+}))
 
 const VOLUME_STORAGE_KEY = 'playtronica-sound-volume-v1'
 function loadVolume() {
@@ -284,6 +265,12 @@ export default {
   computed: {
     revealMode() { return this.mode === 'reveal' },
     revealProfile() { return getRevealProfile(this.profileId) },
+    revealCopy() {
+      const stage = ['intro', 'settling', 'calibrating', 'ready'].includes(this.revealStage)
+        ? this.revealStage : 'revealed'
+      return {heading: this.revealProfile[`${stage}Heading`],
+        instruction: this.revealProfile[stage === 'revealed' ? 'explanation' : `${stage}Instruction`]}
+    },
     canStartReveal() { return this.capabilities.audio && this.capabilities.midi },
     midiAdvisory() { return this.revealMode ? null : buildMidiAdvisory(this.platformCapabilities) }
   },
@@ -305,6 +292,9 @@ export default {
         ? soundCapabilityMessage(capabilities, {requiresMidi: true}) || 'Ready when you are'
         : capabilities.audio ? 'Press Start sound' : soundCapabilityMessage(capabilities),
       audioState: 'closed',
+      resumeOutcome: 'not_attempted',
+      resumeAttemptId: 0,
+      diagnosticMessage: '',
       voiceCount: 0,
       lowCpu: this.mode === 'reveal',
       starting: false,
@@ -315,6 +305,8 @@ export default {
       permissionAttemptId: 0,
       releaseBlocked: false,
       calibrationTracker: markRaw(new BiotronCalibrationTracker()),
+      revealCalibrationNonce: 0,
+      explicitCalibration: false,
       calibrationCandidateTimer: null,
       calibrationFinishTimer: null,
       voiceRefreshTimer: null,
@@ -347,6 +339,7 @@ export default {
   },
   beforeUnmount() {
     this.cancelMidiPermission({silent: true})
+    this.resumeAttemptId++
     unregisterSoundController(this)
     updateSoundSession({running: false, volume: this.volume})
     window.removeEventListener('keydown', this.keyDownHandler)
@@ -383,6 +376,8 @@ export default {
   },
   watch: {revealStage(stage) { trace('stage', stage) }},
   methods: {
+    ...createSoundSessionEffects({resumeAudioWithin, trace, updateSoundSession,
+      parseBiotronCalibrationState, BIOTRON_CALIBRATION}),
     async requestMidiPermission() {
       const controller = markRaw(new AbortController())
       this.permissionAbort = controller
@@ -501,6 +496,7 @@ export default {
       this.cancelMidiPermission({silent: true})
       this.midiOpening = false
       this.audioStarting = false
+      this.resumeAttemptId++
       this.starting = true
       let midiFailed = false
       let audioFailed = false
@@ -637,6 +633,7 @@ export default {
       this.starting = true
       this.revealIssue = null
       this.firstSoundOutcome = ''
+      this.resumeOutcome = 'not_attempted'
       let failure = ''
       try {
         if (!await this.acquireTabLease()) { Object.assign(this, {revealIssue: {title: 'Sound is open elsewhere', body: 'Close or stop sound in the other Settings window, then try again.'}, firstSoundOutcome: 'not_yet'}); return }
@@ -657,14 +654,15 @@ export default {
         this.revealStage = 'settling'
         this.status = this.revealProfile.settlingStatus
         if (this.revealProfile.id === 'biotron') {
-          await this.midi.sendToPairedOutput([0xf0, 0x14, 0x0d, 125, Date.now() % 127 + 1, 0xf7])
-          if (attemptId !== this.permissionAttemptId) return
+          const nonce = this.revealCalibrationNonce = this.revealCalibrationNonce % 127 + 1
           // No calibration state within 15 s means no plant signal (clips off): say so instead of pulsing forever.
           window.clearTimeout(this.revealWatchdog)
           this.revealWatchdog = window.setTimeout(() => {
-            if (this.revealStage === 'settling') Object.assign(this, {revealStage: 'intro', status: `No plant signal in 15 s. ${this.revealProfile.introInstruction}`,
+            if (this.revealCalibrationNonce === nonce && this.revealStage === 'settling') Object.assign(this, {revealStage: 'intro', status: `No plant signal in 15 s. ${this.revealProfile.introInstruction}`,
               revealIssue: {title: 'No plant signal yet', body: this.revealProfile.introInstruction}, firstSoundOutcome: 'not_yet'})
           }, 15000)
+          await this.midi.sendToPairedOutput([0xf0, 0x14, 0x0d, 125, nonce, 0xf7])
+          if (attemptId !== this.permissionAttemptId) return
         }
       } catch (error) {
         if (attemptId !== this.permissionAttemptId || error?.name === 'AbortError') return
@@ -733,6 +731,7 @@ export default {
     resetCalibration() {
       this.clearCalibrationTimers()
       this.calibrationTracker.reset()
+      this.explicitCalibration = false
       updateSoundSession({calibrating: false})
     },
     finishCalibration() {
@@ -742,49 +741,12 @@ export default {
         this.status = this.revealProfile.readyStatus
       }
     },
-    handleRevealMessage(message) {
-      const calibration = parseBiotronCalibrationState(message)
-      if (calibration) {
-        const active = calibration.state !== 'ready'
-        updateSoundSession({calibrating: active})
-        if (active) Object.assign(this, {revealStage: 'calibrating', status: this.revealProfile.calibratingStatus})
-        else this.finishCalibration()
-        return
-      }
-      if (this.revealStage === 'ready' && message?.type === 'note-on') {
-        this.revealStage = 'revealed'
-        this.status = 'Biotron is making sound'
-        this.firstSoundOutcome = 'helped'
-        return
-      }
-      if (!['settling', 'calibrating'].includes(this.revealStage)) return
-
-      const state = this.calibrationTracker.observe(message, performance.now())
-      if (state === 'candidate') {
-        window.clearTimeout(this.calibrationCandidateTimer)
-        this.calibrationCandidateTimer = window.setTimeout(
-          () => this.finishCalibration(),
-          BIOTRON_CALIBRATION.quietCompletionMs
-        )
-      }
-      else if (state === 'calibrating') {
-        window.clearTimeout(this.calibrationCandidateTimer)
-        window.clearTimeout(this.calibrationFinishTimer)
-        this.calibrationCandidateTimer = null
-        this.revealStage = 'calibrating'
-        this.status = this.revealProfile.calibratingStatus
-        this.calibrationFinishTimer = window.setTimeout(
-          () => this.finishCalibration(),
-          BIOTRON_CALIBRATION.quietCompletionMs
-        )
-      }
-      else if (state === 'activity') this.finishCalibration()
-    },
     setAudioState(state, status) {
       const running = state === 'running'
       this.midi?.setEnabled(running)
       if (!running) { this.engine?.panic(); this.resetVoiceUi() }
       Object.assign(this, {audioState: state, status})
+      trace('audio-state', state)
       updateSoundSession({running, volume: this.volume})
     },
     handleAudioContextState(state) {
@@ -806,12 +768,12 @@ export default {
     async handleVisibility() {
       this.releaseHeldKeyboard()
       if (document.hidden || !this.engine || !['suspended', 'interrupted'].includes(this.engine.context.state)) return
-      try { await this.ensureEngine() } catch (error) { void error }
+      await this.resumeSound({automatic: true})
     },
     firstSoundFeedbackUrl(outcome) {
       const result = outcome === 'helped' ? 'I heard Biotron play from the plant.' : 'I did not hear Biotron play from the plant yet.'
       const build = process.env.VUE_APP_BUILD_ID || 'local-build'
-      const stoppedAt = outcome === 'helped' ? 'Sound from the plant' : ({'Connect Biotron first': 'Biotron was not found', 'Allow access to Biotron': 'MIDI permission', 'No plant signal yet': 'No plant signal after 15 seconds', 'Sound is open elsewhere': 'Sound open in another tab', 'Biotron disconnected': 'Biotron disconnected before first sound', 'Audio stopped unexpectedly': 'Audio stopped before first sound', 'Biotron could not start': 'Biotron could not start'}[this.revealIssue?.title] || 'Before first sound')
+      const stoppedAt = outcome === 'helped' ? 'Sound from the plant' : ({'Connect Biotron first': 'Biotron was not found', 'Allow access to Biotron': 'MIDI permission', 'No plant signal yet': 'No plant signal after 15 seconds', 'Calibration did not finish': 'Calibration did not finish', 'Sound is open elsewhere': 'Sound open in another tab', 'Biotron disconnected': 'Biotron disconnected before first sound', 'Audio stopped unexpectedly': 'Audio stopped before first sound', 'Biotron could not start': 'Biotron could not start'}[this.revealIssue?.title] || 'Before first sound')
       return taskFeedbackUrl(result, stoppedAt, build)
     }
   }
@@ -828,8 +790,11 @@ export default {
 .sound-lab section { margin-top: 2rem; }
 .sound-lab__controls, .sound-lab__variants, .sound-lab__midi-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .sound-lab__status { min-height: 1.5rem; padding-left: .5rem; color: #625e58; }
+.sound-lab__diagnostic { display: flex; flex-direction: column; align-items: flex-start; gap: .3rem; margin-top: .5rem; }
+.sound-lab__diagnostic small { color: #625e58; }
 .sound-lab__quality { display: inline-flex; min-height: 44px; align-items: center; gap: .4rem; margin: 0; padding: 0 .35rem; white-space: nowrap; }
 .sound-lab__quality input { width: 1.1rem; height: 1.1rem; }
+
 .sound-lab__volume { display: inline-grid; grid-template-columns: auto minmax(130px, 220px) 3.25rem; gap: .65rem; align-items: center; min-height: 44px; margin: 0; color: #353239; font-weight: 600; }
 .sound-lab__volume input { width: 100%; min-height: 32px; accent-color: #6a5acd; cursor: pointer; }
 .sound-lab__volume output { color: #625e58; font-variant-numeric: tabular-nums; text-align: right; }

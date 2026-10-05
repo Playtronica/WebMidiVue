@@ -246,8 +246,8 @@ test('reveal profiles keep first-use copy plain and product-specific', () => {
   assert.doesNotMatch(beforeReveal, /leaf[- _]?pads?/i)
   assert.match(beforeReveal, /two steps away/i)
   assert.match(beforeReveal, /gentle notes and breathing green lights/i)
-  assert.match(profile.explanation, /electrical change/i)
-  assert.match(profile.explanation, /MIDI note/i)
+  assert.match(profile.explanation, /can you hear them/i)
+  assert.doesNotMatch(profile.revealedHeading, /you can hear|plant signal/i)
   assert.throws(() => getRevealProfile('unknown'), /Unknown reveal profile/)
 })
 

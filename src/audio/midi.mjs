@@ -43,6 +43,7 @@ export class MidiInputSession {
     this.pendingConnect = null
     this.pendingRelease = null
     this.cleanupTimeoutMs = options.cleanupTimeoutMs ?? 2000
+    this.lastMessageAt = null
     this.boundMessage = event => this.onMessage(event)
     this.boundState = event => this.onStateChange(event)
   }
@@ -208,6 +209,7 @@ export class MidiInputSession {
   }
 
   onMessage(event) {
+    this.lastMessageAt = performance.now()
     if (this.closed || !this.enabled) return
     const message = parseMidiMessage(event.data)
     const level = message.type === 'note-on' ? this.voiceLevel(message) : undefined
