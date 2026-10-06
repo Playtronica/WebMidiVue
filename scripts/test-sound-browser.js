@@ -797,7 +797,7 @@ async function runRealtimeSoak(page, devtools, seconds, browserVersion) {
     await page.getByRole('heading', {name: 'Settings', exact: true}).waitFor()
     assert.strictEqual(new URL(page.url()).hash, '#/biotron')
     await page.getByText(/Sound stays on while you adjust settings/i).waitFor()
-    await page.getByText('Settings loaded. Changes now apply live and save automatically.').waitFor({timeout: 5000})
+    await page.getByText('Settings loaded. Individual changes apply live; presets need Apply preset to Biotron.').waitFor({timeout: 5000})
     const settingHelpButtons = page.locator('details.hint > summary')
     assert(await settingHelpButtons.count() >= 8, 'settings info icons must be real help buttons')
     const muteHelp = page.getByRole('button', {name: /Help: Turns off notes coming off plant sensor/i})

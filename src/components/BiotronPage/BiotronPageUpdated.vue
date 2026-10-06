@@ -65,12 +65,12 @@
     <UpdateFirmwareComponent v-if="betaBuild && firmwareTestEnabled" class="w-100 mt-3" text="Update Firmware" repo="Playtronica/biotron-firmware" :device="device" :current-version="firmwareVersion" version-aware @check_firmware="checkFirmware"/>
     </section>
     <template v-if="!betaBuild || settingsReady">
-    <section :class="{'beta-preset-card': betaBuild}" aria-label="Preset and saved settings">
+    <section :class="{'beta-preset-card': betaBuild}" :inert="betaBuild && is_loading" aria-label="Preset and saved settings">
     <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"  text_label="📂 Preset"/>
     <div :class="betaBuild ? 'preset-actions' : 'row gx-1 mb-5'">
       <div :class="{'col': !betaBuild}">
         <button @click="change_data_loader" :disabled="!this.device || this.is_loading || (betaBuild && !settingsReady)" class="btn btn-primary w-100 h-100">
-          {{ betaBuild ? (is_loading ? 'Checking…' : 'Check saved settings') : '❇️ Send to Device' }}
+          {{ betaBuild ? (is_loading ? (presetPending ? 'Applying preset…' : 'Checking…') : (presetPending ? 'Apply preset to Biotron' : 'Check saved settings')) : '❇️ Send to Device' }}
         </button>
       </div>
       <div :class="{'col': !betaBuild}">
@@ -92,7 +92,7 @@
       </div>
     </div>
     </section>
-  <div>
+  <div :inert="betaBuild && is_loading">
     <BootstrapCollapse name_of_collapse="PLANT SENSOR" open_by_default>
       <template v-slot:objects>
         <GroupOfCommands>
@@ -420,6 +420,7 @@ import {
   applyCalmerPlay,
   copyBiotronDiagnostic,
   savedSettingsMessage,
+  sendBiotronSettings,
   settingsVectorFromCommands,
   settingsVectorsEqual
 } from "@/biotron/settingsReadback.mjs";
@@ -529,9 +530,10 @@ export default  {
         if (this.device !== device || loadId !== this.settingsLoadId) return
         applySettingsVector(this.commands_data, snapshot.values)
         this.settingsSnapshotKnown = true
+        this.presetPending = false
         this.forceRerender++
         this.settingsState = "loaded"
-        this.settingsMessage = "Settings loaded. Changes now apply live and save automatically."
+        this.settingsMessage = "Settings loaded. Individual changes apply live; presets need Apply preset to Biotron."
       } catch (error) {
         if (this.device !== device || loadId !== this.settingsLoadId) return
         this.settingsState = "error"
@@ -573,15 +575,21 @@ export default  {
     async change_data_loader() {
       if (!this.device || this.is_loading || (this.betaBuild && !this.settingsSnapshotKnown)) return
       const device = this.device
-      const waitForPendingSave = this.betaBuild && this.settingsState === "changed"
+      const applyingPreset = this.betaBuild && this.presetPending
+      const waitForPendingSave = this.betaBuild && this.settingsState === "changed" && !applyingPreset
       this.is_loading = true;
       this.settingsState = this.betaBuild ? "checking" : "saving"
-      this.settingsMessage = this.betaBuild ? "Checking the saved copy…" : ""
+      this.settingsMessage = this.betaBuild
+          ? (applyingPreset ? "Applying preset to Biotron…" : "Checking the saved copy…") : ""
       this.forceRerender++;
       try {
         if (this.betaBuild) {
           this.clearLiveVerification()
           this.settingsLoadId++
+          if (applyingPreset) {
+            await withMidiWriteSession(device, () => this.device, output => sendBiotronSettings(output, this.commands_data))
+            await new Promise(resolve => setTimeout(resolve, 1100))
+          }
           if (waitForPendingSave) {
             await new Promise(resolve => setTimeout(resolve, 1100))
           }
@@ -592,12 +600,13 @@ export default  {
             throw new Error("Saved settings did not match the form.")
           }
           this.settingsState = "saved"
+          this.presetPending = false
           this.settingsMessage = savedSettingsMessage(this.lastChangedSetting)
           return
         }
         await withMidiWriteSession(device, () => this.device, async output => {
           await output.wait(100)
-          await this.sendData(output)
+          await sendBiotronSettings(output, this.commands_data)
           if (!this.betaBuild) {
             await output.wait(100)
             await this.sendDataDeprecated(output)
@@ -606,7 +615,9 @@ export default  {
       } catch (error) {
         if (this.betaBuild) {
           this.settingsState = "error"
-          this.settingsMessage = "Live changes still work. The saved copy could not be confirmed — try again."
+          this.settingsMessage = applyingPreset
+              ? "Preset could not be confirmed on Biotron — try Apply preset to Biotron again."
+              : "Live changes still work. The saved copy could not be confirmed — try again."
         }
       } finally {
         this.is_loading = false;
@@ -656,26 +667,6 @@ export default  {
       }
     },
 
-    async sendData(output) {
-      if (output) {
-        output.send([240, 11, 20, 13, 126, 247]);
-        await output.wait(100);
-        let extraComp = []
-
-        extraComp.push("plantBpm");
-        for (let comm in this.commands_data) {
-          if (!extraComp.includes(comm)) {
-            this.commands_data[comm].sendToMidi(output)
-            await output.wait(100);
-          }
-        }
-        await output.wait(100);
-        output.send([240, 11, 20, 13, 126, 247]);
-        await output.wait(100);
-        this.commands_data.plantBpm.sendToMidi(output)
-      }
-    },
-
     saveData() {
       let state = {}
       for (let val of Object.values(this.commands_data)) {
@@ -718,6 +709,7 @@ export default  {
       }
       await this.saveData();
       this.forceRerender++;
+      this.markPresetPending()
     },
     async patchChanged() {
       let patch_id = parseInt(localStorage.getItem(this.id));
@@ -736,6 +728,12 @@ export default  {
       this.settingsLoadId++
       this.lastChangedSetting = object.name
       await this.patchChanged();
+      if (this.betaBuild && this.presetPending) {
+        this.settingsMessage = "Preset edited in browser. Apply preset to Biotron to hear and save it."
+        this.forceRerender++;
+        this.patchRerender++;
+        return
+      }
       if (this.device) {
         await object.sendToMidi(this.device)
       }
@@ -784,6 +782,7 @@ export default  {
       settingsState: "idle",
       settingsMessage: "",
       settingsSnapshotKnown: false,
+      presetPending: false,
       settingsLoadId: 0,
       liveVerifyTimer: null,
       liveVerifyId: 0,
@@ -812,12 +811,13 @@ export default  {
   },
   mounted() {
     this.listenerScope = createListenerScope()
-    this.listenerScope.on(document, 'keyup', event => {
+    if (!this.betaBuild) this.listenerScope.on(document, 'keyup', event => {
       if (event.code === 'Enter' && !this.is_loading) this.change_data_loader();
     })
     this.listenerScope.on(document, 'PatchChanged', async () => {
       await this.loadData();
       this.forceRerender++;
+      this.markPresetPending()
     })
     this.listenerScope.on(document, "PatchSave", async (ev) => {
       await withPresetFeedback(this.id, "save", async () => {
@@ -833,6 +833,7 @@ export default  {
         this.patches = await this.db.getPatch()
         await this.loadData();
         this.forceRerender++;
+        this.markPresetPending()
       })
     })
   },

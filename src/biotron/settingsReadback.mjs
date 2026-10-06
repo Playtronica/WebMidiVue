@@ -81,6 +81,21 @@ export function savedSettingsMessage(lastChangedSetting) {
   return "Saved on Biotron."
 }
 
+export async function sendBiotronSettings(output, commands) {
+  if (!output) return
+  output.send([240, 11, 20, 13, 126, 247])
+  await output.wait(100)
+  for (const [name, command] of Object.entries(commands)) {
+    if (name === "plantBpm") continue
+    command.sendToMidi(output)
+    await output.wait(100)
+  }
+  await output.wait(100)
+  output.send([240, 11, 20, 13, 126, 247])
+  await output.wait(100)
+  commands.plantBpm.sendToMidi(output)
+}
+
 export async function applyCalmerPlay(device, getCurrentDevice, commands) {
   for (const [name, value] of CALMER_PLAY_SETTINGS) commands[name].set_value(value)
   return withMidiWriteSession(device, getCurrentDevice, async output => {

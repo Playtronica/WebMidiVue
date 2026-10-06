@@ -62,7 +62,11 @@ async function openProfile(online, denyMidiOnce = false) {
       78, 3, 4, 4, 50, 10, 0, 4, 8, 98, 74, 75, 0, 1, 0, 12,
       0, 0, 1, 1, 0, 1, 60, 2, 3, 100, 0
     ]
-    const persistedIndexByCommand = {10: 12, 11: 13, 21: 21, 22: 17}
+    const persistedIndexByCommand = {
+      1: 4, 2: 5, 3: 6, 4: 7, 5: 9, 6: 11, 9: 2, 10: 12, 11: 13,
+      12: 3, 13: 15, 15: 8, 16: 19, 17: 10, 18: 20, 19: 16,
+      21: 21, 22: 17, 23: 18, 24: 14, 25: 22, 26: 25, 27: 26
+    }
     const output = {
       id: 'biotron-output-1', manufacturer: 'Playtronica', name: 'Biotron',
       connection: 'closed',
@@ -75,6 +79,17 @@ async function openProfile(online, denyMidiOnce = false) {
         if (message.length === 6 && message[0] === 0xf0 && message[1] === 20 &&
             message[2] === 13 && persistedIndex !== undefined && message[5] === 0xf7) {
           persistedValues[persistedIndex] = message[4]
+        }
+        if (message[0] === 0xf0 && message[1] === 20 && message[2] === 13 &&
+            message[3] === 0 && message.at(-1) === 0xf7) {
+          const bpm = message.slice(4, -1).reduce((sum, byte) => sum + byte, 0)
+          persistedValues[0] = bpm & 0x7f
+          persistedValues[1] = (bpm >> 7) & 0x7f
+        }
+        if (message.length === 7 && message[0] === 0xf0 && message[1] === 20 &&
+            message[2] === 13 && message[3] === 127 && message[6] === 0xf7 &&
+            [0, 1].includes(message[4])) {
+          persistedValues[23 + message[4]] = message[5] + 1
         }
         if (window.__respondSettings && message[0] === 0xf0 && message[3] === 123 && message.length === 7) {
           const response = [
@@ -220,7 +235,7 @@ async function controllerVersion(page) {
 
   const sendButton = page.getByRole('button', {name: /Check saved settings|Send to Device/i})
   await waitFor(() => sendButton.isEnabled(), 'fake Biotron did not connect offline')
-  await page.getByText('Settings loaded. Changes now apply live and save automatically.').waitFor({state: 'visible'})
+  await page.getByText('Settings loaded. Individual changes apply live; presets need Apply preset to Biotron.').waitFor({state: 'visible'})
   const liveWriteCount = await page.evaluate(() => window.__midiSent.length)
   await page.locator('input[type="checkbox"]').first().evaluate(element => element.click())
   await page.getByText('Applied live — saving and checking…').waitFor({state: 'visible'})
@@ -298,12 +313,26 @@ async function controllerVersion(page) {
   await page.evaluate(() => { window.__respondSettings = true })
   await sendButton.click()
   await page.getByText(/Calmer play is saved/i).waitFor({state: 'visible', timeout: 5000})
+  const presetSentBefore = await page.evaluate(() => window.__midiSent.length)
+  await page.locator('#patch-selector').selectOption({label: 'Fast role'})
+  await page.getByText('Preset loaded in browser. Apply preset to Biotron to hear and save it.').waitFor({state: 'visible'})
+  await page.locator('#patch-selector').press('Enter')
+  assert.strictEqual(await page.evaluate(before => window.__midiSent.length, presetSentBefore), presetSentBefore,
+    'selecting a browser preset or pressing Enter unexpectedly wrote to Biotron')
+  const applyPreset = page.getByRole('button', {name: 'Apply preset to Biotron'})
+  await applyPreset.click()
+  await page.getByText('Saved on Biotron.').waitFor({state: 'visible', timeout: 15000})
+  assert(await page.evaluate(before => window.__midiSent.slice(before).some(message => message[3] === 0), presetSentBefore),
+    'applying a preset did not send its plant tempo to Biotron')
   console.log(`3/7 offline Biotron detection, nonce-bound recalibration and non-blocking SysEx write verified (max event-loop gap ${heartbeatMaxGap.toFixed(1)} ms)`)
 
   await page.evaluate(() => window.__emitSettingsMidi([0xf0, 0x0b, 126, 0, 1, 9, 3, 0xf7]))
   assert.strictEqual(await page.getByRole('button', {name: /Update to 1\.9\.8|Update Firmware/}).count(), 0,
     'general customer beta exposed a firmware update action')
-  assert.strictEqual(await page.evaluate(() => window.__midiSent.some(message => message[3] === 127)), false,
+  assert.strictEqual(await page.evaluate(() => window.__midiSent.some(message =>
+    JSON.stringify(message) === JSON.stringify([240, 11, 127, 247]) ||
+    JSON.stringify(message) === JSON.stringify([240, 11, 20, 13, 127, 247])
+  )), false,
     'general customer beta entered BOOT')
   console.log('4/7 general customer beta keeps firmware update isolated')
 

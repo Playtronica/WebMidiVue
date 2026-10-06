@@ -2,6 +2,14 @@
 export function createSettingsConnectionMethods({settingsVectorFromCommands,
   settingsVectorsEqual, savedSettingsMessage}) {
   return {
+    markPresetPending() {
+      if (!this.betaBuild) return
+      this.clearLiveVerification()
+      this.lastChangedSetting = "preset"
+      this.presetPending = true
+      this.settingsState = "changed"
+      this.settingsMessage = "Preset loaded in browser. Apply preset to Biotron to hear and save it."
+    },
     async readPersistedSettingsWithRetry(device, attempts = 3) {
       let lastError
       for (let attempt = 0; attempt < attempts; attempt++) {
