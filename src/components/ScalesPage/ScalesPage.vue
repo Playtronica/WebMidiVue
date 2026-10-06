@@ -108,6 +108,14 @@
                   description="Arpeggio mode: a note is added automatically after it stays the same for 1.5 s (the FUNCTION button no longer adds notes or pauses)"
                   @input-changed="this.sys_ex_changed"
               />
+
+              <SwitchComponent
+                  class="col-sm"
+                  commandLabel="Sensor Mute"
+                  :command-object=this.commands_data.sensor_mute
+                  description="Mutes only the note played directly from the weight (Hold, Arpeggio and Pitch modes). Arpeggio, BPM sequence, Hold stuck notes and Music CC keep working. The MUTE button still silences everything."
+                  @input-changed="this.sys_ex_changed"
+              />
             </div>
           </template>
         </GroupOfCommands>

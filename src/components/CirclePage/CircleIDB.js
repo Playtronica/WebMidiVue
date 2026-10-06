@@ -299,9 +299,9 @@ export class CircleDb extends Db {
 
     constructor() {
         super(CircleCommandsData)
-        this.openDB().then((is_initial) => {
+        this.ready = this.openDB().then(async (is_initial) => {
             if (is_initial) {
-                this.createNoEditablePatch(default_preset, "Default")
+                await this.createNoEditablePatch(default_preset, "Default")
             }
         })
     }

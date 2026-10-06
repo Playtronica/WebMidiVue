@@ -265,12 +265,12 @@ export class BiotronDb extends Db {
 
     constructor() {
         super(BiotronCommandsData)
-        this.openDB().then((is_initial) => {
+        this.ready = this.openDB().then(async (is_initial) => {
             if (is_initial) {
-                this.createNoEditablePatch(mixolyd, "Mixolyd (Default)")
-                this.createNoEditablePatch(fast_role_preset, "Fast role")
-                this.createNoEditablePatch(the_performer_mode, "The Performer mode")
-                this.createNoEditablePatch(in_discussion, "In Discussion")
+                await this.createNoEditablePatch(mixolyd, "Mixolyd (Default)")
+                await this.createNoEditablePatch(fast_role_preset, "Fast role")
+                await this.createNoEditablePatch(the_performer_mode, "The Performer mode")
+                await this.createNoEditablePatch(in_discussion, "In Discussion")
             }
         })
     }

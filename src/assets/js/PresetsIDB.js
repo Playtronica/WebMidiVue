@@ -18,6 +18,8 @@ export class Db {
             console.log("IndexedDB could not be found in this browser.");
         }
         this.commands = commands;
+        // Subclasses replace this with the promise that seeds factory patches
+        this.ready = Promise.resolve();
     }
 
     async openDB() {
@@ -92,37 +94,42 @@ export class Db {
     }
 
     createNoEditablePatch(data, name) {
-        const request = indexedDB.open(this.DB_NAME, this.VERSION);
-        let vm = this;
-        request.onerror = function (event) {
-            console.error("An error occurred with IndexedDB");
-            console.error(event);
-        };
-
-        request.onupgradeneeded = function () {
-            console.log("Update Page")
-        }
-
-        request.onsuccess = function () {
-            const db = request.result;
-            const transaction = db.transaction(vm.STORE_NAME, "readwrite");
-            const store = transaction.objectStore(vm.STORE_NAME);
-
-            store.put({
-                "name": name,
-                "editable": false,
-                "saved": true,
-                "data": data
-            });
-
-            transaction.oncomplete = function () {
-                db.close();
+        return new Promise(resolve => {
+            const request = indexedDB.open(this.DB_NAME, this.VERSION);
+            let vm = this;
+            request.onerror = function (event) {
+                console.error("An error occurred with IndexedDB");
+                console.error(event);
+                resolve();
             };
-        }
+
+            request.onupgradeneeded = function () {
+                console.log("Update Page")
+            }
+
+            request.onsuccess = function () {
+                const db = request.result;
+                const transaction = db.transaction(vm.STORE_NAME, "readwrite");
+                const store = transaction.objectStore(vm.STORE_NAME);
+
+                store.put({
+                    "name": name,
+                    "editable": false,
+                    "saved": true,
+                    "data": data
+                });
+
+                transaction.oncomplete = function () {
+                    db.close();
+                    resolve();
+                };
+            }
+        })
     }
 
 
     async getPatch(id) {
+        await this.ready;
         let vm = this;
         return new Promise(resolve => {
             const request = indexedDB.open(this.DB_NAME, this.VERSION);

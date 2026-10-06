@@ -73,6 +73,10 @@ export let ScalesCommandsData = new Map(Object.entries({
         name: "arp_plus",
         number_command: 9,
     }),
+    "sensor_mute": new SysExCommand({
+        name: "sensor_mute",
+        number_command: 10,
+    }),
 }))
 
 const default_preset = {
@@ -86,19 +90,20 @@ const default_preset = {
     "beginning_mode": 0,
     "music_cc_num": 90,
     "arp_plus": 0,
+    "sensor_mute": 0,
 }
 
 
 export class ScalesDb extends Db {
     DB_NAME = "ScaleDB"
     STORE_NAME = "Scale_Patches"
-    VERSION = 13
+    VERSION = 15
 
     constructor() {
         super(ScalesCommandsData)
-        this.openDB().then((is_initial) => {
+        this.ready = this.openDB().then(async (is_initial) => {
             if (is_initial) {
-                this.createNoEditablePatch(default_preset, "Default")
+                await this.createNoEditablePatch(default_preset, "Default")
             }
         })
     }
