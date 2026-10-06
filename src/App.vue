@@ -23,8 +23,10 @@
     </ul>
     </nav>
   </header>
-  <small v-if="betaBuild" class="beta-build"><span>Biotron offline beta</span> · {{ buildId }}</small>
-  <small v-if="betaBuild" class="beta-build">Technical events are sent online. <a href="/telemetry.html">What is collected</a></small>
+  <div v-if="betaBuild" class="beta-meta">
+    <small class="beta-build"><span>Biotron beta</span> · {{ versionLabel }}</small>
+    <small class="beta-build">Technical events are sent online. <a href="/telemetry.html">What is collected</a></small>
+  </div>
   <div v-if="!firstPlay" class="offline-status-slot">
     <div
       v-if="offlineMessage"
@@ -75,7 +77,7 @@
         <p id="beta-feedback-title" class="beta-feedback__title">Help shape the next Biotron Settings</p>
         <p class="text-secondary mb-3">I’m Andrey from Playtronica. I read every reply myself. Send me anything: what felt confusing, what worked, or even the craziest idea. I’ll try to build it and tell testers what changed.</p>
         <a :href="feedbackMailto" class="btn beta-feedback__action">Tell me what to change</a>
-        <small class="d-block mt-2 text-muted">Your email opens with one question and this build number. Nothing is sent automatically.</small>
+        <small class="d-block mt-2 text-muted">Your email includes this version date. Nothing is sent automatically.</small>
         <details class="beta-compatibility">
           <summary>Browser &amp; phone compatibility</summary>
           <ul>
@@ -127,7 +129,7 @@ export default {
       showInstallHelp: false,
       offlineRetrying: false,
       betaBuild: process.env.VUE_APP_BIOTRON_PWA_BETA === 'true',
-      buildId: process.env.VUE_APP_BUILD_ID || 'local-build'
+      versionLabel: process.env.VUE_APP_VERSION_LABEL || 'Local preview'
     }
   },
   computed: {
@@ -135,8 +137,8 @@ export default {
       return this.betaBuild && this.$route.meta.firstPlay === true
     },
     feedbackMailto() {
-      const subject = `Biotron Settings beta feedback — ${this.buildId}`
-      const body = `What is the one thing you most want me to change or build — a problem, a sound, or even a crazy idea?\n\nBuild: ${this.buildId}\nPage: ${this.$route.path}`
+      const subject = `Biotron Settings beta feedback — ${this.versionLabel}`
+      const body = `What is the one thing you most want me to change or build — a problem, a sound, or even a crazy idea?\n\nVersion date: ${this.versionLabel}\nPage: ${this.$route.path}`
       return `mailto:manirko@playtronica.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     },
     offlineMessage() {
@@ -227,10 +229,13 @@ export default {
 
 <style>
 #app { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-align: center; color: #2c3e50; margin-top: 1%; }
-.beta-shell { --beta-ink:#16181d; --beta-muted:#686b73; --beta-line:rgba(27,31,40,.11); --beta-surface:rgba(255,255,255,.88); --beta-accent:#315ee7; min-height:100vh; padding:.75rem 0 2rem; color:var(--beta-ink); background:radial-gradient(circle at 8% 0%,rgba(119,218,178,.13),transparent 28rem),radial-gradient(circle at 96% 12%,rgba(49,94,231,.09),transparent 24rem),#f6f5f1; }
+.beta-shell { --beta-ink:#16181d; --beta-muted:#686b73; --beta-line:rgba(27,31,40,.11); --beta-surface:rgba(255,255,255,.88); --beta-accent:#315ee7; --beta-text-small:.875rem; --beta-text-body:1rem; --beta-text-section:1.125rem; --beta-text-subtitle:1.5rem; --beta-text-hero:clamp(2rem,5vw,2.75rem); min-height:100vh; padding:.75rem 0 2rem; color:var(--beta-ink); font-size:var(--beta-text-body); line-height:1.5; background:radial-gradient(circle at 8% 0%,rgba(119,218,178,.13),transparent 28rem),radial-gradient(circle at 96% 12%,rgba(49,94,231,.09),transparent 24rem),#f6f5f1; }
+.beta-shell .compatibility-notice small { font-size:var(--beta-text-small); letter-spacing:0; text-transform:none; }
+.beta-shell .compatibility-notice h1 { font-size:var(--beta-text-hero); }
 .beta-shell > .image-element { width:132px; height:auto; margin:.35rem auto .75rem; }
-.offline-status { width:min(720px,calc(100% - 2rem)); border:1px solid; border-radius:1rem; font-size:.9rem; }
-.beta-build { display:block; margin-top:.45rem; color:var(--beta-muted,#6c757d); font-size:.75rem; letter-spacing:.01em; }
+.offline-status { width:min(720px,calc(100% - 2rem)); border:1px solid; border-radius:1rem; font-size:var(--beta-text-body,1rem); }
+.beta-meta { display:flex; flex-wrap:wrap; justify-content:center; gap:.25rem 1rem; margin:.45rem 1rem 0; }
+.beta-build { color:var(--beta-muted,#6c757d); font-size:var(--beta-text-small,.875rem); }
 .beta-build span { color:var(--beta-accent); font-weight:700; }
 .offline-status-slot { min-height:58px; }
 .offline-actions { display:inline-flex; align-items:center; gap:.5rem; margin-left:.75rem; }
@@ -242,12 +247,12 @@ export default {
 .offline-status--preparing { color:#664d03; background:#fff3cd; border-color:#ffecb5; }
 .offline-status--error { color:#842029; background:#f8d7da; border-color:#f5c2c7; }
 .beta-feedback { width:min(760px,100%); padding:clamp(1.2rem,4vw,2rem); border:1px solid rgba(49,94,231,.14); border-radius:1.35rem; background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(238,243,255,.9)); box-shadow:0 18px 50px rgba(30,37,55,.07); }
-.beta-feedback__eyebrow { display:block; margin-bottom:.45rem; color:var(--beta-accent); font-size:.72rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; }
+.beta-feedback__eyebrow { display:block; margin-bottom:.45rem; color:var(--beta-accent); font-size:var(--beta-text-small); font-weight:650; }
 .beta-compatibility { margin-top:1rem; padding-top:1rem; border-top:1px solid var(--beta-line); color:var(--beta-muted); }
 .beta-compatibility summary { min-height:44px; padding:.65rem 0; color:var(--beta-ink); font-weight:700; cursor:pointer; }
 .beta-compatibility ul { margin:.4rem 0 .6rem; padding-left:1.25rem; }
 .beta-compatibility li + li { margin-top:.4rem; }
-.beta-feedback__title { margin-bottom:.45rem; font-size:clamp(1.2rem,3vw,1.55rem); font-weight:750; letter-spacing:-.025em; }
+.beta-feedback__title { margin-bottom:.45rem; font-size:var(--beta-text-subtitle); font-weight:700; letter-spacing:-.02em; }
 .beta-feedback__action { min-height:44px; padding:.65rem 1rem; border:1px solid var(--beta-accent); border-radius:.8rem; color:#fff; background:var(--beta-accent); font-weight:700; }
 .beta-feedback__action:hover,.beta-feedback__action:focus-visible { color:#fff; background:#254dc8; box-shadow:0 7px 20px rgba(49,94,231,.2); }
 .switch { position:relative; display:inline-block; width:60px; height:34px; }

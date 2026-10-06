@@ -55,7 +55,7 @@ export default {
 .device-task-nav__device {
   padding-left: 1rem;
   color: #17171a;
-  font-size: .9rem;
+  font-size: 1rem;
   letter-spacing: -.01em;
 }
 

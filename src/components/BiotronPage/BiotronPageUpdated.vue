@@ -9,7 +9,6 @@
         settings-route="/biotron"
     />
     <header :class="{'settings-hero': betaBuild}">
-      <small v-if="betaBuild" class="settings-hero__eyebrow">Biotron workspace</small>
       <h1 class="text-center" :aria-label="betaBuild ? 'Settings' : null">{{ betaBuild ? 'Shape your Biotron' : 'Biotron Settings ⚙️' }}</h1>
       <p v-if="betaBuild" class="settings-hero__intro">Connect Biotron, then shape how it listens, plays, and responds.</p>
     </header>
@@ -60,7 +59,7 @@
     </div>
     <div v-if="betaBuild" class="diagnostic-copy mt-2">
       <button type="button" class="btn btn-outline-secondary btn-sm" @click="copyDiagnosticInfo">Copy diagnostics for Andrey</button>
-      <small class="d-block mt-1 text-muted">{{ diagnosticMessage || "Copies this build, browser, connection and device state. Technical events sent online. Copy more details here." }}</small>
+      <small class="d-block mt-1 text-muted">{{ diagnosticMessage || "Copies technical version, browser, connection and device state. Technical events sent online. Copy more details here." }}</small>
     </div>
     <UpdateFirmwareComponent v-if="betaBuild && firmwareTestEnabled" class="w-100 mt-3" text="Update Firmware" repo="Playtronica/biotron-firmware" :device="device" :current-version="firmwareVersion" version-aware @check_firmware="checkFirmware"/>
     </section>
@@ -74,7 +73,7 @@
         </button>
       </div>
       <div :class="{'col': !betaBuild}">
-        <button @click="this.createPreset" class="btn btn-primary w-100 h-100">💾 Save Preset</button>
+        <button @click="this.createPreset" class="btn btn-primary w-100 h-100">💾 Save preset</button>
       </div>
       <div v-if="!betaBuild" :class="{'col': !betaBuild}">
         <UpdateFirmwareComponent
@@ -88,26 +87,26 @@
         />
       </div>
       <div :class="{'col': !betaBuild}">
-        <FileDropArea name="📂 Load Preset" @get_drop="(e) => loadDataFromPreset(e)"/>
+        <FileDropArea name="📂 Load preset" @get_drop="(e) => loadDataFromPreset(e)"/>
       </div>
     </div>
     </section>
   <div :inert="betaBuild && is_loading">
-    <BootstrapCollapse name_of_collapse="PLANT SENSOR" open_by_default>
+    <BootstrapCollapse name_of_collapse="Plant sensor" open_by_default>
       <template v-slot:objects>
         <GroupOfCommands>
           <template v-slot:objects>
             <div class="row m-2">
               <SwitchComponent
                   id="plantVelDis"
-                  command-label="🔇 MUTE"
+                  command-label="🔇 Mute"
                   description="Turns off notes coming off plant sensor."
                   :command-object="commands_data.plant_no_velocity"
                   @input-changed="this.sys_ex_changed"
               />
             </div>
             <SliderCommand
-                command-label="🌱 The Beat"
+                command-label="🌱 The beat"
                 :key="this.forceRerender"
                 :command-object="this.commands_data.plantBpm"
                 description="Set tempo of plant notes, plant’s BPM."
@@ -115,7 +114,7 @@
                 class="m-2"
             />
             <SliderCommand
-                command-label="🎵 Note Hold"
+                command-label="🎵 Note hold"
                 :key="this.forceRerender"
                 :command-object="this.commands_data.noteOffPercent"
                 :table-values="this.fractions_note_off"
@@ -125,7 +124,7 @@
                 class="m-2"
             />
             <SliderCommand
-                command-label="🏠︎ Home Note"
+                command-label="🏠︎ Home note"
                 :key="this.forceRerender"
                 :command-object="this.commands_data.middle_plant_note"
                 :table-values="this.root_note_id"
@@ -149,7 +148,7 @@
   </div>
 
   <div>
-    <BootstrapCollapse name_of_collapse="MORE FUN">
+    <BootstrapCollapse name_of_collapse="More fun">
       <template v-slot:objects>
         <GroupOfCommands name-of-group="Plant Midi Channel">
           <template v-slot:objects>
@@ -194,7 +193,7 @@
             <div class="row m-2">
               <div class="col">
                 <SwitchComponent
-                    command-label="🧍Humanize"
+                    command-label="🧍 Humanize"
                     description="Varies note velocity between the minimum and maximum values. The minimum value only has an effect while Humanize is on."
                     :command-object="this.commands_data.randomPlantVelocity"
                     @input-changed="this.sys_ex_changed"
@@ -252,13 +251,13 @@
             <SliderCommand
                 :key="this.forceRerender"
                 :command-object="commands_data.same_note_plant"
-                command-label="🔂 Note Repeat"
+                command-label="🔂 Note repeat"
                 @input-changed="this.sys_ex_changed"
                 description="Move near the plant to change notes (1 = small moves change notes, 10 = big moves needed). 🎶"
                 class="m-2"
             />
             <SliderCommand
-                command-label="🌞 Wake-Up"
+                command-label="🌞 Wake-up"
                 :key="this.forceRerender"
                 :command-object="this.commands_data.firstValue"
                 @input-changed="this.sys_ex_changed"
@@ -266,7 +265,7 @@
                 class="m-2"
             />
             <SliderCommand
-                command-label="👣 Step Size"
+                command-label="👣 Step size"
                 :key="this.forceRerender"
                 :command-object="this.commands_data.noteDistance"
                 @input-changed="this.sys_ex_changed"
@@ -288,7 +287,7 @@
   </div>
 
   <div>
-    <BootstrapCollapse name_of_collapse="LIGHT SENSOR">
+    <BootstrapCollapse name_of_collapse="Light sensor">
       <template v-slot:objects>
         <GroupOfCommands>
           <template v-slot:objects>
@@ -296,7 +295,7 @@
               <div class="col">
                 <SwitchComponent
                     id="lightVelDis"
-                    command-label="🔇Mute"
+                    command-label="🔇 Mute"
                     :command-object="commands_data.light_no_velocity"
                     @input-changed="this.sys_ex_changed"
                     description="Turns off notes coming off light sensor"
@@ -305,7 +304,7 @@
               <div class="col">
                 <SwitchComponent
                     id="randomLightVelSwitch"
-                    command-label="🧍Humanize"
+                    command-label="🧍 Humanize"
                     :command-object="this.commands_data.randomLightVelocity"
                     @input-changed="this.sys_ex_changed"
                     description="Varies light-note velocity between the minimum and maximum values. The minimum value only has an effect while Humanize is on."
@@ -314,7 +313,7 @@
               <div class="col">
                 <SwitchComponent
                     id="light_pitch_mode"
-                    command-label="〜 Pitch Bend"
+                    command-label="〜 Pitch bend"
                     :command-object="this.commands_data.light_pitch_mode"
                     @input-changed="this.sys_ex_changed"
                     description="Uses the light sensor to bend plant notes instead of playing separate light notes. Light Range is ignored while this is on."
@@ -333,7 +332,7 @@
             />
 
             <SliderCommand
-                command-label="🌞 The Beat"
+                command-label="🌞 The beat"
                 :key="this.forceRerender"
                 :command-object="this.commands_data.lightBpm"
                 @input-changed="this.sys_ex_changed"
@@ -344,7 +343,7 @@
             <SliderCommand
                 :key="this.forceRerender"
                 :command-object="commands_data.same_note_light"
-                command-label="🔂Note Repeat"
+                command-label="🔂 Note repeat"
                 @input-changed="this.sys_ex_changed"
                 description="Change the light to change notes (1 = small moves change notes, 10 = big moves needed). 🎶"
                 class="m-2"

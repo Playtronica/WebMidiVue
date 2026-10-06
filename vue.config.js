@@ -12,6 +12,16 @@ if (!sourceRevision) {
   }
 }
 process.env.VUE_APP_BUILD_ID = sourceRevision.slice(0, 12)
+let versionDate
+try {
+  versionDate = execFileSync('git', ['show', '-s', '--format=%cs', 'HEAD'], {encoding: 'utf8'}).trim()
+} catch (error) {
+  versionDate = new Date().toISOString().slice(0, 10)
+}
+if (!/^\d{4}-\d{2}-\d{2}$/.test(versionDate)) versionDate = new Date().toISOString().slice(0, 10)
+process.env.VUE_APP_VERSION_LABEL = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC'
+}).format(new Date(`${versionDate}T12:00:00Z`))
 
 module.exports = {
   publicPath: '/',

@@ -186,7 +186,7 @@ export async function copyBiotronPlayDiagnostic(state, environment = {}) {
     await navigatorRef.clipboard.writeText(JSON.stringify(buildBiotronPlayDiagnosticPacket(state, environment), null, 2))
     return 'Copied — paste it into your email or WhatsApp message.'
   } catch {
-    return 'Copy was blocked by the browser. Send the build number shown at the top instead.'
+    return 'Copy was blocked by the browser. Send the version date shown at the top instead.'
   }
 }
 
@@ -201,6 +201,6 @@ export async function copyBiotronDiagnostic(page, buildId, environment = {}) {
     await navigatorRef.clipboard.writeText(JSON.stringify(packet, null, 2))
     return "Copied — paste it into your email or WhatsApp message."
   } catch {
-    return "Copy was blocked by the browser. Send the build number shown at the top instead."
+    return "Copy was blocked by the browser. Send the version date shown at the top instead."
   }
 }

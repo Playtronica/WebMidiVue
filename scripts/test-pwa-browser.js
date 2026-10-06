@@ -159,6 +159,14 @@ async function controllerVersion(page) {
   let page = await openProfile(true, true)
   await page.goto(`${origin}/biotron`, { waitUntil: 'load' })
   await page.getByText(/Offline mode is ready/i).waitFor({state: 'visible', timeout: 15000})
+  const versionStamp = await page.locator('.beta-build').first().innerText()
+  assert.match(versionStamp, /Biotron beta · \d{1,2} [A-Za-z]+ 20\d{2}/,
+    'the visible beta version must use a calendar date')
+  assert.doesNotMatch(versionStamp, /\b[0-9a-f]{12}\b/i,
+    'the visible beta version must not expose a commit hash')
+  const feedbackLink = decodeURIComponent(await page.locator('.beta-feedback__action').getAttribute('href'))
+  assert(feedbackLink.includes(`Version date: ${versionStamp.split(' · ')[1]}`),
+    'feedback should carry the same version date shown to the user')
   assert.strictEqual(await controllerVersion(page), 1)
   await page.getByText(/MIDI access was blocked/i).waitFor({state: 'visible', timeout: 5000})
   await page.getByRole('button', {name: /Retry connection/i}).click()
@@ -236,6 +244,10 @@ async function controllerVersion(page) {
   const sendButton = page.getByRole('button', {name: /Check saved settings|Send to Device/i})
   await waitFor(() => sendButton.isEnabled(), 'fake Biotron did not connect offline')
   await page.getByText('Settings loaded. Individual changes apply live; presets need Apply preset to Biotron.').waitFor({state: 'visible'})
+  const sectionHeading = page.locator('.biotron-settings-beta .toggle-label h1').first()
+  assert.strictEqual((await sectionHeading.innerText()).trim(), 'Plant sensor')
+  assert.strictEqual(await sectionHeading.evaluate(element => getComputedStyle(element).textTransform), 'none',
+    'section headings should use readable sentence case')
   const liveWriteCount = await page.evaluate(() => window.__midiSent.length)
   await page.locator('input[type="checkbox"]').first().evaluate(element => element.click())
   await page.getByText('Applied live — saving and checking…').waitFor({state: 'visible'})

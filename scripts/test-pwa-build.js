@@ -54,7 +54,7 @@ const biotronBundle = allJavascriptFiles.find(file => read(path.join('js', file)
 const soundBundle = allJavascriptFiles.find(file => read(path.join('js', file)).includes('Play your device'))
 assert(javascript.includes('Offline mode is ready'), 'the production UI has no truthful offline-readiness status')
 assert(javascript.includes('Install app'), 'the production UI has no explicit PWA install action')
-assert(javascript.includes('Biotron offline beta'), 'the production UI has no visible beta build identity')
+assert(javascript.includes('Biotron beta'), 'the beta UI has no visible version identity')
 assert(biotronBundle, 'the beta build does not include the Biotron DAW handoff')
 assert(allJavascript.includes('Release device for DAW'), 'the Biotron lifecycle was not emitted into any route chunk')
 assert(!read(path.join('js', biotronBundle)).includes('Update to 1.9.8'),

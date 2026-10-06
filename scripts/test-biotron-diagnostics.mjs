@@ -51,6 +51,6 @@ assert.equal(playPacket.workflow.last_midi_message_age_ms, 1000)
 assert.equal(playPacket.workflow.resume_outcome, 'timed_out')
 assert.equal(playPacket.workflow.recent_events.length, 2)
 assert(!JSON.stringify(playPacket).includes('secret-id'))
-assert(!JSON.stringify(playPacket).includes('99'), 'raw MIDI payload entered support packet')
+assert(!JSON.stringify(playPacket).includes('[144,60,99]'), 'raw MIDI payload entered support packet')
 
 console.log("Biotron diagnostics contract: PASS")

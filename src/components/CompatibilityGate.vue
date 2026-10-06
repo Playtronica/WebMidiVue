@@ -18,7 +18,7 @@ export default {
     issue() {
       return buildCompatibilityIssue(this.capabilities, this.route.meta || {})
     },
-    feedbackUrl() { return this.issue && this.route.meta?.firstPlay ? taskFeedbackUrl('I could not start the Biotron first-sound test.', `Compatibility: ${this.issue.kind}`, process.env.VUE_APP_BUILD_ID || 'local-build') : '' }
+    feedbackUrl() { return this.issue && this.route.meta?.firstPlay ? taskFeedbackUrl('I could not start the Biotron first-sound test.', `Compatibility: ${this.issue.kind}`, process.env.VUE_APP_VERSION_LABEL || 'Local preview') : '' }
   }
 }
 </script>

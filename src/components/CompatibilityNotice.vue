@@ -27,7 +27,7 @@
         <a v-if="feedbackUrl" :href="feedbackUrl" class="btn btn-outline-dark" target="_blank" rel="noopener">Tell Andrey where it stopped</a>
       </div>
       <small v-if="issue.action && issue.action.note" class="compatibility-notice__action-note">{{ issue.action.note }}</small>
-      <small v-if="feedbackUrl" class="compatibility-notice__action-note">WhatsApp opens with this build and stopped stage. Nothing is sent until you press Send.</small>
+      <small v-if="feedbackUrl" class="compatibility-notice__action-note">WhatsApp opens with the version date and stopped stage. Nothing is sent until you press Send.</small>
       <span v-if="copyStatus" class="compatibility-notice__copy-status" role="status">{{ copyStatus }}</span>
     </div>
   </section>

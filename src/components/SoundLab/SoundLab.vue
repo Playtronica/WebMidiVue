@@ -85,7 +85,7 @@
           <span class="sound-lab__status sound-lab__status--reveal" role="status" aria-live="polite">{{ status }}</span>
           <div v-if="engine || revealIssue" class="sound-lab__diagnostic">
             <button type="button" class="btn btn-outline-secondary btn-sm" @click="copyPlayDiagnostics">Copy diagnostics for Andrey</button>
-            <small>{{ diagnosticMessage || 'Copies this build, audio and MIDI state. Technical events sent online. Copy details here.' }}</small>
+            <small>{{ diagnosticMessage || 'Copies technical version, audio and MIDI state. Technical events sent online. Copy details here.' }}</small>
           </div>
         </div>
       </section>
@@ -111,7 +111,7 @@
 
       <section v-if="firstSoundOutcome" class="sound-lab__connect-notice sound-lab__task-feedback" aria-labelledby="first-sound-feedback-title"><small>One quick answer</small><h2 id="first-sound-feedback-title">Did you hear Biotron play from the plant?</h2>
         <div class="sound-lab__reveal-actions sound-lab__task-feedback-actions"><a :href="firstSoundFeedbackUrl('helped')" @click="recordFirstSound('heard')" class="btn btn-dark" target="_blank" rel="noopener">Yes — open WhatsApp</a><a :href="firstSoundFeedbackUrl('not_yet')" @click="recordFirstSound('not_heard')" class="btn btn-outline-dark" target="_blank" rel="noopener">Not yet — open WhatsApp</a></div>
-        <small>WhatsApp draft includes build and stop point. Press Send to share.</small></section>
+        <small>WhatsApp draft includes the version date and stop point. Press Send to share.</small></section>
     </template>
 
     <template v-else>
@@ -776,7 +776,7 @@ export default {
     },
     recordFirstSound(result) { recordBiotronEvent('play.outcome_reported', {result}) },
     firstSoundFeedbackUrl(outcome) {
-      return biotronFirstSoundFeedbackUrl(outcome, this.revealIssue?.title, process.env.VUE_APP_BUILD_ID || 'local-build')
+      return biotronFirstSoundFeedbackUrl(outcome, this.revealIssue?.title, process.env.VUE_APP_VERSION_LABEL || 'Local preview')
     }
   }
 }
@@ -789,6 +789,9 @@ export default {
 .sound-lab__intro small { color: #6b6761; text-transform: uppercase; letter-spacing: .08em; }
 .sound-lab__intro h1 { margin: .35rem 0; font-size: clamp(2.25rem, 7vw, 4.5rem); line-height: 1; letter-spacing: -.045em; }
 .sound-lab__intro p, .sound-lab__midi p { color: #625e58; line-height: 1.5; }
+.sound-lab__intro--reveal small { font-size: var(--beta-text-small); text-transform: none; letter-spacing: 0; }
+.sound-lab__intro--reveal h1 { font-size: var(--beta-text-hero); line-height: 1.1; letter-spacing: -.035em; }
+.sound-lab__intro--reveal p { font-size: var(--beta-text-body); }
 .sound-lab section { margin-top: 2rem; }
 .sound-lab__controls, .sound-lab__variants, .sound-lab__midi-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .sound-lab__status { min-height: 1.5rem; padding-left: .5rem; color: #625e58; }
@@ -814,7 +817,7 @@ export default {
 .sound-lab__calibration-note { position: absolute; top: 50%; width: 18%; height: 36%; border-radius: 999px; background: rgba(255, 255, 255, .92); transform: translateY(-50%) scaleY(.45); }
 .sound-lab__calibration-note--one { left: 27%; animation: biotron-note-one .28s steps(2, end) infinite; }
 .sound-lab__calibration-note--two { right: 27%; animation: biotron-note-two .28s steps(2, end) .14s infinite; }
-.sound-lab__reveal-copy h2 { margin: .25rem 0 .5rem; font-size: clamp(1.5rem, 4vw, 2.4rem); }
+.sound-lab__reveal-copy h2 { margin: .25rem 0 .5rem; font-size: var(--beta-text-subtitle); }
 .sound-lab__reveal-copy p { max-width: 34rem; color: #625e58; line-height: 1.5; }
 .sound-lab__connect-notice { display:grid; gap:.2rem; margin:1rem 0; padding:.85rem 1rem; border:1px solid rgba(106,90,205,.28); border-radius:.9rem; color:#302763; background:#f0edff; }
 .sound-lab__connect-notice span { color:#514b63; line-height:1.45; }
