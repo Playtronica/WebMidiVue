@@ -20,8 +20,8 @@ const server = createStaticServer(root)
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     for (const [route, extra, deviceLabel, presetLabel] of [
-      ['/scales', true, '🔌 Select Device', '📂 Preset'],
-      ['/scales/test', false, 'Select device', 'Presets']
+      ['/scales', true, 'Select device', 'Preset'],
+      ['/scales/test', false, 'Select device', 'Preset']
     ]) {
       await page.goto(`${origin}/#${route}`, {waitUntil: 'networkidle'})
       await page.getByRole('heading', {name: 'Scales change settings'}).waitFor()

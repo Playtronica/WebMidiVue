@@ -9,7 +9,7 @@
         settings-route="/biotron"
     />
     <header :class="{'settings-hero': betaBuild}">
-      <h1 class="text-center" :aria-label="betaBuild ? 'Settings' : null">{{ betaBuild ? 'Shape your Biotron' : 'Biotron Settings ⚙️' }}</h1>
+      <h1 class="text-center" :aria-label="betaBuild ? 'Settings' : null">{{ betaBuild ? 'Shape your Biotron' : 'Biotron settings' }}</h1>
       <p v-if="betaBuild" class="settings-hero__intro">Connect Biotron, then shape how it listens, plays, and responds.</p>
     </header>
     <div v-if="betaBuild && soundSession.running" class="alert alert-success mx-2 py-2" role="status">
@@ -24,12 +24,12 @@
         @calibration_state="handleCalibrationState"
         @firmware_version="handleFirmwareVersion"
         @firmware_timeout="handleFirmwareTimeout"
-        text_label="🔌 Select Device"
+        text_label="Select device"
         check-versions-flag
         allow-daw-handoff
         class="m-2"
     />
-    <div v-if="betaBuild" class="calibration-control mt-3">
+    <div v-if="betaBuild && device && settingsSnapshotKnown" class="calibration-control mt-3">
       <div class="calibration-control__actions">
         <button
             type="button"
@@ -61,24 +61,24 @@
       <button type="button" class="btn btn-outline-secondary btn-sm" @click="copyDiagnosticInfo">Copy diagnostics for Andrey</button>
       <small class="d-block mt-1 text-muted">{{ diagnosticMessage || "Copies technical version, browser, connection and device state. Technical events sent online. Copy more details here." }}</small>
     </div>
-    <UpdateFirmwareComponent v-if="betaBuild && firmwareTestEnabled" class="w-100 mt-3" text="Update Firmware" repo="Playtronica/biotron-firmware" :device="device" :current-version="firmwareVersion" version-aware @check_firmware="checkFirmware"/>
+    <UpdateFirmwareComponent v-if="betaBuild && firmwareTestEnabled" class="w-100 mt-3" text="Update firmware" repo="Playtronica/biotron-firmware" :device="device" :current-version="firmwareVersion" version-aware @check_firmware="checkFirmware"/>
     </section>
     <template v-if="!betaBuild || settingsReady">
     <section :class="{'beta-preset-card': betaBuild}" :inert="betaBuild && is_loading" aria-label="Preset and saved settings">
-    <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"  text_label="📂 Preset"/>
-    <div :class="betaBuild ? 'preset-actions' : 'row gx-1 mb-5'">
+    <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"  text_label="Preset"/>
+    <div :class="betaBuild ? 'preset-actions' : 'row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-2 mb-5'">
       <div :class="{'col': !betaBuild}">
         <button @click="change_data_loader" :disabled="!this.device || this.is_loading || (betaBuild && !settingsReady)" class="btn btn-primary w-100 h-100">
-          {{ betaBuild ? (is_loading ? (presetPending ? 'Applying preset…' : 'Checking…') : (presetPending ? 'Apply preset to Biotron' : 'Check saved settings')) : '❇️ Send to Device' }}
+          {{ betaBuild ? (is_loading ? (presetPending ? 'Applying preset…' : 'Checking…') : (presetPending ? 'Apply preset to Biotron' : 'Check saved settings')) : 'Send to device' }}
         </button>
       </div>
       <div :class="{'col': !betaBuild}">
-        <button @click="this.createPreset" class="btn btn-primary w-100 h-100">💾 Save preset</button>
+        <button @click="this.createPreset" class="btn btn-outline-secondary w-100 h-100">Save preset</button>
       </div>
       <div v-if="!betaBuild" :class="{'col': !betaBuild}">
         <UpdateFirmwareComponent
             class="w-100 h-100"
-            text="🔄 Update Firmware"
+            text="Update firmware"
             repo="Playtronica/biotron-firmware"
             :device="this.device"
             :current-version="firmwareVersion"
@@ -87,7 +87,7 @@
         />
       </div>
       <div :class="{'col': !betaBuild}">
-        <FileDropArea name="📂 Load preset" @get_drop="(e) => loadDataFromPreset(e)"/>
+        <FileDropArea name="Load preset" @get_drop="(e) => loadDataFromPreset(e)"/>
       </div>
     </div>
     </section>
@@ -150,7 +150,7 @@
   <div>
     <BootstrapCollapse name_of_collapse="More fun">
       <template v-slot:objects>
-        <GroupOfCommands name-of-group="Plant Midi Channel">
+        <GroupOfCommands name-of-group="Plant MIDI channel">
           <template v-slot:objects>
             <SliderCommand
                 command-label="🎛️ MIDI channel"
@@ -163,7 +163,7 @@
           </template>
         </GroupOfCommands>
 
-        <GroupOfCommands name-of-group="Buttons Mode">
+        <GroupOfCommands name-of-group="Buttons mode">
           <template v-slot:objects>
             <SwitchComponent
                 command-label="Mute button state"
@@ -188,7 +188,7 @@
           </template>
         </GroupOfCommands>
 
-        <GroupOfCommands name-of-group="NOTE VELOCITY">
+        <GroupOfCommands name-of-group="Note velocity">
           <template v-slot:objects>
             <div class="row m-2">
               <div class="col">
@@ -225,7 +225,7 @@
             </div>
           </template>
         </GroupOfCommands>
-        <GroupOfCommands name-of-group="SENSITIVITY">
+        <GroupOfCommands name-of-group="Sensitivity">
           <template v-slot:objects>
             <div class="row m-2">
               <div class="col">

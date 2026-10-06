@@ -39,7 +39,7 @@
     <span v-if="offlineStatus.ready && !installed" class="offline-actions">
       <button
           type="button"
-          class="offline-action"
+          class="btn btn-outline-secondary offline-action"
           @click="installApp"
       >
         Install app
@@ -49,7 +49,7 @@
     <button
         v-if="offlineStatus.state === 'error'"
         type="button"
-        class="offline-action offline-action--error"
+        class="btn btn-outline-secondary offline-action offline-action--error"
         @click="retryOfflineSetup"
         :disabled="offlineRetrying"
     >
@@ -76,7 +76,7 @@
         <small class="beta-feedback__eyebrow">Built with Biotron owners</small>
         <p id="beta-feedback-title" class="beta-feedback__title">Help shape the next Biotron Settings</p>
         <p class="text-secondary mb-3">I’m Andrey from Playtronica. I read every reply myself. Send me anything: what felt confusing, what worked, or even the craziest idea. I’ll try to build it and tell testers what changed.</p>
-        <a :href="feedbackMailto" class="btn beta-feedback__action">Tell me what to change</a>
+        <a :href="feedbackMailto" class="btn btn-primary beta-feedback__action">Tell me what to change</a>
         <small class="d-block mt-2 text-muted">Your email includes this version date. Nothing is sent automatically.</small>
         <details class="beta-compatibility">
           <summary>Browser &amp; phone compatibility</summary>
@@ -228,8 +228,15 @@ export default {
 </script>
 
 <style>
-#app { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-align: center; color: #2c3e50; margin-top: 1%; }
-.beta-shell { --beta-ink:#16181d; --beta-muted:#686b73; --beta-line:rgba(27,31,40,.11); --beta-surface:rgba(255,255,255,.88); --beta-accent:#315ee7; --beta-text-small:.875rem; --beta-text-body:1rem; --beta-text-section:1.125rem; --beta-text-subtitle:1.5rem; --beta-text-hero:clamp(2rem,5vw,2.75rem); min-height:100vh; padding:.75rem 0 2rem; color:var(--beta-ink); font-size:var(--beta-text-body); line-height:1.5; background:radial-gradient(circle at 8% 0%,rgba(119,218,178,.13),transparent 28rem),radial-gradient(circle at 96% 12%,rgba(49,94,231,.09),transparent 24rem),#f6f5f1; }
+#app { --ui-text-small:.875rem; --ui-text-body:1rem; --ui-text-section:1.25rem; --ui-text-hero:2.25rem; --ui-radius:.75rem; --ui-ink:#16181d; --ui-accent:#315ee7; --ui-control-border:#b8c0cc; font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-align:center; color:var(--ui-ink); margin-top:1%; }
+#app h1 { font-size:var(--ui-text-hero); }
+#app h2 { font-size:var(--ui-text-section); }
+#app .settings_elem h2 { font-size:var(--ui-text-body); }
+#app .btn { --bs-btn-font-size:var(--ui-text-body); --bs-btn-font-weight:600; --bs-btn-line-height:1.25; --bs-btn-padding-x:1rem; --bs-btn-padding-y:.6rem; --bs-btn-border-radius:var(--ui-radius); min-height:44px; font-size:var(--ui-text-body); font-weight:600; line-height:1.25; border-radius:var(--ui-radius); }
+#app .btn:focus-visible { outline:2px solid var(--ui-accent); outline-offset:2px; box-shadow:none; }
+.beta-shell { --beta-ink:var(--ui-ink); --beta-muted:#686b73; --beta-line:rgba(27,31,40,.11); --beta-surface:rgba(255,255,255,.88); --beta-accent:var(--ui-accent); --beta-text-small:var(--ui-text-small); --beta-text-body:var(--ui-text-body); --beta-text-section:var(--ui-text-section); --beta-text-hero:var(--ui-text-hero); min-height:100vh; padding:.75rem 0 2rem; color:var(--beta-ink); font-size:var(--beta-text-body); line-height:1.5; background:radial-gradient(circle at 8% 0%,rgba(119,218,178,.13),transparent 28rem),radial-gradient(circle at 96% 12%,rgba(49,94,231,.09),transparent 24rem),#f6f5f1; }
+#app .btn-primary,#app .btn-dark { --bs-btn-color:#fff; --bs-btn-bg:var(--ui-accent); --bs-btn-border-color:var(--ui-accent); --bs-btn-hover-color:#fff; --bs-btn-hover-bg:#254dc8; --bs-btn-hover-border-color:#254dc8; --bs-btn-active-color:#fff; --bs-btn-active-bg:#2144b4; --bs-btn-active-border-color:#2144b4; }
+#app .btn-outline-primary,#app .btn-outline-dark,#app .btn-outline-secondary,#app .btn-secondary { --bs-btn-color:var(--ui-ink); --bs-btn-bg:#fff; --bs-btn-border-color:var(--ui-control-border); --bs-btn-hover-color:var(--ui-ink); --bs-btn-hover-bg:#eef1f6; --bs-btn-hover-border-color:#8995a7; --bs-btn-active-color:var(--ui-ink); --bs-btn-active-bg:#e3e9f3; --bs-btn-active-border-color:#8995a7; }
 .beta-shell .compatibility-notice small { font-size:var(--beta-text-small); letter-spacing:0; text-transform:none; }
 .beta-shell .compatibility-notice h1 { font-size:var(--beta-text-hero); }
 .beta-shell > .image-element { width:132px; height:auto; margin:.35rem auto .75rem; }
@@ -239,8 +246,7 @@ export default {
 .beta-build span { color:var(--beta-accent); font-weight:700; }
 .offline-status-slot { min-height:58px; }
 .offline-actions { display:inline-flex; align-items:center; gap:.5rem; margin-left:.75rem; }
-.offline-action { min-height:36px; padding:.35rem .75rem; border:1px solid currentColor; border-radius:.7rem; color:#0f5132; background:#fff; font:inherit; font-weight:600; }
-.offline-action--error { margin-left:.75rem; color:#842029; }
+.offline-action--error { margin-left:.75rem; }
 .offline-installed { display:inline-block; margin-left:.75rem; font-weight:600; }
 .offline-install-help { display:block; width:100%; margin-top:.5rem; }
 .offline-status--ready { color:#0f5132; background:#d1e7dd; border-color:#badbcc; }
@@ -252,9 +258,7 @@ export default {
 .beta-compatibility summary { min-height:44px; padding:.65rem 0; color:var(--beta-ink); font-weight:700; cursor:pointer; }
 .beta-compatibility ul { margin:.4rem 0 .6rem; padding-left:1.25rem; }
 .beta-compatibility li + li { margin-top:.4rem; }
-.beta-feedback__title { margin-bottom:.45rem; font-size:var(--beta-text-subtitle); font-weight:700; letter-spacing:-.02em; }
-.beta-feedback__action { min-height:44px; padding:.65rem 1rem; border:1px solid var(--beta-accent); border-radius:.8rem; color:#fff; background:var(--beta-accent); font-weight:700; }
-.beta-feedback__action:hover,.beta-feedback__action:focus-visible { color:#fff; background:#254dc8; box-shadow:0 7px 20px rgba(49,94,231,.2); }
+.beta-feedback__title { margin-bottom:.45rem; font-size:var(--beta-text-section); font-weight:700; letter-spacing:-.02em; }
 .switch { position:relative; display:inline-block; width:60px; height:34px; }
 .switch input { opacity:0; width:0; height:0; }
 .slider { position:absolute; cursor:pointer; inset:0; background-color:#ccc; transition:.4s; }

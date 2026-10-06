@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  <h1> Select Device First By Links Above </h1>
+  <h1>Select a device above</h1>
 </template>
 
 <style scoped>

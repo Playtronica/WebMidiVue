@@ -99,23 +99,20 @@ export default {
 
 .compatibility-notice small {
   color: #7a4e43;
-  font-size: .78rem;
-  font-weight: 800;
-  letter-spacing: .08em;
-  text-transform: uppercase;
+  font-size: var(--ui-text-small, .875rem);
+  font-weight: 700;
 }
 
 .compatibility-notice--advisory small { color: #5d518f; }
 .compatibility-notice h1,
 .compatibility-notice h2 { margin: .25rem 0 .45rem; letter-spacing: -.025em; }
-.compatibility-notice h1 { font-size: clamp(1.8rem, 5vw, 2.7rem); }
-.compatibility-notice h2 { font-size: 1.25rem; }
+.compatibility-notice h1 { font-size: var(--ui-text-hero, 2.25rem); }
+.compatibility-notice h2 { font-size: var(--ui-text-section, 1.25rem); }
 .compatibility-notice p { margin: 0; color: #66534d; line-height: 1.55; }
 .compatibility-notice ol { margin: 1rem 0 1.25rem; padding-left: 1.25rem; }
 .compatibility-notice li + li { margin-top: .4rem; }
 .compatibility-notice__actions { display:flex; flex-wrap:wrap; gap:.65rem; margin-top:1rem; }
-.compatibility-notice__action-note { display:block; margin-top:.6rem; color:#66534d; font-size:.82rem; letter-spacing:0; text-transform:none; }
-.compatibility-notice__copy-status { display: block; margin-top: .6rem; color: #66534d; font-size: .9rem; }
+.compatibility-notice__action-note,.compatibility-notice__copy-status { display:block; margin-top:.6rem; color:#66534d; font-size:var(--ui-text-small, .875rem); }
 
 @media (max-width: 520px) {
   .compatibility-notice { grid-template-columns: 1fr; }

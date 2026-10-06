@@ -244,7 +244,7 @@ async function controllerVersion(page) {
   const sendButton = page.getByRole('button', {name: /Check saved settings|Send to Device/i})
   await waitFor(() => sendButton.isEnabled(), 'fake Biotron did not connect offline')
   await page.getByText('Settings loaded. Individual changes apply live; presets need Apply preset to Biotron.').waitFor({state: 'visible'})
-  const sectionHeading = page.locator('.biotron-settings-beta .toggle-label h1').first()
+  const sectionHeading = page.locator('.biotron-settings-beta .toggle-label h2').first()
   assert.strictEqual((await sectionHeading.innerText()).trim(), 'Plant sensor')
   assert.strictEqual(await sectionHeading.evaluate(element => getComputedStyle(element).textTransform), 'none',
     'section headings should use readable sentence case')

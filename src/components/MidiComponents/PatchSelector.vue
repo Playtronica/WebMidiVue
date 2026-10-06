@@ -9,7 +9,7 @@
           <label for="patch-selector">{{this.text_label}}</label>
         </div>
           <button class="btn"
-                  :class="{ 'btn-outline-primary': this.button_state === 'Save', 'btn-outline-danger': this.button_state === 'Delete'}"
+                  :class="{ 'btn-outline-secondary': this.button_state === 'Save', 'btn-outline-danger': this.button_state === 'Delete'}"
                   type="button"  data-bs-toggle="modal" @click="this.modelOpen"
                   :data-bs-target="this.button_state === 'Save' ? '#saveModal' : '#deleteModel'"
                   :style="{display: active_button_enabled ? 'block' : 'none'}">
@@ -27,7 +27,7 @@
           </div>
           <div class="modal-body">
             <div class="mb-3">
-              <label for="patchName" class="col-form-label">Patch Name</label>
+              <label for="patchName" class="col-form-label">Preset name</label>
               <input type="text" class="form-control" id="patchName" v-model="this.patchName"
                      :key="this.forceRerender" autocomplete="off" data-autofocus>
             </div>
@@ -44,7 +44,7 @@
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="deleteModalLabel">Delete Patch</h5>
+            <h5 class="modal-title" id="deleteModalLabel">Delete preset</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cancel"></button>
           </div>
           <div class="modal-body">

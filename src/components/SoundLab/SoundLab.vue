@@ -786,12 +786,9 @@ export default {
 .sound-lab { width: min(900px, 100%); margin: 0 auto; padding: 1.5rem 0 4rem; text-align: left; color: #17171a; }
 .sound-lab__intro { max-width: 650px; margin-bottom: 2rem; }
 .sound-lab__intro--reveal { margin: 2.25rem auto 1.5rem; text-align: center; }
-.sound-lab__intro small { color: #6b6761; text-transform: uppercase; letter-spacing: .08em; }
-.sound-lab__intro h1 { margin: .35rem 0; font-size: clamp(2.25rem, 7vw, 4.5rem); line-height: 1; letter-spacing: -.045em; }
+.sound-lab__intro small { color: #6b6761; font-size: var(--ui-text-small); }
+.sound-lab__intro h1 { margin: .35rem 0; font-size: var(--ui-text-hero); line-height: 1.1; letter-spacing: -.035em; }
 .sound-lab__intro p, .sound-lab__midi p { color: #625e58; line-height: 1.5; }
-.sound-lab__intro--reveal small { font-size: var(--beta-text-small); text-transform: none; letter-spacing: 0; }
-.sound-lab__intro--reveal h1 { font-size: var(--beta-text-hero); line-height: 1.1; letter-spacing: -.035em; }
-.sound-lab__intro--reveal p { font-size: var(--beta-text-body); }
 .sound-lab section { margin-top: 2rem; }
 .sound-lab__controls, .sound-lab__variants, .sound-lab__midi-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .sound-lab__status { min-height: 1.5rem; padding-left: .5rem; color: #625e58; }
@@ -801,14 +798,14 @@ export default {
 .sound-lab__quality input { width: 1.1rem; height: 1.1rem; }
 
 .sound-lab__volume { display: inline-grid; grid-template-columns: auto minmax(130px, 220px) 3.25rem; gap: .65rem; align-items: center; min-height: 44px; margin: 0; color: #353239; font-weight: 600; }
-.sound-lab__volume input { width: 100%; min-height: 32px; accent-color: #6a5acd; cursor: pointer; }
+.sound-lab__volume input { width: 100%; min-height: 32px; accent-color: var(--ui-accent); cursor: pointer; }
 .sound-lab__volume output { color: #625e58; font-variant-numeric: tabular-nums; text-align: right; }
 .sound-lab__heading { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .75rem; }
-.sound-lab__heading h2, .sound-lab__midi h2 { margin: 0; font-size: 1rem; font-weight: 700; }
+.sound-lab__heading h2, .sound-lab__midi h2 { margin: 0; font-size: var(--ui-text-section); font-weight: 700; }
 .sound-lab__heading small { color: #6b6761; }
-.sound-lab__variant { min-height: 44px; border: 1px solid #cbc6be; border-radius: 999px; background: #fff; padding: 0 1rem; }
+.sound-lab__variant { min-height: 44px; border: 1px solid var(--ui-control-border); border-radius: var(--ui-radius); background: #fff; padding: 0 1rem; font: inherit; font-weight: 600; }
 .sound-lab__variant span { display: inline-block; padding: 0 .1rem; white-space: nowrap; font-weight: 500; }
-.sound-lab__variant--active { border-color: #6a5acd; background: #e9e3ff; }
+.sound-lab__variant--active { border-color: var(--ui-accent); background: #e8edff; color: #2446bd; }
 .sound-lab__reveal { display: grid; grid-template-columns: minmax(150px, 240px) minmax(0, 1fr); gap: clamp(1.5rem, 5vw, 4rem); align-items: center; max-width: 760px; margin: 0 auto; padding: clamp(1.25rem, 4vw, 2.5rem); border: 1px solid #ded9d1; border-radius: 1.5rem; background: #fbfaf7; }
 .sound-lab__reveal-orb { width: min(48vw, 220px); aspect-ratio: 1; justify-self: center; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff 0 8%, #dcd4ff 24%, #7c69d8 65%, #302763 100%); box-shadow: 0 0 0 0 rgba(106, 90, 205, .24); transform: scale(.9); transition: transform 180ms ease, box-shadow 180ms ease; }
 .sound-lab__reveal-orb--active { transform: scale(1); box-shadow: 0 0 0 18px rgba(106, 90, 205, .16), 0 18px 50px rgba(69, 49, 150, .22); }
@@ -817,7 +814,7 @@ export default {
 .sound-lab__calibration-note { position: absolute; top: 50%; width: 18%; height: 36%; border-radius: 999px; background: rgba(255, 255, 255, .92); transform: translateY(-50%) scaleY(.45); }
 .sound-lab__calibration-note--one { left: 27%; animation: biotron-note-one .28s steps(2, end) infinite; }
 .sound-lab__calibration-note--two { right: 27%; animation: biotron-note-two .28s steps(2, end) .14s infinite; }
-.sound-lab__reveal-copy h2 { margin: .25rem 0 .5rem; font-size: var(--beta-text-subtitle); }
+.sound-lab__reveal-copy h2 { margin: .25rem 0 .5rem; font-size: var(--ui-text-section); }
 .sound-lab__reveal-copy p { max-width: 34rem; color: #625e58; line-height: 1.5; }
 .sound-lab__connect-notice { display:grid; gap:.2rem; margin:1rem 0; padding:.85rem 1rem; border:1px solid rgba(106,90,205,.28); border-radius:.9rem; color:#302763; background:#f0edff; }
 .sound-lab__connect-notice span { color:#514b63; line-height:1.45; }
@@ -828,7 +825,7 @@ export default {
 .sound-lab__reveal-variants { display: flex; flex-basis: 100%; flex-wrap: wrap; gap: .5rem; padding-top: .5rem; }
 .sound-lab__task-feedback { max-width:760px; margin:1rem auto 0!important; }
 .sound-lab__task-feedback small { color:#625e58; }
-.sound-lab__task-feedback h2 { margin:0; font-size:clamp(1.15rem,3vw,1.4rem); }
+.sound-lab__task-feedback h2 { margin:0; font-size:var(--ui-text-section); }
 .sound-lab__keyboard { display: grid; grid-template-columns: repeat(13, minmax(44px, 1fr)); gap: 4px; overflow-x: auto; padding-bottom: .5rem; }
 .sound-lab__keyboard button { min-width: 44px; height: 120px; border: 1px solid #cbc6be; border-radius: .6rem; background: #fff; align-content: end; padding-bottom: .7rem; }
 .sound-lab__keyboard .sound-lab__black-key { height: 82px; background: #2b2b30; color: #fff; }

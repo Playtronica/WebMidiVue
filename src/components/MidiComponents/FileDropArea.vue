@@ -64,19 +64,25 @@ export default {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border: 2px dashed rgb(0, 114, 245);
-  border-radius: 5px;
-  color: rgb(0, 114, 245);
+  border: 1px solid var(--ui-control-border, #b8c0cc);
+  border-radius: var(--ui-radius, .75rem);
+  color: var(--ui-ink, #16181d);
+  background: #fff;
 }
 .fileDropArea__button {
   width: 100%;
   height: 100%;
-  padding: 0.5rem;
+  min-height: 44px;
+  padding: .6rem 1rem;
   border: 0;
   background: transparent;
   color: inherit;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.25;
   cursor: pointer;
 }
-.fileDropArea__button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.fileDropArea:hover { border-color: #8995a7; background: #eef1f6; }
+.fileDropArea__button:focus-visible { outline: 2px solid var(--ui-accent, #315ee7); outline-offset: 2px; }
 .fileDropArea small { padding: 0 0.5rem 0.5rem; }
 </style>

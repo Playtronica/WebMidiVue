@@ -1,5 +1,5 @@
 <template>
-    <h1 class="text-center">Biotron Update Page</h1>
+    <h1 class="text-center">Biotron firmware update</h1>
     <DeviceSelector style="display: none" regex-name="Biotron" @device_changed="(x) => {this.device = x} "/>
 
     <UpdateFirmwareComponent repo="Playtronica/biotron-firmware" :device="this.device"/>

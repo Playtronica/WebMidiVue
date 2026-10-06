@@ -21,10 +21,8 @@
 <template>
 <div class="settings_elem">
     <h2 v-if="nameOfGroup">
-      <label>
-        {{this.nameOfGroup}}
-        <HintComponent v-if="this.description" :text="this.description" />
-      </label>
+      {{this.nameOfGroup}}
+      <HintComponent v-if="this.description" :text="this.description" />
     </h2>
     
     <slot name="objects"></slot>
@@ -44,7 +42,8 @@
   }
 
   .settings_elem h2 {
-    font-weight: bold;
+    font-size: var(--ui-text-body, 1rem);
+    font-weight: 700;
   }
 
   .description_elem {

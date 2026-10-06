@@ -41,10 +41,10 @@ export default {
 <template>
   <div class="toggle-label" data-bs-toggle="collapse" :href="'#' + collapseId" role="button" :aria-expanded="is_open"
        :aria-controls="this.collapseId" ref="collapse_header">
-    <h1>
+    <h2>
       {{name_of_collapse}}
       <img :src="is_open ? chevronUp : chevronDown" alt="" class="collapse-chevron" aria-hidden="true">
-    </h1>
+    </h2>
     <hr/>
   </div>
 
@@ -59,6 +59,7 @@ export default {
 </template>
 
 <style scoped>
+.toggle-label h2 { margin: 0; font-size: var(--ui-text-section, 1.25rem); font-weight: 700; }
 .collapse-chevron {
   width: 1rem;
   height: 1rem;

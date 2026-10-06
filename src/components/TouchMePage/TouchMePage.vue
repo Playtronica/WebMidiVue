@@ -1,27 +1,27 @@
 <template>
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
-  <h1 class="text-center">TouchMe Settings ⚙️</h1>
+  <h1 class="text-center">TouchMe settings</h1>
 
-  <DeviceSelector regex-name="TouchMe" @device_changed="(x) => {this.device = x} " text_label="🔌 Select Device" check-versions-flag class="m-2"/>
-  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" text_label="📂 Preset" class="m-2"/>
+  <DeviceSelector regex-name="TouchMe" @device_changed="(x) => {this.device = x} " text_label="Select device" check-versions-flag class="m-2"/>
+  <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" text_label="Preset" class="m-2"/>
 
-  <div class="row gx-1 mb-5">
+  <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-2 mb-5">
     <div class="col">
-      <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary w-100 h-100">❇️ Send to Device</button>
+      <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary w-100 h-100">Send to device</button>
     </div>
     <div class="col">
-      <button @click="this.createPreset" class="btn btn-primary w-100 h-100">💾 Save Preset</button>
+      <button @click="this.createPreset" class="btn btn-outline-secondary w-100 h-100">Save preset</button>
     </div>
     <div class="col">
-      <UpdateFirmwareComponent class="w-100 h-100" text="🔄 Update Firmware" repo="Playtronica/touchme-releases" :device="this.device"/>
+      <UpdateFirmwareComponent class="w-100 h-100" text="Update firmware" repo="Playtronica/touchme-releases" :device="this.device"/>
     </div>
 
     <div class="col">
-      <FileDropArea name="📂 Load Preset" @get_drop="(e) => loadDataFromPreset(e)"/>
+      <FileDropArea name="Load preset" @get_drop="(e) => loadDataFromPreset(e)"/>
     </div>
   </div>
 
-  <BootstrapCollapse name_of_collapse="TouchMe settings" open_by_default>
+  <BootstrapCollapse name_of_collapse="Touch controls" open_by_default>
     <template v-slot:objects>
       <GroupOfCommands>
         <template v-slot:objects>

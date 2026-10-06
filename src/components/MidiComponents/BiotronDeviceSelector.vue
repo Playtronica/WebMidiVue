@@ -10,7 +10,7 @@
     </div>
     <small v-if="connecting && !selectedDevice" class="text-muted">{{ promptHint }}</small>
     <button v-if="connecting && !selectedDevice" type="button" class="btn btn-outline-secondary mt-2" @click="cancelConnection">Cancel connection</button>
-    <div v-if="allowDawHandoff" class="daw-handoff d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center mt-2">
+    <div v-if="allowDawHandoff && (selectedDevice || released)" class="daw-handoff d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center mt-2">
       <button v-if="!released" type="button" class="btn btn-outline-primary daw-handoff__button" @click="releaseMidi" :disabled="connecting || !selectedDevice">
         Release device for DAW
       </button>
@@ -24,7 +24,7 @@
     <button
         v-if="!released && !selectedDevice && midiError"
         type="button"
-        class="btn btn-outline-primary mt-2"
+        class="btn btn-primary mt-2"
         @click="connectMidi"
         :disabled="connecting"
     >
@@ -491,8 +491,8 @@
 <style scoped>
 
 .daw-handoff__button {
-  min-width: 12rem;
-  min-height: 44px;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .daw-handoff small {
@@ -503,7 +503,7 @@
 @media (max-width: 575.98px) {
   .daw-handoff__button {
     width: 100%;
-    min-width: 0;
+    white-space: normal;
   }
 }
 

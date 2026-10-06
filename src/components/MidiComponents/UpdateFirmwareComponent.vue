@@ -9,7 +9,7 @@ const PICK = '💾 Choose drive RPI-RP2 → Select. 🍎 Mac: left sidebar · �
 export default {
   emits: ['check_firmware'],
   props: {repo: String, device: Object, currentVersion: {type: String, default: ''},
-    versionAware: {type: Boolean, default: false}, text: {type: String, default: 'Update Firmware'}},
+    versionAware: {type: Boolean, default: false}, text: {type: String, default: 'Update firmware'}},
   data: () => ({online: navigator.onLine, latest: internalFirmware, phase: 'idle', message: '', error: '', pick: PICK, desktopOnly: DESKTOP_ONLY,
     prepared: null, checking: false, reconnectTimer: null}),
   computed: {
