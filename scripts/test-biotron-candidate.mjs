@@ -92,10 +92,10 @@ test("candidate packaging is atomic, immutable and free of macOS metadata entrie
     assert.equal(packaged.archiveSha256.length, 64)
     assert(existsSync(resolve(packaged.candidateDir, packaged.archiveName)))
     assert(existsSync(resolve(packaged.candidateDir, "wrangler.toml")))
-    assert.match(
-      readFileSync(resolve(packaged.candidateDir, "PHYSICAL-TEST.md"), "utf8"),
-      new RegExp(buildId),
-    )
+    const checklist = readFileSync(resolve(packaged.candidateDir, "PHYSICAL-TEST.md"), "utf8")
+    assert.match(checklist, new RegExp(buildId))
+    assert.match(checklist, /Biotron beta · 1 October 2026/)
+    assert.doesNotMatch(checklist, /page shows build/)
     const evidence = JSON.parse(
       readFileSync(resolve(packaged.candidateDir, "test-evidence.json"), "utf8"),
     )

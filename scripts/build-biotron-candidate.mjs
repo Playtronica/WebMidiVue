@@ -78,12 +78,16 @@ export function createTestEvidence({commit, buildId, testedAt, environment}) {
   }
 }
 
-export function physicalChecklist(commit, buildId) {
-  return `# Biotron beta physical test — build \`${buildId}\`
+export function physicalChecklist(commit, buildId, versionDate) {
+  const versionLabel = new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+  }).format(new Date(`${versionDate}T12:00:00Z`))
+  return `# Biotron beta physical test — ${versionLabel}
 
 This checklist belongs only to commit \`${commit}\` and its immutable archive.
-Deploy that archive to a private preview and confirm the page shows build
-\`${buildId}\`. Do not use an older beta URL.
+Deploy that archive to a private preview and confirm the page shows
+\`Biotron beta · ${versionLabel}\`. The release guard checks the technical
+archive ID \`${buildId}\` separately. Do not use an older beta URL.
 
 ## Release-blocking computer pass — about five minutes
 
@@ -99,7 +103,7 @@ Stop at the first failure:
 2. Open **Settings**. The picker must offer the responsive Biotron but not
    \`MIDIIN2\`, \`MIDIOUT2\` or \`Biotron Port 2\`. Wait for its saved settings
    to load before changing anything. If the read fails, press **Retry settings
-   connection** once; stop if it fails again. Check that **Light Sensor** shows a
+   connection** once; stop if it fails again. Check that **Light sensor** shows a
    known mode, change one reversible setting and wait for **Saved on Biotron**.
 3. Press **Release device for DAW**, open the DAW and confirm it receives notes.
 
@@ -130,7 +134,7 @@ intermittent stop. A passing computer or Android check is not an iPhone pass.
 
 ## If anything fails
 
-Stop. Record only the failed step, visible build ID and **Copy diagnostics for
+Stop. Record only the failed step, visible version date and **Copy diagnostics for
 Andrey**. Add a short screen recording only if those do not show the problem;
 do not retry, reflash or run another checklist.
 `
@@ -155,7 +159,7 @@ export function packageCandidate(distDir, outputRoot, details) {
       resolve(staging, "test-evidence.json"),
       `${JSON.stringify(createTestEvidence(details), null, 2)}\n`,
     )
-    writeFileSync(resolve(staging, "PHYSICAL-TEST.md"), physicalChecklist(commit, buildId))
+    writeFileSync(resolve(staging, "PHYSICAL-TEST.md"), physicalChecklist(commit, buildId, details.versionDate || testedAt.slice(0, 10)))
     execFileSync("/usr/bin/tar", ["-czf", archivePath, "dist"], {
       cwd: resolve(distDir, ".."),
       env: {...process.env, COPYFILE_DISABLE: "1"},
@@ -224,6 +228,7 @@ export function main() {
   const commit = git("rev-parse", "HEAD")
   const branch = git("branch", "--show-current") || "detached"
   const buildId = commit.slice(0, 12)
+  const versionDate = git("show", "-s", "--format=%cs", "HEAD")
   execFileSync("npm", ["run", "test:biotron"], {
     cwd: root,
     env: {...process.env, VUE_APP_BUILD_ID: buildId},
@@ -250,6 +255,7 @@ export function main() {
   const packaged = packageCandidate(distDir, outputRoot, {
     commit,
     buildId,
+    versionDate,
     testedAt: builtAt,
     environment: runtimeEnvironment(),
   })
