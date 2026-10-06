@@ -12,7 +12,7 @@
 .settings-feedback { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.75rem; margin:1rem 0 0; }
 .settings-feedback span { flex:1 1 14rem; }
 .settings-feedback .btn { flex:0 0 auto; }
-.beta-connect-card,.beta-preset-card { margin-bottom:1rem; padding:clamp(1rem,3vw,1.35rem); border:1px solid var(--line); border-radius:1rem; background:var(--surface); box-shadow:0 8px 24px rgba(30,37,55,.045); text-align:left; backdrop-filter:blur(16px); }
+.beta-connect-card,.beta-preset-card { margin-bottom:1rem; padding:clamp(1rem,3vw,1.35rem); border:1px solid var(--line); border-radius:1rem; background:var(--surface); box-shadow:0 8px 24px rgba(30,37,55,.045); text-align:left; }
 .preset-actions { display:grid; grid-template-columns:repeat(auto-fit,minmax(12rem,1fr)); gap:.65rem; margin-top:.8rem; }
 .preset-actions > div { min-width:0; }
 .preset-actions :deep(.btn),.preset-actions :deep(.fileDropArea) { width:100%; min-height:44px; }

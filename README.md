@@ -170,6 +170,7 @@ Use the smallest test lane that can answer the current question:
 npm run test:quick       # lint, architecture and deterministic module contracts
 npm run test:beta-build  # beta build plus artifact/protocol/PWA checks
 npm run test:browser     # sound, PWA restart and responsive quality in Chromium
+npm run test:firmware:browser  # firmware beta build: update modal fits 1366x768 and is clickable
 npm run test:biotron     # exact release gate: every lane plus production isolation
 ```
 
