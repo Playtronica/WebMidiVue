@@ -258,6 +258,20 @@ async function controllerVersion(page) {
   const calmerWriteCount = await page.evaluate(() => window.__midiSent.length)
   await page.getByRole('button', {name: 'Reduce extra notes'}).click()
   await page.getByText(/Calmer play is saved/i).waitFor({state: 'visible', timeout: 10000})
+  const savedFeedback = page.locator('.settings-feedback')
+  assert.notStrictEqual(await savedFeedback.evaluate(element => getComputedStyle(element).position), 'fixed',
+    'saved feedback must not float over other controls')
+  const desktopViewport = page.viewportSize()
+  await page.setViewportSize({width: 320, height: 568})
+  assert((await savedFeedback.evaluate(element => element.getBoundingClientRect().right)) <= 320,
+    'saved feedback must fit the compact mobile viewport')
+  await page.setViewportSize(desktopViewport)
+  assert.strictEqual(await page.getByRole('button', {name: 'Done — use in DAW'}).count(), 0,
+    'save feedback must not disguise the separate DAW release action')
+  await page.getByRole('button', {name: 'Dismiss saved message'}).click()
+  assert.strictEqual(await savedFeedback.count(), 0, 'saved feedback did not close')
+  assert(await page.getByRole('button', {name: 'Release device for DAW'}).isVisible(),
+    'dismissing a save must leave the device connected')
   assert.deepStrictEqual(
     (await page.evaluate(before => window.__midiSent.slice(before), calmerWriteCount))
       .filter(message => [10, 21, 11].includes(message[3])).map(message => [message[3], message[4]]),

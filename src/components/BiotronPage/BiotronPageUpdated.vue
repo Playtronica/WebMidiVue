@@ -52,9 +52,9 @@
           aria-live="polite"
       >{{ calibrationMessage }}</span>
     </div>
-    <div v-if="betaBuild && settingsMessage" class="settings-feedback alert py-2" :class="[settingsState === 'error' ? 'alert-warning' : 'alert-light', {'settings-feedback--active': ['changed', 'checking', 'saved', 'error'].includes(settingsState)}]" role="status" aria-live="polite">
+    <div v-if="betaBuild && settingsMessage" class="settings-feedback alert py-2" :class="settingsState === 'error' ? 'alert-warning' : 'alert-light'" role="status" aria-live="polite">
       <span>{{ settingsMessage }}</span>
-      <button v-if="device && settingsState === 'saved'" type="button" class="btn btn-primary btn-sm" @click="releaseForDaw">Done — use in DAW</button>
+      <button v-if="settingsState === 'saved'" type="button" class="btn btn-outline-secondary btn-sm" aria-label="Dismiss saved message" @click="settingsMessage = ''">Dismiss</button>
       <button v-if="device && settingsState === 'error' && !settingsSnapshotKnown" type="button" class="btn btn-outline-primary btn-sm" @click="retrySettingsConnection">Retry settings connection</button>
     </div>
     <div v-if="betaBuild" class="diagnostic-copy mt-2">
@@ -546,7 +546,6 @@ export default  {
       this.liveVerifyTimer = null
       this.liveVerifyId++
     },
-    releaseForDaw() { this.$refs.deviceSelector?.releaseMidi() },
     startCalibration() {
       if (!this.device || this.calibrationBusy || (this.betaBuild && !this.settingsSnapshotKnown)) return
       this.settingsLoadId++

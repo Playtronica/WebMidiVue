@@ -57,9 +57,10 @@ assert(biotron.includes('Reduce extra notes') &&
   settingsReadback.includes('["same_note_plant", 2]'),
   'the low-effort calmer-play action must disable added variation and suppress tiny repeated note changes')
 assert(settingsReadback.includes('Note Hold changes note length, not the LEDs.') &&
-  biotron.includes('Done — use in DAW') &&
-  biotron.includes('releaseForDaw'),
-  'a verified save must explain the visible result and provide a one-click DAW handoff')
+  biotron.includes('Dismiss saved message') &&
+  !biotron.includes('Done — use in DAW') &&
+  selector.includes('Release device for DAW'),
+  'a verified save must be dismissible without releasing the separate DAW port')
 assert(biotron.includes('Copy diagnostics for Andrey') &&
   biotron.includes('Technical events sent online.') &&
   app.includes('What is collected') &&

@@ -76,7 +76,7 @@ export function savedSettingsMessage(lastChangedSetting) {
     return "Saved on Biotron. Note Hold changes note length, not the LEDs."
   }
   if (lastChangedSetting === "reduceExtraNotes") {
-    return "Calmer play is saved. Extra randomness and idle variation are off, and tiny note changes are ignored."
+    return "Calmer play is saved."
   }
   return "Saved on Biotron."
 }
