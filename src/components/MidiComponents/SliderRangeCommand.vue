@@ -67,7 +67,7 @@ export default {
       {{ this.commandLabel }}
       <HintComponent v-if="this.description" :text="this.description" />
     </label>
-      <div class="row" style="margin-bottom: 10px">
+      <div class="row command-range-pair" style="margin-bottom: 10px">
         <div class="col">
           <input type="number" :aria-label="`${commandLabel} minimum`" class="form-control" @change="this.changed_min_val"
                  v-model="this.values[0]" :min="this.minCommandObject.min_value" :max="this.minCommandObject.max_value" />

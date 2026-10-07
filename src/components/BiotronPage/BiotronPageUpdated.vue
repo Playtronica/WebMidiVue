@@ -12,7 +12,7 @@
       <h1 class="text-center" :aria-label="betaBuild ? 'Settings' : null">{{ betaBuild ? 'Shape your Biotron' : 'Biotron settings' }}</h1>
       <p v-if="betaBuild" class="settings-hero__intro">Connect Biotron, then shape how it listens, plays, and responds.</p>
     </header>
-    <div v-if="betaBuild && soundSession.running" class="alert alert-success mx-2 py-2" role="status">
+    <div v-if="betaBuild && soundSession.running" class="alert alert-success py-2" role="status">
       🔊 Sound stays on while you adjust settings. Touch the plant to hear each change.
       <router-link to="/biotron/play" class="alert-link ms-1">Sound &amp; volume</router-link>
     </div>
@@ -27,7 +27,7 @@
         text_label="Select device"
         check-versions-flag
         allow-daw-handoff
-        class="m-2"
+        :class="betaBuild ? 'beta-command' : 'm-2'"
     />
     <div v-if="betaBuild && device && settingsSnapshotKnown" class="calibration-control mt-3">
       <div class="calibration-control__actions">
@@ -97,7 +97,7 @@
       <template v-slot:objects>
         <GroupOfCommands>
           <template v-slot:objects>
-            <div class="row m-2">
+            <div :class="betaBuild ? 'row beta-command' : 'row m-2'">
               <SwitchComponent
                   id="plantVelDis"
                   command-label="🔇 Mute"
@@ -112,7 +112,7 @@
                 :command-object="this.commands_data.plantBpm"
                 description="Set tempo of plant notes, plant’s BPM."
                 @input-changed="this.sys_ex_changed"
-                class="m-2"
+                :class="betaBuild ? 'beta-command' : 'm-2'"
             />
             <SliderCommand
                 command-label="🎵 Note hold"
@@ -122,7 +122,7 @@
                 description="How long each note plays: 1 = the full beat, 1/2 = half a beat, and 1/64 = a very short note."
                 @input-changed="this.sys_ex_changed"
                 table-values-reversed
-                class="m-2"
+                :class="betaBuild ? 'beta-command' : 'm-2'"
             />
             <SliderCommand
                 command-label="🏠︎ Home note"
@@ -131,7 +131,7 @@
                 :table-values="this.root_note_id"
                 description="The main note everything starts from and returns to."
                 @input-changed="this.sys_ex_changed"
-                class="m-2"
+                :class="betaBuild ? 'beta-command' : 'm-2'"
             />
             <SelectCommand
                 command-label="🎼 Scale"
@@ -159,7 +159,7 @@
                 :key="this.forceRerender"
                 :command-object="this.commands_data.plant_midi_channel"
                 @input-changed="this.sys_ex_changed"
-                class="m-2"
+                :class="betaBuild ? 'beta-command' : 'm-2'"
             />
           </template>
         </GroupOfCommands>
@@ -184,14 +184,14 @@
                 :key="this.forceRerender"
                 :command-object="this.commands_data.swing_first_note_percent"
                 @input-changed="this.sys_ex_changed"
-                class="m-2"
+                :class="betaBuild ? 'beta-command' : 'm-2'"
             />
           </template>
         </GroupOfCommands>
 
         <GroupOfCommands name-of-group="Note velocity">
           <template v-slot:objects>
-            <div class="row m-2">
+            <div :class="betaBuild ? 'row beta-command' : 'row m-2'">
               <div class="col">
                 <SwitchComponent
                     command-label="🧍 Humanize"
@@ -210,7 +210,7 @@
                                @input-changed="this.sys_ex_changed"
                                command-label="💪 Note velocity"
                                description="Intensity range of of notes (volume, expression)."
-                               class="m-2"
+                               :class="betaBuild ? 'beta-command' : 'm-2'"
                 />
               </div>
               <div v-else>
@@ -220,7 +220,7 @@
                                     @input-changed="this.sys_ex_changed"
                                     command-label="💪 Note velocity"
                                     description="Intensity range of of notes (volume, expression)"
-                                    class="m-2"
+                                    :class="betaBuild ? 'beta-command' : 'm-2'"
                 />
               </div>
             </div>
@@ -228,7 +228,7 @@
         </GroupOfCommands>
         <GroupOfCommands name-of-group="Sensitivity">
           <template v-slot:objects>
-            <div class="row m-2">
+            <div :class="betaBuild ? 'row beta-command' : 'row m-2'">
               <div class="col">
                 <SwitchComponent
                     :key="this.forceRerender"
@@ -255,7 +255,7 @@
                 command-label="🔂 Note repeat"
                 @input-changed="this.sys_ex_changed"
                 description="Move near the plant to change notes (1 = small moves change notes, 10 = big moves needed). 🎶"
-                class="m-2"
+                :class="betaBuild ? 'beta-command' : 'm-2'"
             />
             <SliderCommand
                 command-label="🌞 Wake-up"
@@ -263,7 +263,7 @@
                 :command-object="this.commands_data.firstValue"
                 @input-changed="this.sys_ex_changed"
                 description="A little change that wakes up the first note."
-                class="m-2"
+                :class="betaBuild ? 'beta-command' : 'm-2'"
             />
             <SliderCommand
                 command-label="👣 Step size"
@@ -271,7 +271,7 @@
                 :command-object="this.commands_data.noteDistance"
                 @input-changed="this.sys_ex_changed"
                 description="Shapes how strongly sensor changes move through the note sequence. Start at 50, then compare 25 and 75 over several notes."
-                class="m-2"
+                :class="betaBuild ? 'beta-command' : 'm-2'"
             />
             <SliderCommand
                 command-label="⏳ Delay"
@@ -279,7 +279,7 @@
                 :command-object="this.commands_data.smoothness"
                 @input-changed="this.sys_ex_changed"
                 description="How quickly device reacts to change"
-                class="m-2"
+                :class="betaBuild ? 'beta-command' : 'm-2'"
             />
           </template>
         </GroupOfCommands>
@@ -292,7 +292,7 @@
       <template v-slot:objects>
         <GroupOfCommands>
           <template v-slot:objects>
-            <div class="row m-2">
+            <div :class="betaBuild ? 'row beta-command' : 'row m-2'">
               <div class="col">
                 <SwitchComponent
                     id="lightVelDis"
@@ -329,7 +329,7 @@
                 :key="this.forceRerender"
                 :command-object="this.commands_data.light_midi_channel"
                 @input-changed="this.sys_ex_changed"
-                class="m-2"
+                :class="betaBuild ? 'beta-command' : 'm-2'"
             />
 
             <SliderCommand
@@ -338,7 +338,7 @@
                 :command-object="this.commands_data.lightBpm"
                 @input-changed="this.sys_ex_changed"
                 description="Set tempo of light sensor notes BPM"
-                class="m-2"
+                :class="betaBuild ? 'beta-command' : 'm-2'"
             />
 
             <SliderCommand
@@ -347,7 +347,7 @@
                 command-label="🔂 Note repeat"
                 @input-changed="this.sys_ex_changed"
                 description="Change the light to change notes (1 = small moves change notes, 10 = big moves needed). 🎶"
-                class="m-2"
+                :class="betaBuild ? 'beta-command' : 'm-2'"
             />
 
             <div class="row" v-if="!commands_data.light_no_velocity.value">
@@ -359,7 +359,7 @@
                     :name="commands_data.maxLightVelocity.value"
                     command-label="🔨 Note velocity"
                     description="Intensity range of of notes (volume, expression)"
-                    class="m-2"
+                    :class="betaBuild ? 'beta-command' : 'm-2'"
                 />
               </div>
               <div v-else>
@@ -370,7 +370,7 @@
                     @input-changed="this.sys_ex_changed"
                     command-label="🔨 Note velocity"
                     description="Intensity range of of notes (volume, expression)"
-                    class="m-2"
+                    :class="betaBuild ? 'beta-command' : 'm-2'"
                 />
               </div>
             </div>
@@ -382,7 +382,7 @@
                 @input-changed="this.sys_ex_changed"
                 command-label="📏 Range"
                 description="How wide the light-sensor melody can move around the Home Note. Used only while Pitch Bend is off."
-                class="m-2"
+                :class="betaBuild ? 'beta-command' : 'm-2'"
             />
           </template>
         </GroupOfCommands>

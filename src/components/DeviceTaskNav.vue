@@ -40,7 +40,7 @@ export default {
   width: min(760px, 100%);
   min-height: 48px;
   margin: 0 auto 1.15rem;
-  padding: .35rem;
+  padding: .5rem;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -53,7 +53,7 @@ export default {
 }
 
 .device-task-nav__device {
-  padding-left: 1rem;
+  padding-left: calc(var(--beta-card-inset,24px) - 8px);
   color: #17171a;
   font-size: 1rem;
   letter-spacing: -.01em;
@@ -90,7 +90,7 @@ export default {
 
 @media (max-width: 420px) {
   .device-task-nav { gap: .25rem; }
-  .device-task-nav__device { padding-left: .65rem; }
+  .device-task-nav__device { padding-left: calc(var(--beta-card-inset,16px) - 8px); }
   .device-task-nav__link { padding: 0 .75rem; }
 }
 </style>

@@ -806,7 +806,7 @@ export default {
 .sound-lab__variant { min-height: 44px; border: 1px solid var(--ui-control-border); border-radius: var(--ui-radius); background: #fff; padding: 0 1rem; font: inherit; font-weight: 600; }
 .sound-lab__variant span { display: inline-block; padding: 0 .1rem; white-space: nowrap; font-weight: 500; }
 .sound-lab__variant--active { border-color: var(--ui-accent); background: #e8edff; color: #2446bd; }
-.sound-lab__reveal { display: grid; grid-template-columns: minmax(150px, 240px) minmax(0, 1fr); gap: clamp(1.5rem, 5vw, 4rem); align-items: center; max-width: 760px; margin: 0 auto; padding: clamp(1.25rem, 4vw, 2.5rem); border: 1px solid #ded9d1; border-radius: 1.5rem; background: #fbfaf7; }
+.sound-lab__reveal { display: grid; grid-template-columns: minmax(150px, 240px) minmax(0, 1fr); gap: clamp(1.5rem, 5vw, 4rem); align-items: center; max-width: 760px; margin: 0 auto; padding: var(--beta-card-inset,24px); border: 1px solid #ded9d1; border-radius: 1.5rem; background: #fbfaf7; }
 .sound-lab__reveal-orb { width: min(48vw, 220px); aspect-ratio: 1; justify-self: center; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff 0 8%, #dcd4ff 24%, #7c69d8 65%, #302763 100%); box-shadow: 0 0 0 0 rgba(106, 90, 205, .24); transform: scale(.9); transition: transform 180ms ease, box-shadow 180ms ease; }
 .sound-lab__reveal-orb--active { transform: scale(1); box-shadow: 0 0 0 18px rgba(106, 90, 205, .16), 0 18px 50px rgba(69, 49, 150, .22); }
 .sound-lab__reveal-orb--settling { animation: biotron-settling 1.8s ease-in-out infinite; }
@@ -824,6 +824,8 @@ export default {
 .sound-lab__after-reveal { max-width: 760px; margin: 1rem auto 0; }
 .sound-lab__reveal-variants { display: flex; flex-basis: 100%; flex-wrap: wrap; gap: .5rem; padding-top: .5rem; }
 .sound-lab__task-feedback { max-width:760px; margin:1rem auto 0!important; }
+.sound-lab__task-feedback { padding:var(--beta-card-inset,24px); }
+.sound-lab__after-reveal { padding-inline:var(--beta-card-inset,24px); }
 .sound-lab__task-feedback small { color:#625e58; }
 .sound-lab__task-feedback h2 { margin:0; font-size:var(--ui-text-section); }
 .sound-lab__keyboard { display: grid; grid-template-columns: repeat(13, minmax(44px, 1fr)); gap: 4px; overflow-x: auto; padding-bottom: .5rem; }
@@ -831,7 +833,8 @@ export default {
 .sound-lab__keyboard .sound-lab__black-key { height: 82px; background: #2b2b30; color: #fff; }
 .sound-lab__midi { display: flex; justify-content: space-between; gap: 1.5rem; align-items: center; border-top: 1px solid #d6d1c8; padding-top: 1.5rem; }
 .sound-lab__midi p { margin: .3rem 0 0; }
-.sound-lab__midi-actions .form-select { min-width: min(340px, 80vw); }
+.sound-lab__midi-actions { min-width:0; max-width:100%; }
+.sound-lab__midi-actions .form-select { min-width:0; width:100%; }
 @media (max-width: 640px) { .sound-lab__midi { align-items: flex-start; flex-direction: column; } .sound-lab__keyboard { grid-template-columns: repeat(13, 48px); } .sound-lab__reveal { grid-template-columns: 1fr; text-align: center; } .sound-lab__reveal-actions, .sound-lab__after-reveal { justify-content: center; } .sound-lab__task-feedback-actions { display:grid; } .sound-lab__task-feedback-actions .btn { width:100%; } .sound-lab__volume { width: 100%; grid-template-columns: auto minmax(0, 1fr) 3.25rem; text-align: left; } }
 @keyframes biotron-settling { 50% { transform: scale(.96); box-shadow: 0 0 0 12px rgba(106, 90, 205, .12); } }
 @keyframes biotron-calibrating { to { transform: scale(1.02); box-shadow: 0 0 0 20px rgba(106, 90, 205, .18), 0 18px 50px rgba(69, 49, 150, .22); } }

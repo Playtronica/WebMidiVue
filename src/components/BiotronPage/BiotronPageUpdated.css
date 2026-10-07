@@ -48,3 +48,15 @@
  .biotron-settings-beta :deep(.toggle-label),.biotron-settings-beta :deep(.settings_elem) { padding:1rem; }
  .calibration-control__actions { width:100%; }
 }
+
+/* One inner content edge; neutralize Bootstrap gutters only inside beta command cards. */
+.beta-connect-card,.beta-preset-card { padding:var(--beta-card-inset,24px); }
+.biotron-settings-beta :deep(.toggle-label),.biotron-settings-beta :deep(.settings_elem) { padding:var(--beta-card-inset,24px); }
+.biotron-settings-beta :deep(.settings_elem .row) { --bs-gutter-x:0; margin-left:0!important; margin-right:0!important; }
+.biotron-settings-beta :deep(.settings_elem .row > div),.biotron-settings-beta :deep(.settings_elem .row > label) { padding-left:0; padding-right:0; }
+.biotron-settings-beta :deep(.settings_elem .form-control),.biotron-settings-beta :deep(.settings_elem .form-select) { padding-left:1rem; padding-right:1rem; }
+.biotron-settings-beta :deep(.settings_elem input[type=range]) { padding-left:0; padding-right:0; }
+.biotron-settings-beta :deep(.command-range-pair) { gap:8px; }
+.biotron-settings-beta :deep(.command-range-pair .col) { min-width:0; }
+.biotron-settings-beta :deep(.settings_elem .form-select) { padding-right:2.25rem; }
+.biotron-settings-beta :deep(.description_elem) { padding:16px; }
