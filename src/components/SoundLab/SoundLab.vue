@@ -1,5 +1,5 @@
 <template>
-  <main
+  <section
     class="sound-lab"
     :data-audio-state="audioState"
     :data-active-voices="voiceCount"
@@ -211,7 +211,7 @@
       </div>
     </section>
     </template>
-  </main>
+  </section>
 </template>
 
 <script>

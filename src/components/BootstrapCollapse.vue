@@ -39,14 +39,13 @@ export default {
 </script>
 
 <template>
-  <div class="toggle-label" data-bs-toggle="collapse" :href="'#' + collapseId" role="button" :aria-expanded="is_open"
+  <button type="button" class="toggle-label" data-bs-toggle="collapse" :data-bs-target="'#' + collapseId" :aria-expanded="is_open"
        :aria-controls="this.collapseId" ref="collapse_header">
     <h2>
       {{name_of_collapse}}
       <img :src="is_open ? chevronUp : chevronDown" alt="" class="collapse-chevron" aria-hidden="true">
     </h2>
-    <hr/>
-  </div>
+  </button>
 
   <div v-if="!open_by_default" class="collapse mt-2" :id="this.collapseId" ref="collapse_object">
     <slot name="objects"></slot>
@@ -59,6 +58,8 @@ export default {
 </template>
 
 <style scoped>
+.toggle-label { width:100%; border:0; background:transparent; text-align:left; }
+.toggle-label:focus-visible { outline:3px solid #315ee7; outline-offset:3px; }
 .toggle-label h2 { margin: 0; font-size: var(--ui-text-section, 1.25rem); font-weight: 700; }
 .collapse-chevron {
   width: 1rem;

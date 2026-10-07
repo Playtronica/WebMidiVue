@@ -57,10 +57,11 @@
       <button v-if="settingsState === 'saved'" type="button" class="btn btn-outline-secondary btn-sm" aria-label="Dismiss saved message" @click="settingsMessage = ''">Dismiss</button>
       <button v-if="device && settingsState === 'error' && !settingsSnapshotKnown" type="button" class="btn btn-outline-primary btn-sm" @click="retrySettingsConnection">Retry settings connection</button>
     </div>
-    <div v-if="betaBuild" class="diagnostic-copy mt-2">
+    <details v-if="betaBuild" class="diagnostic-copy mt-3">
+      <summary>Connection details &amp; diagnostics</summary>
       <button type="button" class="btn btn-outline-secondary btn-sm" @click="copyDiagnosticInfo">Copy diagnostics for Andrey</button>
       <small class="d-block mt-1 text-muted">{{ diagnosticMessage || "Copies technical version, browser, connection and device state. Technical events sent online. Copy more details here." }}</small>
-    </div>
+    </details>
     <UpdateFirmwareComponent v-if="betaBuild && firmwareTestEnabled" class="w-100 mt-3" text="Update firmware" repo="Playtronica/biotron-firmware" :device="device" :current-version="firmwareVersion" version-aware @check_firmware="checkFirmware"/>
     </section>
     <template v-if="!betaBuild || settingsReady">

@@ -252,7 +252,7 @@ async function testComponentStateMachine(componentSource) {
     require: name => {
       if (name === '@/assets/js/LoadFirmware') {
         return {
-          compareFirmwareVersions: () => 1,
+          compareFirmwareVersions: contextForHelpers().compareFirmwareVersions,
           GetLatestFirmware: async () => {},
           LoadFirmware: async () => {},
           prepareFirmware: async firmware => {
@@ -344,6 +344,19 @@ async function testComponentStateMachine(componentSource) {
   await retry.runStep()
   assert.strictEqual(retry.phase, 'reconnecting')
   assert.deepStrictEqual(calls.map(call => call[0]), ['prepare', 'write', 'write', 'write', 'timer'])
+
+  // Older installed firmware never receives software BOOT; the file is still verified first.
+  calls.length = 0
+  const legacyBoot = build({device: 'legacy-output', currentVersion: '1.7.3'})
+  await legacyBoot.runStep()
+  assert.strictEqual(legacyBoot.actionText, 'Continue with manual BOOT')
+  await legacyBoot.runStep()
+  assert.strictEqual(legacyBoot.phase, 'select-drive')
+  assert.deepStrictEqual(calls.map(call => call[0]), ['prepare'])
+  assert.match(legacyBoot.message, /hardware BOOT/)
+  const newer = build({device: 'newer-output', currentVersion: '1.10.8'})
+  assert.strictEqual(newer.available, false)
+  assert.strictEqual(newer.ready, false)
 
   // Device lost between verify and restart: restart needs MIDI, the action waits instead of guessing.
   const dropped = build({device: 'selected-midi-output', currentVersion: '1.9.7'})

@@ -83,6 +83,7 @@ export default {
             v-model="values"
             class="slider-blue"
             :tooltips="false"
+            :aria="{'aria-label': `${commandLabel} range`}"
             :max="this.maxCommandObject.max_value"
             :min="this.minCommandObject.min_value"
             :step="this.minCommandObject.step"

@@ -16,6 +16,7 @@ export default {
     available() { return Boolean(this.currentVersion && this.latest?.version && compareFirmwareVersions(this.latest.version, this.currentVersion) > 0) },
     current() { return Boolean(this.currentVersion && this.latest?.version && !this.available) },
     internal() { return Boolean(this.latest?.internal) },
+    manualBoot() { return Boolean(this.currentVersion && compareFirmwareVersions(this.currentVersion, '1.7.4') < 0) },
     canInstall() { return Boolean(window.showDirectoryPicker) },
     // No MIDI answer: Biotron may already sit in update mode as the RPI-RP2 drive (page reloaded or USB replugged mid-update).
     recovery() { return this.internal && this.versionAware && !this.currentVersion },
@@ -24,13 +25,13 @@ export default {
     buttonText() {
       if (this.checking) return 'Checking firmware…'
       if (this.versionAware && !this.currentVersion) return this.device ? 'Check firmware' : 'Already see RPI-RP2? Recover firmware'
-      if (this.current) return `Firmware ${this.currentVersion} ✓`
+      if (this.current) return compareFirmwareVersions(this.currentVersion, this.latest.version) > 0 ? `Firmware ${this.currentVersion} · newer than this beta` : `Firmware ${this.currentVersion} ✓`
       if (this.available) return `Update to ${this.latest.version}`
       return this.text
     },
     actionText() {
       if (!this.internal) return 'Update'
-      return {idle: '⬇️ Download & check', 'preflight-error': '🔁 Try again', prepared: '🔄 Restart Biotron',
+      return {idle: '⬇️ Download & check', 'preflight-error': '🔁 Try again', prepared: this.manualBoot ? 'Continue with manual BOOT' : '🔄 Restart Biotron',
         'select-drive': '💾 Choose RPI-RP2 → install'}[this.phase] || ''
     },
     actionDisabled() { return this.busy || !this.online || (this.internal ? this.phase === 'prepared' && !this.device : !this.device) }
@@ -73,6 +74,11 @@ export default {
           this.prepared = await prepareFirmware(this.latest); this.phase = this.device ? 'prepared' : 'select-drive'
           this.message = `✅ Firmware ${this.latest.version} is checked and held in this page — nothing was saved to your computer. ${this.device ? 'Biotron not restarted yet.' : PICK}`
         } else if (this.phase === 'prepared') {
+          if (this.manualBoot) {
+            this.phase = 'select-drive'
+            this.message = `Use your model’s hardware BOOT instructions to enter update mode. Settings may be reset by older firmware. Once RPI-RP2 appears, ${PICK}`
+            return
+          }
           this.phase = 'booting'; this.message = '🔄 Restarting Biotron…'; await bootDevice(this.device)
           this.phase = 'select-drive'; this.message = `🔄 Biotron is now drive RPI-RP2. ${PICK}`
         } else if (this.phase === 'select-drive') {
@@ -98,11 +104,13 @@ export default {
   <button v-else data-bs-toggle="modal" data-bs-target="#UpdateConf" class="btn" :class="[recovery ? 'btn-outline-secondary' : 'btn-primary', $attrs.class]"
           :disabled="checking || current">{{ buttonText }}</button>
   <div class="modal fade" id="UpdateConf" tabindex="-1" aria-labelledby="firmware-title" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
       <div class="modal-header"><h5 class="modal-title" id="firmware-title">💾 Update firmware</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
       <div class="modal-body">
-        <p v-if="available">📟 Now: {{ currentVersion }} → ✨ New: {{ latest.version }}</p>
+        <p v-if="available" class="firmware-version">Installed <strong>{{ currentVersion }}</strong> <span aria-hidden="true">→</span> Beta update <strong>{{ latest.version }}</strong></p>
+        <ol v-if="internal && ready" class="firmware-steps"><li>Download and verify the file.</li><li>Restart into update mode.</li><li>Choose RPI-RP2 and wait for the version check.</li></ol>
+        <p v-if="manualBoot" class="alert alert-warning">This older firmware needs the hardware BOOT procedure for your model. Export your preset first; saved settings may be reset. No software BOOT command will be sent.</p>
         <p v-if="recovery">🔌 No Biotron over MIDI. 💾 Drive <strong>RPI-RP2</strong> on your computer? → Install {{ latest.version }} now.</p>
         <p v-if="internal && ready && !canInstall">{{ desktopOnly }}</p>
         <p v-if="internal && ready && canInstall">✅ File is checked first. 💾 Then you choose drive RPI-RP2.</p>
@@ -110,7 +118,7 @@ export default {
         <p v-if="internal && ready" class="small text-muted">
           Or do it by hand: <a :href="latest.url" :download="latest.name">save {{ latest.name }}</a>, then copy the saved file onto the disk named RPI-RP2.
         </p>
-        <p v-if="current" class="alert alert-success mb-0">Firmware {{ currentVersion }} is current.</p>
+        <p v-if="current" class="alert alert-success mb-0">Firmware {{ currentVersion }} is already installed. This beta offers {{ latest.version }}; no downgrade is offered.</p>
         <p v-if="!online" class="alert alert-warning mb-0">Connect to the internet for firmware updates. Settings remain available offline.</p>
         <p v-if="error" class="alert alert-danger mb-0" role="alert">{{ error }}</p>
         <p v-if="message" class="alert alert-info mb-0" role="status" aria-live="polite">{{ message }}</p>
@@ -121,3 +129,13 @@ export default {
     </div></div>
   </div>
 </template>
+
+<style scoped>
+.modal-body { padding:1.5rem; line-height:1.6; }
+.modal-header,.modal-footer { padding:1.25rem 1.5rem; gap:.75rem; }
+.firmware-version { display:flex; gap:.75rem; align-items:center; flex-wrap:wrap; }
+.firmware-steps { padding-left:1.25rem; margin:1.5rem 0; }
+.firmware-steps li { margin:.5rem 0; padding-left:.25rem; }
+.modal-body .alert { margin-top:1rem; }
+@media(max-width:575.98px) { .modal-body,.modal-header,.modal-footer { padding:1rem; } .modal-footer .btn { flex:1; min-height:44px; } }
+</style>
