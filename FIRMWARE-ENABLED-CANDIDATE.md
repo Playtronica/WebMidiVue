@@ -37,3 +37,10 @@ and sound-core contracts pass. Local firmware-beta compiles.
 
 This is not a full release verdict: new-candidate hardware acceptance, actual
 flash/rollback, Windows and phone tests, offline restart and audio soak remain.
+
+The mandatory release contract is in `docs/DESIGN-UX-QA.md`: physical candidate
+update → known-good older firmware rollback → candidate reflash through the web,
+with exact-version and device-function verification at every stage. Every updater
+QA pass also searches for and records a concrete process simplification.
+This candidate's physical cycle remains **NOT RUN**; the contract change is not
+evidence that a flash or rollback has occurred.

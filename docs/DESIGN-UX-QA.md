@@ -30,6 +30,43 @@ Use a read-only reviewer for the first and final passes. Keep implementation wit
 7. Label each result PASS / FAIL / NOT RUN; distinguish real device from fixtures.
    A compiled CSS rule or simulated screenshot never proves physical acceptance.
 
+## Mandatory physical firmware acceptance
+
+Added at Andrey's request on 7 October 2026. Every firmware-enabled release must
+complete a real-device rollback and reflash cycle; fixtures cannot substitute for it.
+
+1. Record board/model, installed version, web build, settings/preset backup and both
+   firmware artifacts' source, version and SHA-256. Confirm both artifacts support
+   this board and that a known-good recovery image is available before writing.
+2. Install the candidate through the customer-facing web updater. Verify reconnect,
+   exact firmware version, MIDI notes, settings read/write, presets and plant/audio
+   response. Record any settings reset and whether the UI explained it beforehand.
+3. Roll back to a known-good older supported firmware using the documented recovery
+   path. Verify reconnect, exact version and basic device operation. Never bypass
+   the customer updater's downgrade protection to make this test pass.
+4. From that older firmware, install the candidate again through the web updater.
+   Include a supported legacy version requiring manual BOOT in the release matrix.
+   Repeat the checks above, including settings restoration after a reset.
+5. Record PASS / FAIL / NOT RUN separately for initial update, rollback and reflash,
+   with versions, hashes, build, date and evidence. Missing compatible images or an
+   unperformed physical cycle blocks firmware release acceptance. Do not describe
+   build success, simulated writes or a BOOT transition as a successful flash.
+
+## Continuous simplification of flashing
+
+On every updater QA pass, review the entire path from an old device to verified
+reconnection. Record required clicks, manual actions, unexplained waits, repeated
+instructions and recovery friction. Identify the next concrete simplification,
+implement it when within the task scope, and rerun the affected acceptance steps.
+If no simplification is justified, record why rather than inventing a change.
+
+Prefer one clear next action per state, automatic supported version detection,
+plain model-specific BOOT instructions, visible progress and automatic reconnect
+verification. Remove redundant decisions and jargon. Preserve artifact/board
+verification, downgrade protection, honest failure states and a usable recovery path.
+Compare the before/after action count and real-device result; fewer clicks alone
+do not prove a better process. Keep unresolved friction in the QA record.
+
 ## 7 October 2026 evidence
 
 Code build `dc05b94`: fresh browser origin localhost:49291 (earlier origin had stale PWA CSS).
