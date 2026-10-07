@@ -55,7 +55,7 @@
     <div v-if="betaBuild && settingsMessage" class="settings-feedback alert py-2" :class="settingsState === 'error' ? 'alert-warning' : 'alert-light'" role="status" aria-live="polite">
       <span>{{ settingsMessage }}</span>
       <button v-if="settingsState === 'saved'" type="button" class="btn btn-outline-secondary btn-sm" aria-label="Dismiss saved message" @click="settingsMessage = ''">Dismiss</button>
-      <button v-if="device && settingsState === 'error' && !settingsSnapshotKnown" type="button" class="btn btn-outline-primary btn-sm" @click="retrySettingsConnection">Retry settings connection</button>
+      <button v-if="device && settingsState === 'error' && !settingsSnapshotKnown && !legacyFirmware" type="button" class="btn btn-outline-primary btn-sm" @click="retrySettingsConnection">Retry settings connection</button>
     </div>
     <details v-if="betaBuild" class="diagnostic-copy mt-3">
       <summary>Connection details &amp; diagnostics</summary>
@@ -389,7 +389,7 @@
       </template>
     </BootstrapCollapse>
 
-  </div></template><p v-else class="alert alert-light mx-2" role="status">{{ device ? 'Reading your Biotron settings… Controls unlock when it answers.' : 'Connect Biotron to unlock its settings. Nothing changes until you choose a device.' }}</p>
+  </div></template><p v-else class="alert alert-light mx-2" role="status">{{ device ? (settingsState === 'error' ? settingsMessage : 'Reading your Biotron settings… Controls unlock when it answers.') : 'Connect Biotron to unlock its settings. Nothing changes until you choose a device.' }}</p>
   </div>
 </template>
 
@@ -397,7 +397,6 @@
 import {createSettingsConnectionMethods} from '@/biotron/settingsConnection.mjs'
 import {recordBiotronEvent, recordSettingsState} from '@/biotron/telemetry.mjs'
 import {withMidiWriteSession} from "@/assets/js/timing.mjs"
-
 import { saveAs } from '@progress/kendo-file-saver';
 import {BiotronCommandsData, BiotronDb} from "@/components/BiotronPage/BiotronIDB"
 import FileDropArea from "@/components/MidiComponents/FileDropArea.vue";
@@ -424,7 +423,6 @@ import {
   settingsVectorFromCommands,
   settingsVectorsEqual
 } from "@/biotron/settingsReadback.mjs";
-
 export default  {
   components: {
     DeviceTaskNav,
@@ -450,6 +448,7 @@ export default  {
     },
   },
   computed: {
+    legacyFirmware() { return /^1\.[0-8]\.\d+$/.test(this.firmwareVersion || "") },
     soundSession() {
       return soundSessionState
     },
@@ -522,6 +521,7 @@ export default  {
     },
     checkFirmware() { this.$refs.deviceSelector?.requestFirmwareVersion() },
     async loadPersistedSettings(device) {
+      if (this.legacyFirmware) { this.settingsState = "error"; this.settingsMessage = "This firmware cannot report saved settings. Update firmware below to unlock Settings; reconnecting will not add this feature."; return }
       const loadId = ++this.settingsLoadId
       this.settingsState = "loading"
       this.settingsMessage = "Reading saved settings from Biotron…"

@@ -2,7 +2,7 @@
 """Run repeatable software QA with durable JSONL and separate raw output files."""
 import argparse, datetime, json, pathlib, subprocess, sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-TESTS = ['test:firmware', 'test:settings-readback', 'test:midi-lifecycle', 'test:diagnostics', 'test:telemetry', 'test:navigation', 'test:compatibility', 'test:listeners', 'test:midi-timing', 'test:sound']
+TESTS = ['test:firmware', 'test:settings-readback', 'test:midi-lifecycle', 'test:diagnostics', 'test:telemetry', 'test:navigation', 'test:compatibility', 'test:listeners', 'test:midi-timing', 'test:sound', 'test:architecture', 'test:legacy-selector', 'test:playtron-variants', 'test:scales-variants', 'test:touchme-variants', 'test:presets', 'test:service-worker-ready', 'test:midi-permission-cancel', 'test:release-evidence', 'test:preview-guard', 'test:sound:levels']
 p = argparse.ArgumentParser()
 p.add_argument('--output', required=True, type=pathlib.Path)
 a = p.parse_args(); a.output.mkdir(parents=True, exist_ok=True)

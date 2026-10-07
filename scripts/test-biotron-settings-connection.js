@@ -52,6 +52,14 @@ function page() {
 }
 
 ;(async () => {
+  const legacy = page()
+  legacy.firmwareVersion = '1.8.2'
+  legacy.legacyFirmware = component.computed.legacyFirmware.call(legacy)
+  legacy.readPersistedSettingsWithRetry = () => { throw new Error('legacy must not query unsupported readback') }
+  await legacy.loadPersistedSettings(legacy.device)
+  assert.equal(legacy.settingsState, 'error')
+  assert.match(legacy.settingsMessage, /Update firmware/)
+  assert.equal(component.computed.legacyFirmware.call({firmwareVersion:'1.9.8'}), false)
   const loading = page()
   let finishRead
   let calibrationStarts = 0
