@@ -1,4 +1,5 @@
 <script>
+import {recordFirmwarePhase} from '@/biotron/telemetry.mjs'
 import {bootDevice} from '@/assets/js/SysExCommand'
 import {compareFirmwareVersions, DESKTOP_ONLY, GetLatestFirmware, LoadFirmware, prepareFirmware, writeFirmware} from '@/assets/js/LoadFirmware'
 const target = process.env.VUE_APP_BIOTRON_FIRMWARE_TARGET
@@ -45,7 +46,7 @@ export default {
     window.removeEventListener('online', this.syncOnline); window.removeEventListener('offline', this.syncOnline)
     clearTimeout(this.reconnectTimer)
   },
-  watch: {currentVersion(value) {
+  watch: {phase: {immediate: true, handler(value) { recordFirmwarePhase(value, this.currentVersion, this.latest?.version) }}, currentVersion(value) {
     if (this.versionAware && value && !this.latest) this.refresh()
     if (this.phase === 'reconnecting' && value === this.latest?.version) {
       clearTimeout(this.reconnectTimer); this.prepared = null; this.phase = 'complete'

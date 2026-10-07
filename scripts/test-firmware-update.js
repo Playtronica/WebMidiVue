@@ -250,6 +250,7 @@ async function testComponentStateMachine(componentSource) {
     },
     clearTimeout: id => calls.push(['clear', id]),
     require: name => {
+      if (name === '@/biotron/telemetry.mjs') return {recordFirmwarePhase: () => {}}
       if (name === '@/assets/js/LoadFirmware') {
         return {
           compareFirmwareVersions: contextForHelpers().compareFirmwareVersions,

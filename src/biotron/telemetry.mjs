@@ -95,3 +95,21 @@ export function recordBiotronEvent(eventName, input = {}) {
     } catch { /* Diagnostics must never interrupt play. */ }
   }, 0)
 }
+
+// Local-only bounded evidence. No serials, raw MIDI, paths or error messages.
+const KEY = 'biotron.firmware-journal.v1'
+const PHASES = new Set(['idle', 'preparing', 'prepared', 'manual-boot', 'booting', 'select-drive', 'writing', 'reconnecting', 'complete', 'verification-error', 'preflight-error', 'booting-error', 'select-drive-error', 'reconnecting-error'])
+export function recordFirmwarePhase(phase, installed, target) {
+  if (!PHASES.has(phase)) return
+  try {
+    const storage = globalThis.localStorage
+    const stored = JSON.parse(storage.getItem(KEY) || '[]')
+    const entries = Array.isArray(stored) ? stored : []
+    const version = value => /^\d{1,2}\.\d{1,2}\.\d{1,2}$/.test(value || '') ? value : null
+    entries.push({at: new Date().toISOString(), phase, installed: version(installed), target: version(target), build: process.env.VUE_APP_BUILD_ID || 'local-build'})
+    storage.setItem(KEY, JSON.stringify(entries.slice(-200)))
+  } catch { /* Logging cannot interrupt a firmware action. */ }
+}
+export function exportFirmwareJournal() {
+  try { return JSON.parse(globalThis.localStorage.getItem(KEY) || '[]') } catch { return [] }
+}
