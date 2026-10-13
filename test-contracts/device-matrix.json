@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "devices": [
+    {
+      "id": "biotron",
+      "name": "Biotron",
+      "midi_name": "Biotron",
+      "firmware_repo": "Playtronica/biotron-firmware",
+      "release_repo": "Playtronica/biotron-releases",
+      "command_module": "src/components/BiotronPage/BiotronIDB.js",
+      "command_export": "BiotronCommandsData",
+      "expected_command_count": 26,
+      "primary_route": "/biotron",
+      "routes": ["/biotron", "/biotron/update"],
+      "components": [
+        "src/components/BiotronPage/BiotronPageUpdated.vue",
+        "src/components/BiotronPage/BiotronUpdatePage.vue"
+      ],
+      "minimum_controls": 20,
+      "capabilities": ["connect", "version-query", "presets", "preset-import-export", "settings-write", "firmware-update"]
+    },
+    {
+      "id": "touchme",
+      "name": "TouchMe",
+      "midi_name": "TouchMe",
+      "firmware_repo": "Playtronica/touchme-firmware",
+      "release_repo": "Playtronica/touchme-releases",
+      "command_module": "src/components/TouchMePage/TouchMeIDB.js",
+      "command_export": "TouchMeCommandsData",
+      "expected_command_count": 28,
+      "primary_route": "/touchme",
+      "routes": ["/touchme", "/touchme/test", "/touchme/standalone"],
+      "components": [
+        "src/components/TouchMePage/TouchMePageRelease.vue",
+        "src/components/TouchMePage/TouchMePageTest.vue",
+        "src/components/TouchMePage/TouchMePageStandalone.vue"
+      ],
+      "minimum_controls": 12,
+      "capabilities": ["connect", "version-query", "presets", "preset-import-export", "settings-write", "factory-test", "standalone-synth"]
+    },
+    {
+      "id": "playtron",
+      "name": "Playtron",
+      "midi_name": "Playtron",
+      "firmware_repo": "Playtronica/playtron-firmware",
+      "release_repo": "Playtronica/playtron-releases",
+      "command_module": "src/components/PlaytronPage/PlaytronIDB.js",
+      "command_export": "PlaytronCommandsData",
+      "expected_command_count": 18,
+      "primary_route": "/playtron",
+      "routes": ["/playtron", "/playtron/test"],
+      "components": [
+        "src/components/PlaytronPage/PlaytronPageRelease.vue",
+        "src/components/PlaytronPage/PlaytronPageTest.vue"
+      ],
+      "minimum_controls": 16,
+      "dynamic_ui_prefixes": ["Note_"],
+      "capabilities": ["connect", "version-query", "presets", "preset-import-export", "settings-write", "factory-test"]
+    },
+    {
+      "id": "scales",
+      "name": "Scales",
+      "midi_name": "Scales",
+      "firmware_repo": "Playtronica/scales-firmware",
+      "release_repo": "Playtronica/scales-releases",
+      "command_module": "src/components/ScalesPage/ScalesIDB.js",
+      "command_export": "ScalesCommandsData",
+      "expected_command_count": 10,
+      "primary_route": "/scales",
+      "routes": ["/scales", "/scales/test"],
+      "components": [
+        "src/components/ScalesPage/ScalesPage.vue",
+        "src/components/ScalesPage/ScalesPageTest.vue"
+      ],
+      "minimum_controls": 8,
+      "capabilities": ["connect", "version-query", "presets", "preset-import-export", "settings-write", "factory-test", "rgb"]
+    },
+    {
+      "id": "circle",
+      "name": "Circle",
+      "midi_name": "Circle",
+      "firmware_repo": "Playtronica/circle-of-fifths-firmware",
+      "release_repo": null,
+      "command_module": "src/components/CirclePage/CircleIDB.js",
+      "command_export": "CircleCommandsData",
+      "expected_command_count": 25,
+      "primary_route": "/circle",
+      "routes": ["/circle"],
+      "components": ["src/components/CirclePage/CirclePage.vue"],
+      "minimum_controls": 20,
+      "capabilities": ["connect", "version-query", "presets", "preset-import-export", "settings-write", "standalone-synth"]
+    }
+  ],
+  "tools": [
+    {
+      "id": "scala",
+      "route": "/scala",
+      "component": "src/components/ExtraPage/ScalaPage.vue"
+    },
+    {
+      "id": "orbita",
+      "external_url": "https://playtronica.github.io/WebMidiOrbita/?nomidi=true",
+      "source_repo": "Playtronica/WebMidiOrbita",
+      "firmware_repo": "Playtronica/orbita-DIY-firmware",
+      "release_repo": "Playtronica/orbita-releases"
+    }
+  ]
+}
