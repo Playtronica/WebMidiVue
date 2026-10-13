@@ -7,7 +7,7 @@
 
 <script>
 
-import DeviceSelector from "@/components/MidiComponents/DeviceSelector.vue";
+import DeviceSelector from "@biotron-device-selector";
 import {LoadFirmware} from "@/assets/js/LoadFirmware";
 import UpdateFirmwareComponent from "@/components/MidiComponents/UpdateFirmwareComponent.vue";
 

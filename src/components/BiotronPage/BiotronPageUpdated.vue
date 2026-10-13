@@ -2,7 +2,7 @@
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
 
     <h1 class="text-center">Biotron Settings ⚙️</h1>
-    <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} " text_label="🔌 Select Device" check-versions-flag class="m-2"/>
+    <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} " text_label="🔌 Select Device" check-versions-flag allow-daw-handoff class="m-2"/>
     <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"  text_label="📂 Preset" class="m-2"/>
     <div class="row gx-1 mb-5">
       <div class="col">
@@ -341,7 +341,7 @@ import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
 import SliderRangeCommand from "@/components/MidiComponents/SliderRangeCommand.vue";
 import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
 import PatchSelector from "@/components/MidiComponents/PatchSelector.vue";
-import DeviceSelector from "@/components/MidiComponents/DeviceSelector.vue";
+import DeviceSelector from "@biotron-device-selector";
 import UpdateFirmwareComponent from "@/components/MidiComponents/UpdateFirmwareComponent.vue";
 import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
