@@ -1,4 +1,7 @@
 <script>
+import {createListenerScope} from "@/assets/js/ListenerScope.mjs";
+import chevronUp from '@fortawesome/fontawesome-free/svgs/solid/chevron-up.svg'
+import chevronDown from '@fortawesome/fontawesome-free/svgs/solid/chevron-down.svg'
 
 export default {
   name: "BootstrapCollapse",
@@ -16,25 +19,31 @@ export default {
     return {
       is_open: this.open_by_default,
       collapseId: 'collapse-' + Math.random().toString(36).substring(2, 10),
+      chevronUp,
+      chevronDown,
     }
   },
   mounted() {
-    this.$refs.collapse_object.addEventListener("show.bs.collapse",  () => {
+    this.listenerScope = createListenerScope()
+    this.listenerScope.on(this.$refs.collapse_object, "show.bs.collapse", () => {
       this.is_open = true
     })
-    this.$refs.collapse_object.addEventListener("hide.bs.collapse",  () => {
+    this.listenerScope.on(this.$refs.collapse_object, "hide.bs.collapse", () => {
       this.is_open = false
     })
+  },
+  beforeUnmount() {
+    this.listenerScope?.clear()
   }
 }
 </script>
 
 <template>
-  <div class="toggle-label" data-bs-toggle="collapse" :href="'#' + collapseId" role="button" aria-expanded="false"
+  <div class="toggle-label" data-bs-toggle="collapse" :href="'#' + collapseId" role="button" :aria-expanded="is_open"
        :aria-controls="this.collapseId" ref="collapse_header">
     <h1>
       {{name_of_collapse}}
-      <span><i class="fa-solid " :class="{'fa-chevron-up': is_open, 'fa-chevron-down': !is_open}"></i></span>
+      <img :src="is_open ? chevronUp : chevronDown" alt="" class="collapse-chevron" aria-hidden="true">
     </h1>
     <hr/>
   </div>
@@ -50,5 +59,8 @@ export default {
 </template>
 
 <style scoped>
-
+.collapse-chevron {
+  width: 1rem;
+  height: 1rem;
+}
 </style>

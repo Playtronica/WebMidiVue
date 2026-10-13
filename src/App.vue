@@ -1,32 +1,72 @@
 <template>
   <img src="/Logo-Black.png" alt="Playtronica logo" width="140" loading="eager" class="small--hide image-element" itemprop="logo">
 
-  <header class="d-flex justify-content-center">
-
-      <ul class="nav nav-pills">
+  <header v-if="!firstPlay" :class="betaBuild ? 'device-header' : 'd-flex justify-content-center'">
+    <span v-if="betaBuild" class="device-header__label">Devices</span>
+    <nav :aria-label="betaBuild ? 'Choose a device' : 'Devices'" :class="{'device-header__scroll': betaBuild}">
+      <ul class="nav nav-pills" :class="{'device-header__list': betaBuild}">
       <li class="nav-item">
-        <router-link  to="/biotron" @click="this.update" class="nav-link">Biotron</router-link>
+        <router-link to="/biotron" class="nav-link">Biotron</router-link>
       </li>
       <li class="nav-item">
-        <router-link  to="/touchme" @click="this.update" class="nav-link">TouchMe</router-link>
+        <router-link to="/touchme" class="nav-link">TouchMe</router-link>
       </li>
       <li class="nav-item">
-        <router-link to="/playtron" @click="this.update" class="nav-link">Playtron</router-link>
+        <router-link to="/playtron" class="nav-link">Playtron</router-link>
       </li>
         <li class="nav-item">
-          <router-link to="/scales" @click="this.update" class="nav-link">Scales</router-link>
+          <router-link to="/scales" class="nav-link">Scales</router-link>
         </li>
       <li class="nav-item">
-        <a href="https://playtronica.github.io/WebMidiOrbita/?nomidi=true" class="nav-link" aria-current="page">Orbita</a>
+        <a href="https://playtronica.github.io/WebMidiOrbita/?nomidi=true" class="nav-link">Orbita<span v-if="betaBuild" aria-hidden="true"> ↗</span></a>
       </li>
     </ul>
+    </nav>
   </header>
+  <small v-if="betaBuild && !firstPlay" class="beta-build">Biotron offline beta · {{ buildId }}</small>
+  <div
+      v-if="offlineMessage && !firstPlay"
+      class="offline-status mx-auto mt-2 px-3 py-2"
+      :class="offlineStatusClass"
+      role="status"
+      aria-live="polite"
+  >
+    <span>{{ offlineMessage }}</span>
+    <span v-if="offlineStatus.ready && !installed" class="offline-actions">
+      <button
+          type="button"
+          class="offline-action"
+          @click="installApp"
+      >
+        Add desktop shortcut
+      </button>
+    </span>
+    <span v-if="installed" class="offline-installed">Added to desktop</span>
+    <button
+        v-if="offlineStatus.state === 'error'"
+        type="button"
+        class="offline-action offline-action--error"
+        @click="retryOfflineSetup"
+        :disabled="offlineRetrying"
+    >
+      {{ offlineRetrying ? "Retrying…" : "Retry" }}
+    </button>
+    <small v-if="showInstallHelp && offlineStatus.ready && !installed" class="offline-install-help">
+      Chrome: menu ⋮ → Cast, save and share → Install page as app. Edge: menu ⋯ → Apps → Install this site as an app.
+    </small>
+  </div>
   <div class="wrapper">
     <div class="m-2 content ">
-      <router-view></router-view>
+      <CompatibilityGate :route="$route">
+        <router-view v-slot="{ Component }">
+          <KeepAlive include="DeviceFirstPlay">
+            <component :is="Component" />
+          </KeepAlive>
+        </router-view>
+      </CompatibilityGate>
 
     </div>
-    <footer class="bottom-panel">
+    <footer v-if="!firstPlay" class="bottom-panel">
       <SocialLinks/>
     </footer>
   </div>
@@ -35,36 +75,123 @@
 
 <script>
 import SocialLinks from "@/components/SocialLinks.vue";
+import CompatibilityGate from "@compatibility-gate";
+import {
+  getOfflineStatus,
+  OFFLINE_STATUS_EVENT,
+  prepareOfflineAccess
+} from "@pwa-entry";
+import {
+  clearInstallPrompt,
+  getInstallPrompt,
+  INSTALL_PROMPT_AVAILABLE_EVENT,
+  takeInstallPrompt
+} from "@/pwaInstallPrompt.mjs";
+
+const runningStandalone = () => window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true
 
 
 export default {
   name: 'App',
-  components: {SocialLinks},
+  components: {CompatibilityGate, SocialLinks},
   data() {
     return {
-      url: String,
-      forceRerender: 0
+      offlineStatus: getOfflineStatus(),
+      online: navigator.onLine,
+      installPrompt: getInstallPrompt(),
+      installed: runningStandalone(),
+      showInstallHelp: false,
+      offlineRetrying: false,
+      betaBuild: process.env.VUE_APP_BIOTRON_PWA_BETA === 'true',
+      buildId: process.env.VUE_APP_BUILD_ID || 'local-build'
     }
   },
-  async mounted() {
-    console.log("Hello! You`re curious, aren`t you?")
-
-    if (navigator.requestMIDIAccess) {
-      try {
-        await navigator.requestMIDIAccess();
-        console.log("MIDI is supported!");
-      } catch (error) {
-        console.error("Could not access MIDI devices:", error);
-        window.alert("You have denied access to MIDI devices.");
+  computed: {
+    firstPlay() {
+      return this.betaBuild && this.$route.meta.firstPlay === true
+    },
+    offlineMessage() {
+      if (this.offlineStatus.ready && !this.online) {
+        return "Offline mode — Settings are working without internet. Firmware updates still need internet."
       }
-    } else {
-      console.error("MIDI is not supported. Sending notification...");
-      window.alert("Only works on Chrome on desktop computer.");
+      if (this.offlineStatus.ready) {
+        return "Offline mode is ready — this browser can reopen Settings without internet."
+      }
+      if (this.offlineStatus.state === "installing") {
+        return "Preparing offline access… Keep this window open until it is ready."
+      }
+      if (this.offlineStatus.state === "error") {
+        const messages = {
+          SW_FIRST_INSTALL_OFFLINE: "Connect once to install the offline copy, then press Retry.",
+          SW_NO_CONTROLLER: "Close every Settings window, reopen this page, then press Retry."
+        }
+        return messages[this.offlineStatus.code] || "Offline setup did not finish. Check the connection, then press Retry."
+      }
+      if (this.offlineStatus.state === "unsupported") {
+        return "This browser cannot install Settings for offline use."
+      }
+      return ""
+    },
+    offlineStatusClass() {
+      if (this.offlineStatus.ready) return "offline-status--ready"
+      if (this.offlineStatus.state === "error" || this.offlineStatus.state === "unsupported") {
+        return "offline-status--error"
+      }
+      return "offline-status--preparing"
     }
-
+  },
+  mounted() {
+    console.log("Hello! You`re curious, aren`t you?")
+    window.addEventListener(OFFLINE_STATUS_EVENT, this.handleOfflineStatus)
+    window.addEventListener("online", this.handleConnectionChange)
+    window.addEventListener("offline", this.handleConnectionChange)
+    window.addEventListener(INSTALL_PROMPT_AVAILABLE_EVENT, this.handleInstallPrompt)
+    window.addEventListener("appinstalled", this.handleInstalled)
+  },
+  beforeUnmount() {
+    window.removeEventListener(OFFLINE_STATUS_EVENT, this.handleOfflineStatus)
+    window.removeEventListener("online", this.handleConnectionChange)
+    window.removeEventListener("offline", this.handleConnectionChange)
+    window.removeEventListener(INSTALL_PROMPT_AVAILABLE_EVENT, this.handleInstallPrompt)
+    window.removeEventListener("appinstalled", this.handleInstalled)
   },
   methods: {
-    update() { this.forceRerender++ }
+    handleOfflineStatus(event) {
+      this.offlineStatus = event.detail
+    },
+    handleConnectionChange() {
+      this.online = navigator.onLine
+    },
+    handleInstallPrompt() {
+      this.installPrompt = getInstallPrompt()
+      this.showInstallHelp = false
+    },
+    handleInstalled() {
+      clearInstallPrompt()
+      this.installPrompt = null
+      this.installed = true
+      this.showInstallHelp = false
+    },
+    async installApp() {
+      const prompt = takeInstallPrompt()
+      if (!prompt) {
+        this.showInstallHelp = !this.showInstallHelp
+        return
+      }
+      this.installPrompt = null
+      await prompt.prompt()
+      const choice = await prompt.userChoice
+      if (choice?.outcome !== 'accepted') this.showInstallHelp = true
+    },
+    async retryOfflineSetup() {
+      this.offlineRetrying = true
+      try {
+        this.offlineStatus = await prepareOfflineAccess()
+      } finally {
+        this.offlineRetrying = false
+      }
+    }
   }
 }
 </script>
@@ -78,6 +205,130 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin-top: 1%;
+}
+
+.offline-status {
+  width: min(720px, calc(100% - 2rem));
+  border: 1px solid;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.beta-build {
+  display: block;
+  margin-top: 0.25rem;
+  color: #6c757d;
+}
+
+.device-header {
+  display: flex;
+  width: min(760px, calc(100% - 1rem));
+  margin: .5rem auto 0;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+}
+
+.device-header__label {
+  flex: 0 0 auto;
+  color: #6b6761;
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.device-header__scroll {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.device-header__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.device-header__list {
+  flex-wrap: nowrap;
+  width: max-content;
+}
+
+.device-header__list .nav-link {
+  min-height: 44px;
+  align-content: center;
+  white-space: nowrap;
+}
+
+.offline-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.75rem;
+}
+
+.offline-action {
+  min-height: 36px;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid currentColor;
+  border-radius: 0.35rem;
+  color: #0f5132;
+  background: #fff;
+  font: inherit;
+  font-weight: 600;
+}
+
+.offline-action--error {
+  margin-left: 0.75rem;
+  color: #842029;
+}
+
+.offline-installed {
+  display: inline-block;
+  margin-left: 0.75rem;
+  font-weight: 600;
+}
+
+.offline-install-help {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .device-header {
+    display: block;
+  }
+  .device-header__label {
+    display: block;
+    margin-bottom: .15rem;
+    text-align: left;
+  }
+  .device-header__scroll {
+    margin-right: -.5rem;
+  }
+  .offline-actions {
+    display: flex;
+    justify-content: center;
+    margin: 0.5rem 0 0;
+  }
+}
+
+.offline-status--ready {
+  color: #0f5132;
+  background: #d1e7dd;
+  border-color: #badbcc;
+}
+
+.offline-status--preparing {
+  color: #664d03;
+  background: #fff3cd;
+  border-color: #ffecb5;
+}
+
+.offline-status--error {
+  color: #842029;
+  background: #f8d7da;
+  border-color: #f5c2c7;
 }
 
 .switch {

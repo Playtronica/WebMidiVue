@@ -1,3 +1,5 @@
+import {delay} from "@/assets/js/timing.mjs";
+
 export function div(val, by){
     return (val - val % by) / by;
 }
@@ -23,7 +25,7 @@ export class SysExCommand {
                     name = null,
                     number_command = 0,
                     min_value = 0,
-                    max_value = 126,
+                    max_value = 127,
                     step = 1,
                     sendable = true,
                     custom_fold = null,
@@ -41,7 +43,9 @@ export class SysExCommand {
         this.sendable = sendable
 
         if (custom_fold === null) {
-            this.fold_function = (arr, val) => {arr.push(val % 127)}
+            this.fold_function = (arr, val) => {
+                arr.push(Math.max(0, Math.min(127, Math.round(Number(val) || 0))))
+            }
         }
         else {
             this.fold_function = custom_fold
@@ -98,19 +102,9 @@ export class SysExCommand {
 
 }
 
-export function bootDevice(device) {
-    console.log(device)
+export async function bootDevice(device) {
     if (!device) return;
     device.send([240, 11, 127, 247])
-    sleep(100)
+    await delay(100)
     device.send([240, 11, 20, 13, 127, 247])
-}
-
-
-export function sleep(milliseconds) {
-    const date = Date.now();
-    let currentDate = null;
-    do {
-        currentDate = Date.now();
-    } while (currentDate - date < milliseconds);
 }

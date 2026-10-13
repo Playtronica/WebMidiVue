@@ -9,14 +9,19 @@
         rel="noopener noreferrer"
         class="social-link"
     >
-      <i :class="network.iconClass"></i>
+      <img :src="network.icon" alt="" class="social-link__icon" aria-hidden="true">
       <span class="sr-only">{{ network.name }}</span>
     </a>
   </div>
 </template>
 
 <script>
-import '@fortawesome/fontawesome-free/css/all.min.css';
+import facebook from '@fortawesome/fontawesome-free/svgs/brands/facebook-f.svg'
+import reddit from '@fortawesome/fontawesome-free/svgs/brands/reddit.svg'
+import instagram from '@fortawesome/fontawesome-free/svgs/brands/instagram.svg'
+import youtube from '@fortawesome/fontawesome-free/svgs/brands/youtube.svg'
+import xTwitter from '@fortawesome/fontawesome-free/svgs/brands/square-x-twitter.svg'
+import tiktok from '@fortawesome/fontawesome-free/svgs/brands/tiktok.svg'
 
 export default {
   name: "SocialLinks",
@@ -26,33 +31,33 @@ export default {
         {
           name: "Facebook",
           url: "https://www.facebook.com/groups/492176784601023",
-          iconClass: "fab fa-facebook-f",
+          icon: facebook,
         },
         {
           name: "Reddit",
           url: "https://www.reddit.com/r/playtronica/",
-          iconClass: "fab fa-reddit",
+          icon: reddit,
         },
         {
           name: "Instagram",
           url: "https://www.instagram.com/playtronica/",
-          iconClass: "fab fa-instagram",
+          icon: instagram,
         },
         {
           name: "YouTube",
           url: "https://www.youtube.com/channel/UCQbPfbsfg1Qn0rYUodylyZg",
-          iconClass: "fab fa-youtube",
+          icon: youtube,
         },
         {
           name: "X",
           url: "https://x.com/playtronica",
-          iconClass: "fab fa-square-x-twitter",
+          icon: xTwitter,
         },
 
         {
           name: "TikTok",
           url: "https://www.tiktok.com/@playtronica",
-          iconClass: "fab fa-tiktok",
+          icon: tiktok,
         },
       ],
     };
@@ -71,12 +76,18 @@ export default {
 .social-link {
   text-decoration: none;
   color: inherit;
-  font-size: 24px; /* Adjust icon size */
-  transition: color 0.3s ease;
 }
 
-.social-link:hover {
-  color: #007bff; /* Example color change on hover */
+.social-link__icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  transition: opacity 0.2s ease;
+}
+
+.social-link:hover .social-link__icon,
+.social-link:focus-visible .social-link__icon {
+  opacity: 0.65;
 }
 
 .sr-only {

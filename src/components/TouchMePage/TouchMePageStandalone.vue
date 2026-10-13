@@ -312,8 +312,9 @@ import {
   TouchMeCommandsData,
   TouchMeDb
 } from "@/components/TouchMePage/TouchMeIDB";
-import {sleep} from "@/assets/js/SysExCommand";
+import {withMidiWriteSession} from "@/assets/js/timing.mjs";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
+import {createListenerScope} from "@/assets/js/ListenerScope.mjs";
 
 
 export default  {
@@ -338,28 +339,27 @@ export default  {
     }
   },
   methods: {
-    change_data_loader() {
-      if (!this.device) return
-      sleep(100)
+    async change_data_loader() {
+      if (!this.device || this.is_loading) return
+      const device = this.device
       this.is_loading = true;
       this.forceRerender++;
-
-      setTimeout(function () {
+      try {
+        await withMidiWriteSession(device, () => this.device, async output => {
+          await output.wait(100)
+          output.send([240, 11, 20, 13, 0, 247])
+          await this.sendData(output)
+          output.send([240, 11, 20, 13, 1, 247])
+        })
+      } finally {
         this.is_loading = false;
         this.forceRerender++;
-      }.bind(this),2000)
-
-      setTimeout(function () {
-        this.device.send([240, 11, 20, 13, 0, 247])
-        this.sendData()
-        this.device.send([240, 11, 20, 13, 1, 247])
-
-      }.bind(this),10)
+      }
     },
-    async sendData() {
+    async sendData(output) {
       for (let comm in this.commands_data) {
-        this.commands_data[comm].sendToMidi(this.device)
-        sleep(100);
+        this.commands_data[comm].sendToMidi(output)
+        await output.wait(100);
       }
       await this.saveData()
     },
@@ -490,22 +490,27 @@ export default  {
     this.forceRerender++;
   },
   async mounted() {
-    document.addEventListener( 'PatchChanged', async () => {
+    this.listenerScope = createListenerScope()
+    this.listenerScope.on(document, 'PatchChanged', async () => {
       await this.loadData();
       this.forceRerender++;
     })
-    document.addEventListener("PatchSave",  async (ev) => {
+    this.listenerScope.on(document, "PatchSave", async (ev) => {
       this.db.savePatch(localStorage.getItem(this.id), ev.detail)
       this.patches = await this.db.getPatch()
       this.patchRerender++;
     })
-    document.addEventListener( 'PatchDelete', async () => {
+    this.listenerScope.on(document, 'PatchDelete', async () => {
       this.db.deletePatch(parseInt(localStorage.getItem(this.id)))
       localStorage.setItem(this.id, "1")
       this.patches = await this.db.getPatch()
       await this.loadData();
       this.forceRerender++;
     })
+  },
+  beforeUnmount() {
+    this.device = null
+    this.listenerScope?.clear()
   }
 }
 </script>

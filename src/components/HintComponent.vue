@@ -1,34 +1,34 @@
 <script>
-import {Tooltip} from "bootstrap";
-import '@fortawesome/fontawesome-free/css/all.min.css';
+import infoIcon from '@fortawesome/fontawesome-free/svgs/solid/circle-info.svg'
 
 export default {
+  data() {
+    return {infoIcon}
+  },
   props: {
     text: {
       type: String,
       default: "IS NOT IMPLEMENTED",
     }
-  },
-  mounted() {
-    new Tooltip(document.body, {
-      selector: "[data-bs-toggle='tooltip']",
-    })
   }
 }
 </script>
 
 <template>
-  <div
-      class="fas fa-info-circle"
-      style="color: #0d6efd"
-      data-bs-toggle="tooltip"
-      data-bs-placement="right"
-      data-bs-html='true'
+  <img
+      :src="infoIcon"
+      alt=""
+      class="hint-icon"
       :title="text"
-      disabled=""
-  ></div>
+      role="img"
+      :aria-label="text"
+  >
 </template>
 
 <style scoped>
-
+.hint-icon {
+  width: 1rem;
+  height: 1rem;
+  filter: invert(35%) sepia(95%) saturate(3300%) hue-rotate(210deg) brightness(96%);
+}
 </style>

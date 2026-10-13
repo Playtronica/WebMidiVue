@@ -63,6 +63,8 @@
 </template>
 
 <script>
+  import {createListenerScope} from "@/assets/js/ListenerScope.mjs";
+
   export default {
     props: {
       patches: {
@@ -126,6 +128,7 @@
       }
     },
     mounted() {
+      this.listenerScope = createListenerScope()
       this.id = parseInt(localStorage.getItem(this.page_id))
 
       if (!this.patches) return;
@@ -146,14 +149,14 @@
       this.active_button_enabled = current_item.editable
       this.button_state = current_item.saved ? "Delete" : "Save"
 
-      document.addEventListener("shown.bs.modal", () => {
+      this.listenerScope.on(document, "shown.bs.modal", () => {
         if (this.button_state === "Save") {
           document.getElementById("patchName").focus()
         }
       })
-
-
-
+    },
+    beforeUnmount() {
+      this.listenerScope?.clear()
     }
   }
 </script>

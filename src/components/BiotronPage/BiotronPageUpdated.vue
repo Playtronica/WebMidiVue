@@ -1,18 +1,70 @@
 <template>
-  <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
+  <LoaderComponent v-if="this.is_loading && !betaBuild" :key="forceRerender"/>
 
-    <h1 class="text-center">Biotron Settings ⚙️</h1>
-    <DeviceSelector regex-name="Biotron" @device_changed="(x) => {this.device = x} " text_label="🔌 Select Device" check-versions-flag class="m-2"/>
+    <DeviceTaskNav
+        v-if="betaBuild"
+        device-name="Biotron"
+        active-task="settings"
+        play-route="/biotron/play"
+        settings-route="/biotron"
+    />
+    <h1 class="text-center">{{ betaBuild ? 'Settings' : 'Biotron Settings ⚙️' }}</h1>
+    <div v-if="betaBuild && soundSession.running" class="alert alert-success mx-2 py-2" role="status">
+      🔊 Sound stays on while you adjust settings. Touch the plant to hear each change.
+      <router-link to="/biotron/play" class="alert-link ms-1">Sound &amp; volume</router-link>
+    </div>
+    <DeviceSelector
+        ref="deviceSelector"
+        regex-name="Biotron"
+        @device_changed="handleDeviceChanged"
+        @calibration_state="handleCalibrationState"
+        @firmware_version="handleFirmwareVersion"
+        text_label="🔌 Select Device"
+        check-versions-flag
+        allow-daw-handoff
+        class="m-2"
+    />
+    <div v-if="betaBuild" class="calibration-control mx-2 mb-3">
+      <button
+          type="button"
+          class="btn btn-outline-primary"
+          @click="startCalibration"
+          :disabled="!device || calibrationBusy"
+      >{{ calibrationBusy ? 'Calibrating…' : 'Calibrate plant again' }}</button>
+      <span
+          v-if="calibrationMessage"
+          class="calibration-control__status"
+          :class="{'calibration-control__status--active': calibrationBusy}"
+          role="status"
+          aria-live="polite"
+      >{{ calibrationMessage }}</span>
+    </div>
+    <div
+        v-if="betaBuild && settingsMessage"
+        class="mx-2 mb-3 alert py-2"
+        :class="settingsState === 'error' ? 'alert-warning' : 'alert-light'"
+        role="status"
+        aria-live="polite"
+    >{{ settingsMessage }}</div>
     <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id"  text_label="📂 Preset" class="m-2"/>
     <div class="row gx-1 mb-5">
       <div class="col">
-        <button @mouseup="change_data_loader" :disabled="!this.device" class="btn btn-primary w-100 h-100">❇️ Send to Device</button>
+        <button @click="change_data_loader" :disabled="!this.device || this.is_loading || (betaBuild && !settingsReady)" class="btn btn-primary w-100 h-100">
+          {{ betaBuild ? (is_loading ? 'Checking…' : 'Check saved settings') : '❇️ Send to Device' }}
+        </button>
       </div>
       <div class="col">
         <button @click="this.createPreset" class="btn btn-primary w-100 h-100">💾 Save Preset</button>
       </div>
       <div class="col">
-        <UpdateFirmwareComponent class="w-100 h-100" text="🔄 Update Firmware" repo="Playtronica/biotron-firmware" :device="this.device"/>
+        <UpdateFirmwareComponent
+            class="w-100 h-100"
+            text="🔄 Update Firmware"
+            repo="Playtronica/biotron-firmware"
+            :device="this.device"
+            :current-version="firmwareVersion"
+            :version-aware="betaBuild"
+        />
       </div>
 
       <div class="col">
@@ -330,7 +382,7 @@
 
 <script>
 
-import { sleep } from "@/assets/js/SysExCommand"
+import {withMidiWriteSession} from "@/assets/js/timing.mjs"
 
 import { saveAs } from '@progress/kendo-file-saver';
 import {BiotronCommandsData, BiotronDb} from "@/components/BiotronPage/BiotronIDB"
@@ -341,15 +393,22 @@ import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
 import SliderRangeCommand from "@/components/MidiComponents/SliderRangeCommand.vue";
 import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
 import PatchSelector from "@/components/MidiComponents/PatchSelector.vue";
-import DeviceSelector from "@/components/MidiComponents/DeviceSelector.vue";
+import DeviceSelector from "@biotron-device-selector";
 import UpdateFirmwareComponent from "@/components/MidiComponents/UpdateFirmwareComponent.vue";
 import LoaderComponent from "@/components/MidiComponents/LoaderComponent.vue";
 import BootstrapCollapse from "@/components/BootstrapCollapse.vue";
-
-
+import DeviceTaskNav from "@/components/DeviceTaskNav.vue";
+import {createListenerScope} from "@/assets/js/ListenerScope.mjs";
+import {soundSessionState, stopPersistentSound} from "@/audio/sessionState.mjs";
+import {
+  applySettingsVector,
+  settingsVectorFromCommands,
+  settingsVectorsEqual
+} from "@/biotron/settingsReadback.mjs";
 
 export default  {
   components: {
+    DeviceTaskNav,
     BootstrapCollapse,
     LoaderComponent,
     UpdateFirmwareComponent,
@@ -372,62 +431,215 @@ export default  {
     },
   },
   computed: {
-
+    soundSession() {
+      return soundSessionState
+    },
+    calibrationBusy() {
+      return ["starting", "waiting", "measuring"].includes(this.calibrationState)
+    },
+    settingsReady() {
+      return ["loaded", "changed", "saved", "error"].includes(this.settingsState)
+    }
   },
   methods: {
+    async handleDeviceChanged(device) {
+      this.clearLiveVerification()
+      this.settingsLoadId++
+      this.device = device
+      this.firmwareVersion = ""
+      if (!device && this.calibrationBusy) {
+        this.calibrationState = "error"
+        this.calibrationMessage = "Biotron disconnected — reconnect it and try again."
+      }
+      if (!this.betaBuild) return
+      if (!device) {
+        this.settingsState = "idle"
+        this.settingsMessage = ""
+        return
+      }
+      if (!this.page_is_inited) return
+      await this.loadPersistedSettings(device)
+    },
+    async handleFirmwareVersion(event) {
+      if (!this.device || event?.outputId !== this.device.id) return
+      this.firmwareVersion = event.version
+      if (this.betaBuild && this.settingsState === "error") {
+        await this.loadPersistedSettings(this.device)
+      }
+    },
+    async readPersistedSettingsWithRetry(device, attempts = 3) {
+      let lastError
+      for (let attempt = 0; attempt < attempts; attempt++) {
+        if (this.device !== device) throw new Error("Biotron changed.")
+        try {
+          return await this.requestPersistedSettingsWithin(3500)
+        } catch (error) {
+          lastError = error
+          if (error?.name === "AbortError") throw error
+          if (attempt + 1 < attempts) await new Promise(resolve => setTimeout(resolve, 450))
+        }
+      }
+      throw lastError
+    },
+    async requestPersistedSettingsWithin(timeoutMs) {
+      let timeout
+      try {
+        return await Promise.race([
+          this.$refs.deviceSelector.requestPersistedSettings(),
+          new Promise((resolve, reject) => {
+            timeout = setTimeout(() => reject(new Error("Saved settings check timed out.")), timeoutMs)
+          })
+        ])
+      } finally {
+        clearTimeout(timeout)
+      }
+    },
+    async loadPersistedSettings(device) {
+      const loadId = ++this.settingsLoadId
+      this.settingsState = "loading"
+      this.settingsMessage = "Reading saved settings from Biotron…"
+      try {
+        const snapshot = await this.readPersistedSettingsWithRetry(device)
+        if (this.device !== device || loadId !== this.settingsLoadId) return
+        applySettingsVector(this.commands_data, snapshot.values)
+        this.forceRerender++
+        this.settingsState = "loaded"
+        this.settingsMessage = "Settings loaded from Biotron."
+      } catch (error) {
+        if (this.device !== device || loadId !== this.settingsLoadId) return
+        this.settingsState = "error"
+        this.settingsMessage = this.firmwareVersion
+            ? `Firmware ${this.firmwareVersion} is connected, but saved settings did not answer. Live changes still work; reconnect to retry verification.`
+            : "Biotron is connected, but saved settings could not be read. Live changes still work; reconnect to retry verification."
+      }
+    },
+    clearLiveVerification() {
+      if (this.liveVerifyTimer !== null) clearTimeout(this.liveVerifyTimer)
+      this.liveVerifyTimer = null
+      this.liveVerifyId++
+    },
+    scheduleLiveVerification(device) {
+      this.clearLiveVerification()
+      const verifyId = this.liveVerifyId
+      this.liveVerifyTimer = setTimeout(async () => {
+        this.liveVerifyTimer = null
+        if (this.device !== device || verifyId !== this.liveVerifyId) return
+        try {
+          const expected = settingsVectorFromCommands(this.commands_data)
+          const snapshot = await this.readPersistedSettingsWithRetry(device, 2)
+          if (this.device !== device || verifyId !== this.liveVerifyId) return
+          if (snapshot.dirty || !settingsVectorsEqual(snapshot.values, expected)) {
+            throw new Error("Saved settings did not match the controls.")
+          }
+          this.settingsState = "saved"
+          this.settingsMessage = "Applied live and saved on Biotron."
+        } catch (error) {
+          if (this.device !== device || verifyId !== this.liveVerifyId) return
+          this.settingsState = "error"
+          this.settingsMessage = "Changed live. Saved copy could not be confirmed — try Check saved settings."
+        }
+      }, 1500)
+    },
+    startCalibration() {
+      if (!this.device || this.calibrationBusy) return
+      this.settingsLoadId++
+      if (this.settingsState === "loading") {
+        this.settingsState = "idle"
+        this.settingsMessage = ""
+      }
+      this.$refs.deviceSelector?.requestRecalibration()
+    },
+    handleCalibrationState(event) {
+      const messages = {
+        starting: "Starting…",
+        waiting: "Step away and keep the plant still.",
+        measuring: "Measuring… keep the plant and cables still.",
+        ready: "Calibration complete — touch the plant.",
+        unsupported: "This firmware cannot start calibration here. Reconnect USB to calibrate.",
+        timeout: "No stable signal yet. Check both plant clips and try again.",
+        error: "Calibration could not start. Reconnect Biotron and try again."
+      }
+      this.calibrationState = event?.state || "error"
+      this.calibrationMessage = messages[this.calibrationState] || messages.error
+    },
     async change_data_loader() {
-      if (!this.device) return
-      sleep(100)
-       this.is_loading = true;
-       this.forceRerender++;
-
-      setTimeout(function () {
+      if (!this.device || this.is_loading) return
+      const device = this.device
+      const waitForPendingSave = this.betaBuild && this.settingsState === "changed"
+      this.is_loading = true;
+      this.settingsState = this.betaBuild ? "checking" : "saving"
+      this.settingsMessage = this.betaBuild ? "Checking the saved copy…" : ""
+      this.forceRerender++;
+      try {
+        if (this.betaBuild) {
+          this.clearLiveVerification()
+          this.settingsLoadId++
+          if (waitForPendingSave) {
+            await new Promise(resolve => setTimeout(resolve, 1100))
+          }
+          if (this.device !== device) throw new Error("Biotron disconnected during check.")
+          const expected = settingsVectorFromCommands(this.commands_data)
+          const snapshot = await this.readPersistedSettingsWithRetry(device, 1)
+          if (snapshot.dirty || !settingsVectorsEqual(snapshot.values, expected)) {
+            throw new Error("Saved settings did not match the form.")
+          }
+          this.settingsState = "saved"
+          this.settingsMessage = "Live changes are saved on Biotron."
+          return
+        }
+        await withMidiWriteSession(device, () => this.device, async output => {
+          await output.wait(100)
+          await this.sendData(output)
+          if (!this.betaBuild) {
+            await output.wait(100)
+            await this.sendDataDeprecated(output)
+          }
+        })
+      } catch (error) {
+        if (this.betaBuild) {
+          this.settingsState = "error"
+          this.settingsMessage = "Live changes still work. The saved copy could not be confirmed — try again."
+        }
+      } finally {
         this.is_loading = false;
         this.forceRerender++;
-      }.bind(this),3000)
-
-      setTimeout(function () {
-        this.sendData()
-        sleep(100)
-        this.sendDataDeprecated()
-      }.bind(this),10)
-
+      }
     },
-    async sendDataDeprecated() {
-      if (this.device) {
-        this.device.send([240, 11, 16, 127, 247])
+    async sendDataDeprecated(output) {
+      if (output) {
+        output.send([240, 11, 16, 127, 247])
         let extraComp = []
 
         extraComp.push("plantBpm");
         for (let comm in this.commands_data) {
           if (!extraComp.includes(comm)) {
-            this.commands_data[comm].sendToMidi(this.device, [11])
-            sleep(100);
+            this.commands_data[comm].sendToMidi(output, [11])
+            await output.wait(100);
           }
         }
-        this.device.send([240, 11, 126, 247]);
-        sleep(100);
-        this.commands_data.plantBpm.sendToMidi(this.device, [11])
+        output.send([240, 11, 126, 247]);
+        await output.wait(100);
+        this.commands_data.plantBpm.sendToMidi(output, [11])
       }
     },
 
-    async sendData() {
-      if (this.device) {
-        this.device.send([240, 11, 20, 13, 126, 247]);
-        sleep(100);
+    async sendData(output) {
+      if (output) {
+        output.send([240, 11, 20, 13, 126, 247]);
+        await output.wait(100);
         let extraComp = []
 
         extraComp.push("plantBpm");
         for (let comm in this.commands_data) {
           if (!extraComp.includes(comm)) {
-            this.commands_data[comm].sendToMidi(this.device)
-            sleep(100);
+            this.commands_data[comm].sendToMidi(output)
+            await output.wait(100);
           }
         }
-        sleep(100);
-        this.device.send([240, 11, 20, 13, 126, 247]);
-        sleep(100);
-        this.commands_data.plantBpm.sendToMidi(this.device)
+        await output.wait(100);
+        output.send([240, 11, 20, 13, 126, 247]);
+        await output.wait(100);
+        this.commands_data.plantBpm.sendToMidi(output)
       }
     },
 
@@ -483,16 +695,31 @@ export default  {
       this.saveData();
     },
     async sys_ex_changed(object) {
+      // A user gesture wins over a late startup read; never overwrite the
+      // control they just changed with an older snapshot.
+      this.settingsLoadId++
       await this.patchChanged();
       if (this.device) {
         await object.sendToMidi(this.device)
+      }
+      if (this.betaBuild) {
+        this.settingsState = "changed"
+        this.settingsMessage = this.device
+            ? "Applied live — saving and checking…"
+            : "Connect Biotron to apply this setting."
+        if (this.device) this.scheduleLiveVerification(this.device)
       }
       this.forceRerender++;
       this.patchRerender++;
     },
   },
+  async beforeRouteLeave(to) {
+    if (!this.betaBuild || to.path === "/biotron/play" || !soundSessionState.running) return true
+    return await stopPersistentSound()
+  },
   data() {
     return {
+      betaBuild: process.env.VUE_APP_BIOTRON_PWA_BETA === 'true',
       page_is_inited: false,
       scales: ["Major", "Minor", "Chrom", "Dorian", "Mixolydian",
         "Lydian", "Wholetone", "Minblues", "Majblues", "Minpen",
@@ -514,6 +741,14 @@ export default  {
       patches: [],
       patch_id: 0,
       is_loading: false,
+      calibrationState: "idle",
+      calibrationMessage: "",
+      settingsState: "idle",
+      settingsMessage: "",
+      settingsLoadId: 0,
+      liveVerifyTimer: null,
+      liveVerifyId: 0,
+      firmwareVersion: "",
       commands_data: Object.fromEntries(BiotronCommandsData),
     }
   },
@@ -531,34 +766,76 @@ export default  {
     await this.loadData()
     this.forceRerender++;
     this.page_is_inited = true
+    if (this.betaBuild && this.device) await this.loadPersistedSettings(this.device)
 
   },
   mounted() {
-    document.addEventListener( 'keyup', event => {
+    this.listenerScope = createListenerScope()
+    this.listenerScope.on(document, 'keyup', event => {
       if (event.code === 'Enter' && !this.is_loading) this.change_data_loader();
     })
-    document.addEventListener( 'PatchChanged', async () => {
+    this.listenerScope.on(document, 'PatchChanged', async () => {
       await this.loadData();
       this.forceRerender++;
     })
-    document.addEventListener("PatchSave",  async (ev) => {
+    this.listenerScope.on(document, "PatchSave", async (ev) => {
       this.db.savePatch(localStorage.getItem(this.id), ev.detail)
       this.patches = await this.db.getPatch()
       this.patchRerender++;
     })
-    document.addEventListener( 'PatchDelete', async () => {
+    this.listenerScope.on(document, 'PatchDelete', async () => {
       this.db.deletePatch(parseInt(localStorage.getItem(this.id)))
       localStorage.setItem(this.id, "1")
       this.patches = await this.db.getPatch()
       await this.loadData();
       this.forceRerender++;
     })
-
+  },
+  beforeUnmount() {
+    this.clearLiveVerification()
+    this.settingsLoadId++
+    this.device = null
+    this.listenerScope?.clear()
   }
 
 }
 </script>
 
 <style scoped>
+
+.calibration-control {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  min-height: 44px;
+}
+
+.calibration-control__status {
+  color: #52606d;
+  line-height: 1.35;
+}
+
+.calibration-control__status--active::before {
+  content: "";
+  display: inline-block;
+  width: .65rem;
+  height: .65rem;
+  margin-right: .45rem;
+  border-radius: 50%;
+  background: #6a5acd;
+  animation: calibration-pulse .8s ease-in-out infinite alternate;
+}
+
+@keyframes calibration-pulse {
+  to { opacity: .35; transform: scale(.72); }
+}
+
+@media (max-width: 575.98px) {
+  .calibration-control { align-items: stretch; flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calibration-control__status--active::before { animation: none; }
+}
 
 </style>
