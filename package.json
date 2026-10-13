@@ -5,7 +5,12 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "test:midi-lifecycle": "node scripts/test-midi-lifecycle.js",
+    "test:pwa": "node scripts/test-pwa-build.js",
+    "test:firmware": "node scripts/test-firmware-update.js",
+    "test:pwa:browser": "node scripts/test-pwa-browser.js",
+    "test:biotron": "npm run lint && npm run build && npm run test:midi-lifecycle && npm run test:pwa && npm run test:firmware && npm run test:pwa:browser"
   },
   "dependencies": {
     "@floating-ui/vue": "^1.1.6",
@@ -31,11 +36,13 @@
     "@babel/eslint-parser": "^7.12.16",
     "@vue/cli-plugin-babel": "~5.0.0",
     "@vue/cli-plugin-eslint": "~5.0.0",
+    "@vue/cli-plugin-pwa": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
     "css-loader": "^7.1.1",
     "eslint": "^7.32.0",
     "eslint-plugin-vue": "^8.0.3",
     "expose-loader": "^5.0.0",
+    "playwright-core": "^1.62.1",
     "sass": "^1.77.0",
     "sass-loader": "^16.0.0",
     "ts-loader": "^9.5.1"

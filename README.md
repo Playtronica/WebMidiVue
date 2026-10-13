@@ -15,6 +15,23 @@ npm run serve
 npm run build
 ```
 
+The production build is an installable PWA. After one successful online visit,
+the settings UI and hash routes are cached for offline use. Firmware updates are
+intentionally online-only because the latest `.uf2` file is fetched from GitHub.
+
+Verify the generated service worker, revisioned app shell and manifest:
+
+```
+npm run build
+npm run test:pwa
+npm run test:firmware
+npm run test:pwa:browser
+```
+
+The browser lifecycle test uses an installed Chrome/Chromium (`CHROME_PATH` can
+override discovery) and covers service-worker install/control, offline direct
+navigation, the offline firmware guard, and a non-disruptive waiting update.
+
 ### Lints and fixes files
 ```
 npm run lint
