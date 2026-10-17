@@ -48,35 +48,6 @@
             />
           </template>
         </GroupOfCommands>
-
-        <GroupOfCommands name-of-group="Command Button Remap">
-          <template v-slot:objects>
-            <div class="row">
-              <div class="col">
-                <SelectCommand
-                    command-label="Extra Pad"
-                    :key="this.forceRerender"
-                    :list-of-variants="this.command_buttons"
-                    :command-object="commands_data.cmd_remap_extra"
-                    @input-changed="this.sys_ex_changed"
-                    description="Command button triggered by the Extra pad (temporary, until every command pad works)"
-                    class="m-3"
-                />
-              </div>
-              <div class="col">
-                <SelectCommand
-                    command-label="Loop Pad"
-                    :key="this.forceRerender"
-                    :list-of-variants="this.command_buttons"
-                    :command-object="commands_data.cmd_remap_loop"
-                    @input-changed="this.sys_ex_changed"
-                    description="Command button triggered by the Loop pad (temporary, until every command pad works)"
-                    class="m-3"
-                />
-              </div>
-            </div>
-          </template>
-        </GroupOfCommands>
       </template>
     </BootstrapCollapse>
 
@@ -298,6 +269,60 @@
         </GroupOfCommands>
       </template>
     </BootstrapCollapse>
+
+    <BootstrapCollapse name_of_collapse="⚙️ Extra">
+      <template v-slot:objects>
+        <GroupOfCommands name-of-group="Strum Colour">
+          <template v-slot:objects>
+            <SwitchComponent
+                class="m-2"
+                commandLabel="Custom Strum Colour"
+                :key="this.forceRerender"
+                :command-object="this.commands_data.strum_custom_color"
+                description="LED colour of Strum mode (chord buttons, Mode and Hold LEDs, slider strum ribbon, boot animation). Off — built-in violet; on — the colour below."
+                @input-changed="this.sys_ex_changed"
+            />
+
+            <RgbColorCommand
+                class="m-2"
+                command-label="Strum Colour"
+                :command-object="this.commands_data.strum_color"
+                description="Used only while Custom Strum Colour is on. The chord buttons' dim glow and the slider background are this colour scaled down, so very dark colours may look off there."
+                @input-changed="this.sys_ex_changed"
+            />
+          </template>
+        </GroupOfCommands>
+
+        <GroupOfCommands name-of-group="Command Button Remap">
+          <template v-slot:objects>
+            <div class="row">
+              <div class="col">
+                <SelectCommand
+                    command-label="Extra Pad"
+                    :key="this.forceRerender"
+                    :list-of-variants="this.command_buttons"
+                    :command-object="commands_data.cmd_remap_extra"
+                    @input-changed="this.sys_ex_changed"
+                    description="Command button triggered by the Extra pad (temporary, until every command pad works)"
+                    class="m-3"
+                />
+              </div>
+              <div class="col">
+                <SelectCommand
+                    command-label="Loop Pad"
+                    :key="this.forceRerender"
+                    :list-of-variants="this.command_buttons"
+                    :command-object="commands_data.cmd_remap_loop"
+                    @input-changed="this.sys_ex_changed"
+                    description="Command button triggered by the Loop pad (temporary, until every command pad works)"
+                    class="m-3"
+                />
+              </div>
+            </div>
+          </template>
+        </GroupOfCommands>
+      </template>
+    </BootstrapCollapse>
   </div>
 </template>
 
@@ -320,9 +345,11 @@ import {
 import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
 import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
 import SwitchComponent from "@/components/MidiComponents/Switch.vue";
+import RgbColorCommand from "@/components/MidiComponents/RgbColorCommand.vue";
 
 export default {
   components: {
+    RgbColorCommand,
     SwitchComponent,
     SelectCommand,
     SliderCommand,

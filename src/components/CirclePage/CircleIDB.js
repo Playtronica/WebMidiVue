@@ -182,6 +182,22 @@ export let CircleCommandsData = new Map(Object.entries({
         name: "pitch_sticky",
         number_command: 18,
     }),
+    "strum_custom_color": new SysExCommand({
+        name: "strum_custom_color",
+        number_command: 19,
+    }),
+    "strum_color": new SysExCommand({
+        name: "strum_color",
+        number_command: 20,
+        min_value: 0,
+        max_value: 0xFFFFFF,
+        // Firmware takes 7-bit channels and scales them back with value * 255 / 127
+        custom_fold: (arr, val) => {
+            arr.push(Math.round(((val >> 16) & 0xFF) * 127 / 255));
+            arr.push(Math.round(((val >> 8) & 0xFF) * 127 / 255));
+            arr.push(Math.round((val & 0xFF) * 127 / 255));
+        }
+    }),
     // TODO: temporary — remove once every command pad works on hardware
     "cmd_remap_extra": new SysExCommand({
         name: "cmd_remap_extra",
@@ -288,6 +304,8 @@ const default_preset = {
     "pitch": 8192,
     "pitch_bend_range": 2,
     "pitch_sticky": 0,
+    "strum_custom_color": 0,
+    "strum_color": 0x9600FF,
     "cmd_remap_extra": 0,
     "cmd_remap_loop": 1,
 }
@@ -295,7 +313,7 @@ const default_preset = {
 export class CircleDb extends Db {
     DB_NAME = "CircleDB"
     STORE_NAME = "Circle_Patches"
-    VERSION = 12
+    VERSION = 13
 
     constructor() {
         super(CircleCommandsData)
