@@ -77,6 +77,12 @@ export let ScalesCommandsData = new Map(Object.entries({
         name: "sensor_mute",
         number_command: 10,
     }),
+    "arp_rate": new SysExCommand({
+        name: "arp_rate",
+        number_command: 14,
+        min_value: 0,
+        max_value: 5,
+    }),
 }))
 
 const default_preset = {
@@ -91,13 +97,14 @@ const default_preset = {
     "music_cc_num": 90,
     "arp_plus": 0,
     "sensor_mute": 0,
+    "arp_rate": 3,
 }
 
 
 export class ScalesDb extends Db {
     DB_NAME = "ScaleDB"
     STORE_NAME = "Scale_Patches"
-    VERSION = 15
+    VERSION = 16
 
     constructor() {
         super(ScalesCommandsData)

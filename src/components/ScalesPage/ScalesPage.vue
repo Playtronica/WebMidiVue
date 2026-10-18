@@ -1,7 +1,13 @@
 <template>
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
   <h1 class="text-center">Scales change settings</h1>
-  <DeviceSelector regex-name="Scales" @device_changed="(x) => {this.device = x}" text_label="🔌 Select Device" class="m-2" check-versions-flag/>
+  <DeviceSelector regex-name="Scales" @device_changed="this.deviceChanged" text_label="🔌 Select Device" class="m-2" check-versions-flag/>
+  <div class="form-floating m-2">
+    <select v-model.number="this.target" class="form-control" :disabled="this.chain_length <= 1">
+      <option v-for="n in this.chain_length" :key="n" :value="n - 1">{{ n === 1 ? "Master" : `Slave ${n - 1}` }}</option>
+    </select>
+    <label>🔗 Target Device ({{ this.chain_length }} in chain)</label>
+  </div>
   <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" text_label="📂 Preset" class="m-2"/>
   <div class="row gx-1 mb-5">
     <div class="col">
@@ -51,6 +57,24 @@
                 class="m-3"
             />
 
+          </template>
+        </GroupOfCommands>
+      </template>
+    </BootstrapCollapse>
+
+    <BootstrapCollapse name_of_collapse="Arpeggio">
+      <template v-slot:objects>
+        <GroupOfCommands name-of-group="">
+          <template v-slot:objects>
+            <SelectCommand
+                command-label="Arp Rate"
+                :key="this.forceRerender"
+                :list-of-variants="this.arp_rates"
+                :command-object="commands_data.arp_rate"
+                description="Arpeggio steps per beat of the BPM clock. Slow rates step on the same beats of the 8-beat bar on all synced devices."
+                @input-changed="this.sys_ex_changed"
+                class="m-3"
+            />
           </template>
         </GroupOfCommands>
       </template>
@@ -152,6 +176,7 @@ import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
 import SelectCommand from "@/components/MidiComponents/SelectCommand.vue";
 import ColorPicker from "@/components/MidiComponents/ColorPicker.vue";
 import SwitchComponent from "@/components/MidiComponents/Switch.vue";
+import { chainFlag, MidiChainTracker } from "@/assets/js/MidiChain";
 
 
 
@@ -179,7 +204,9 @@ export default  {
     },
   },
   computed: {
-
+    targetFlag() {
+      return chainFlag(this.target);
+    },
   },
   methods: {
     async change_data_loader() {
@@ -208,7 +235,7 @@ export default  {
         extraComp.push("plantBpm");
         for (let comm in this.commands_data) {
           if (!extraComp.includes(comm)) {
-            this.commands_data[comm].sendToMidi(this.device)
+            this.commands_data[comm].sendToMidi(this.device, this.flagFor(this.commands_data[comm]))
             sleep(100);
           }
         }
@@ -272,17 +299,40 @@ export default  {
       await this.patchChanged();
 
       if (this.device) {
-        await object.sendToMidi(this.device)
+        await object.sendToMidi(this.device, this.flagFor(object))
       }
 
       this.forceRerender++;
       this.patchRerender++;
+    },
+
+    // BPM is always sent to the master, other settings go to the selected target
+    flagFor(object) {
+      return object === this.commands_data.bpm ? chainFlag(0) : this.targetFlag
+    },
+
+    deviceChanged(device) {
+      if (!device || !this.device || device.id !== this.device.id) {
+        this.target = 0;
+      }
+      this.device = device;
+      this.chainTracker.setOutput(device);
+    },
+
+    chainLengthChanged(length) {
+      this.chain_length = length;
+      // Selected slave was disconnected - fall back to the master
+      if (this.target >= length) {
+        this.target = 0;
+      }
     },
   },
   data() {
     return {
       page_is_inited: false,
       device: null,
+      chain_length: 1,
+      target: 0,
       forceRerender: 0,
       patchRerender: 0,
       db: {
@@ -296,9 +346,14 @@ export default  {
         "Lydian", "Wholetone", "Minblues", "Majblues", "Minpen",
         "Majpen", "Diminished"],
       sensitivity_modes: ["250g", "500g", "1000g", "1500g", "2000g"],
+      arp_rates: ["/8", "/4", "/2", "x1", "x2", "x4"],
     }
   },
   async created() {
+    // Kept out of data(): MIDI port objects must not be wrapped in reactive proxies
+    this.chainTracker = new MidiChainTracker((length) => this.chainLengthChanged(length));
+    this.chainTracker.start();
+
     if (!localStorage.getItem(this.id)) {
       localStorage.setItem(this.id, "1")
     }
@@ -335,6 +390,9 @@ export default  {
       this.forceRerender++;
     })
 
+  },
+  beforeUnmount() {
+    this.chainTracker.stop();
   }
 
 }

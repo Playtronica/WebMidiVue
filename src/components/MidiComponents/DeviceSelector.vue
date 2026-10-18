@@ -82,14 +82,24 @@
 
 
       },
+      // Device Info answer, both formats are accepted:
+      // old firmware: F0 0B 7E <id> <major> <minor> <patch> F7
+      // new firmware: F0 14 0D 7E <id> <major> <minor> <patch> F7 (answers of slaves have key 0E, 0F... and are skipped)
       handleMidiMessage(event) {
-        const [start_sys_ex, flag_byte, num_com, id_of_output, x, y, z, end_sys_ex] = event.data;
-        if (start_sys_ex === 0xF0 &&
-            end_sys_ex === 0xF7 &&
-            flag_byte === 0x0B &&
-            num_com === 126 &&
-            event.data.length === 8
-        ) {
+        const data = event.data;
+        if (data[0] !== 0xF0 || data[data.length - 1] !== 0xF7) return;
+
+        let info;
+        if (data.length === 8 && data[1] === 0x0B) {
+          info = data.slice(2, 7);
+        } else if (data.length === 9 && data[1] === 0x14 && data[2] === 0x0D) {
+          info = data.slice(3, 8);
+        } else {
+          return;
+        }
+
+        const [num_com, id_of_output, x, y, z] = info;
+        if (num_com === 126) {
           this.versions[id_of_output] = `v${x}.${y}.${z}`
         }
       },
