@@ -22,6 +22,7 @@
 import {SysExCommand} from "@/assets/js/SysExCommand";
 import HintComponent from "@/components/HintComponent.vue";
 import SliderCommand from "@/components/MidiComponents/SliderCommand.vue";
+import {UNDERCOVER_PALETTE} from "@/assets/js/UndercoverPalette";
 
 export default {
   components: {HintComponent, SliderCommand},
@@ -96,16 +97,7 @@ export default {
   },
   data() {
     return {
-      colors: {
-        "#E6E6E6": "#FFE9AD",
-        '#FF0000': "#FF0000",
-        "#FFA500": "#FF4000",
-        "#FFFF00": "#FF6E00",
-        "#90FF00": "#90FF00",
-        '#00FFFF': '#00FFFF',
-        "#0040FF": '#0080FF',
-        "#AE00FF": "#AE00FF",
-      },
+      colors: UNDERCOVER_PALETTE,
       selectedColor: '',
       brightness: 100,
     }

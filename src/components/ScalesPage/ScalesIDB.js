@@ -85,6 +85,33 @@ export let ScalesCommandsData = new Map(Object.entries({
     }),
 }))
 
+const US_PER_MINUTE = 60000000
+
+// Settings by id of the new protocol: page value <-> elements stored in Settings_t of the device
+export const ScalesSettings = {
+    "bpm": {
+        id: 0,
+        groups: 4,
+        toDevice: (bpm) => [Math.round(US_PER_MINUTE / bpm)],
+        fromDevice: ([us]) => Math.min(1000, Math.max(1, Math.round(US_PER_MINUTE / us))),
+    },
+    "sensitivity": {id: 1, groups: 1},
+    "undercover_color": {
+        id: 2,
+        groups: 2,
+        toDevice: (rgb) => [(rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF],
+        fromDevice: ([r, g, b]) => (r << 16) | (g << 8) | b,
+    },
+    "scale": {id: 4, groups: 1},
+    "performance": {id: 5, groups: 1},
+    "one_channel_mode": {id: 6, groups: 1},
+    "beginning_mode": {id: 7, groups: 1},
+    "music_cc_num": {id: 8, groups: 1},
+    "arp_plus": {id: 9, groups: 1},
+    "sensor_mute": {id: 10, groups: 1},
+    "arp_rate": {id: 14, groups: 1},
+}
+
 const default_preset = {
     "bpm": 120,
     "sensitivity": 0,
