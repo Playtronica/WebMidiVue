@@ -2,6 +2,7 @@
   <LoaderComponent v-if="this.is_loading" :key="forceRerender"/>
 
   <h1 class="text-center">Playtron Settings ⚙️</h1>
+  <p class="text-center">Want to play? Open <a href="https://play.playtronica.com/?utm_source=settings&amp;utm_medium=playtron_page" target="_blank" rel="noopener">Play — play.playtronica.com</a>. Setup help: <a href="https://help.playtronica.com/devices/playtron/" target="_blank" rel="noopener">help.playtronica.com</a></p>
   <DeviceSelector regex-name="Playtron" @device_changed="(x) => {this.device = x} " text_label="🔌 Select Device" check-versions-flag class="m-2"/>
   <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" text_label="📂 Preset" class="m-2"/>
   <div class="row gx-1 mb-5">
@@ -40,7 +41,7 @@
               :key="this.forceRerender"
               :command-object="this.commands_data.channel"
               command-label="🎛️ MIDI channel"
-              description="Pick a midi channel that the plant would be on"
+              description="Pick the MIDI channel Playtron sends on"
               class="m-2"
               @input-changed="this.sys_ex_changed"/>
         </template>
