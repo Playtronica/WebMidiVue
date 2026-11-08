@@ -69,6 +69,7 @@ export class MidiChainTracker {
     }
 
     // Each request makes the firmware save settings to flash, so it is sent only on device change
+    // or when the user asks for it
     request() {
         if (!this.output || !this.midi) return
         this.linkUntil = Date.now() + LINK_TIMEOUT_MS

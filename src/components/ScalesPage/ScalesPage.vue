@@ -9,15 +9,15 @@
   </div>
   <h1 class="text-center">Scales change settings</h1>
   <DeviceSelector regex-name="Scales" @device_changed="this.deviceChanged" text_label="🔌 Select Device" class="m-2" check-versions-flag/>
-  <div class="form-floating m-2">
-    <select v-model.number="this.target" class="form-control" :disabled="this.chain_length <= 1">
-      <option :value="GENERAL_TARGET">General</option>
-      <option v-for="n in this.chain_length" :key="n" :value="n - 1">{{ n === 1 ? "Master" : `Slave ${n - 1}` }}</option>
-    </select>
-    <label>🔗 Target Device ({{ this.chain_length }} in chain)</label>
-  </div>
-  <div v-if="this.device" class="mx-2 small text-muted">
-    Protocol: {{ this.settings_protocol_active ? "settings by id" : "legacy commands" }}
+  <div class="d-flex m-2">
+    <div class="form-floating flex-grow-1 me-2">
+      <select v-model.number="this.target" class="form-control" :disabled="this.chain_length <= 1">
+        <option :value="GENERAL_TARGET">General</option>
+        <option v-for="n in this.chain_length" :key="n" :value="n - 1">{{ n === 1 ? "Master" : `Slave ${n - 1}` }}</option>
+      </select>
+      <label>🔗 Target Device ({{ this.chain_length }} in chain)</label>
+    </div>
+    <button @click="this.chainTracker.request()" :disabled="!this.device" class="btn btn-primary" style="min-width: 5rem">Update</button>
   </div>
   <PatchSelector :patches="this.patches" :key="this.forceRerender + this.patchRerender" :page_id="this.id" text_label="📂 Preset" class="m-2"/>
   <div class="row gx-1 mb-5">
@@ -198,6 +198,8 @@ import { matchUndercoverColor } from "@/assets/js/UndercoverPalette";
 const GENERAL_TARGET = -1;
 // Pause between copies of one command sent to different devices of the chain
 const CHAIN_SEND_DELAY_MS = 100;
+// A device saving to flash can miss a request, it is repeated when there is no answer
+const REQUEST_ATTEMPTS = 3;
 // How long a notification about a setting changed on the device is shown
 const NOTIFICATION_MS = 3000;
 // Names of settings in notifications
@@ -284,7 +286,7 @@ export default  {
         extraComp.push("plantBpm");
         for (let comm in this.commands_data) {
           if (!extraComp.includes(comm)) {
-            for (const flag of this.flagsFor(this.commands_data[comm])) {
+            for (const flag of this.targetFlags) {
               this.commands_data[comm].sendToMidi(this.device, flag)
               sleep(100);
             }
@@ -295,44 +297,105 @@ export default  {
       }
     },
 
+    // Exchanges with the chain go one at a time: a read during a send would bring old values to the page
+    enqueueExchange(exchange) {
+      const result = this.exchangeQueue.then(exchange);
+      this.exchangeQueue = result.catch((err) => console.warn("Exchange with the device failed", err));
+      return result;
+    },
+
     // New protocol: every answer is awaited instead of fixed pauses, then the targets save right away
     async sendDataById() {
       if (!this.device) return
-      for (const comm in this.commands_data) {
-        for (const flag of this.flagsFor(this.commands_data[comm])) {
-          await this.sendSetting(this.commands_data[comm], flag);
+      const sends = this.prepareSends(Object.values(this.commands_data));
+      const saveFlags = this.targetFlags;
+      await this.enqueueExchange(async () => {
+        for (const send of sends) {
+          await this.sendSetting(send);
         }
-      }
-      for (const flag of this.targetFlags) {
-        await this.settingsProtocol.save(flag);
-      }
+        for (const flag of saveFlags) {
+          await this.settingsProtocol.save(flag);
+        }
+      });
     },
 
-    async sendSetting(object, flag) {
-      const setting = ScalesSettings[object.name];
-      if (!setting || !object.check_params()) return
-      const answer = await this.settingsProtocol.set(flag, setting.id, encodeSetting(setting, object.value));
+    // Values and targets are fixed here: they can change on the page while the sends wait for their turn
+    prepareSends(objects) {
+      const flags = this.targetFlags;
+      return objects
+          .filter((object) => ScalesSettings[object.name] && object.check_params())
+          .flatMap((object) => flags.map((flag) => ({name: object.name, flag, value: object.value})));
+    },
+
+    async sendSetting({name, flag, value}) {
+      const setting = ScalesSettings[name];
+      const encoded = encodeSetting(setting, value);
+      let answer = null;
+      for (let attempt = 0; attempt < REQUEST_ATTEMPTS && !answer; attempt++) {
+        answer = await this.settingsProtocol.set(flag, setting.id, encoded);
+      }
       if (!answer) {
-        console.warn(`Setting ${object.name}: no answer`);
+        console.warn(`Setting ${name}: no answer`);
       } else if (answer.status !== 0) {
-        console.warn(`Setting ${object.name}: ${SETTING_STATUS[answer.status] ?? answer.status}`);
+        console.warn(`Setting ${name}: ${SETTING_STATUS[answer.status] ?? answer.status}`);
       }
     },
 
     // Loads settings of the target (the master for General) into the current preset
     async readFromDevice() {
+      // Only the last requested read gets to the page
+      const token = ++this.readToken;
       if (!this.device || !this.settings_protocol_active) return
-      const flag = chainFlag(this.target === GENERAL_TARGET ? 0 : this.target);
-      const answer = await this.settingsProtocol.getAll(flag);
+      const device = this.target === GENERAL_TARGET ? 0 : this.target;
+      await this.enqueueExchange(async () => {
+        if (token !== this.readToken) return
+        const values = await this.readSettings(device, () => token !== this.readToken);
+        if (token === this.readToken) await this.applyReadValues(values);
+      });
+    },
+
+    // Returns {name: value} of the settings the device answered with
+    async readSettings(device, cancelled) {
+      const flag = chainFlag(device);
+      let answer = null;
+      for (let attempt = 0; attempt < REQUEST_ATTEMPTS && !answer && !cancelled(); attempt++) {
+        answer = await this.settingsProtocol.getAll(flag);
+      }
       if (!answer) {
-        console.warn("Read settings: no answer");
-        return
+        // The page keeps its values, asking for each setting of a silent device would only hold the queue
+        if (!cancelled()) console.warn("Read settings: no answer");
+        return {};
       }
 
+      const values = {};
       for (const {status, id, value} of answer.values) {
         if (status !== 0) continue
         const name = Object.keys(ScalesSettings).find(key => ScalesSettings[key].id === id);
-        if (name) this.commands_data[name].set_value(decodeSetting(ScalesSettings[name], value));
+        if (name) values[name] = decodeSetting(ScalesSettings[name], value);
+      }
+
+      for (const name of Object.keys(ScalesSettings)) {
+        if (name in values || cancelled()) continue
+        const value = await this.readSetting(flag, name);
+        if (value === undefined) console.warn(`Read setting ${name}: no value`);
+        else values[name] = value;
+      }
+      return values;
+    },
+
+    async readSetting(flag, name) {
+      const setting = ScalesSettings[name];
+      for (let attempt = 0; attempt < REQUEST_ATTEMPTS; attempt++) {
+        const answer = await this.settingsProtocol.get(flag, setting.id);
+        if (answer) return answer.status === 0 ? decodeSetting(setting, answer.value) : undefined;
+      }
+      return undefined;
+    },
+
+    async applyReadValues(values) {
+      if (Object.keys(values).length === 0) return
+      for (const [name, value] of Object.entries(values)) {
+        this.commands_data[name].set_value(value);
       }
       // The picker keeps a base color and brightness, they are found back if the color is one of the picker's
       const picked = matchUndercoverColor(this.commands_data.undercover_color.value);
@@ -353,8 +416,8 @@ export default  {
       const decoded = decodeSetting(ScalesSettings[name], value);
       this.notify(device, name, decoded);
 
-      // The page shows the selected device (the master for General), BPM is always the master's
-      const shown = name === "bpm" || this.target === GENERAL_TARGET ? 0 : this.target;
+      // The page shows the selected device (the master for General)
+      const shown = this.target === GENERAL_TARGET ? 0 : this.target;
       if (device !== shown) return
 
       this.commands_data[name].set_value(decoded);
@@ -459,27 +522,27 @@ export default  {
       this.saveData();
     },
     async sys_ex_changed(object) {
+      const sends = this.prepareSends([object]);
+      const flags = this.targetFlags;
       await this.patchChanged();
 
       if (this.device) {
-        const flags = this.flagsFor(object);
-        for (const [i, flag] of flags.entries()) {
-          if (this.settings_protocol_active) {
-            await this.sendSetting(object, flag);
-            continue;
+        if (this.settings_protocol_active) {
+          await this.enqueueExchange(async () => {
+            for (const send of sends) {
+              await this.sendSetting(send);
+            }
+          });
+        } else {
+          for (const [i, flag] of flags.entries()) {
+            if (i > 0) await new Promise(resolve => setTimeout(resolve, CHAIN_SEND_DELAY_MS));
+            await object.sendToMidi(this.device, flag)
           }
-          if (i > 0) await new Promise(resolve => setTimeout(resolve, CHAIN_SEND_DELAY_MS));
-          await object.sendToMidi(this.device, flag)
         }
       }
 
       this.forceRerender++;
       this.patchRerender++;
-    },
-
-    // BPM is always sent to the master, other settings go to the selected target (or to all of them)
-    flagsFor(object) {
-      return object === this.commands_data.bpm ? [chainFlag(0)] : this.targetFlags
     },
 
     deviceChanged(device) {
@@ -508,6 +571,8 @@ export default  {
       settings_protocol_active: false,
       notifications: [],
       target: 0,
+      exchangeQueue: Promise.resolve(),
+      readToken: 0,
       forceRerender: 0,
       patchRerender: 0,
       db: {

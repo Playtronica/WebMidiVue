@@ -150,7 +150,9 @@ export class SettingsProtocol {
         this.probing = false
         this.version = state ? state.version : 0
         this.count = state ? state.count : 0
-        this.setActive(!!state && state.version >= MIN_VERSION)
+        const active = !!state && state.version >= MIN_VERSION
+        console.log(`Protocol: ${active ? "settings by id" : "legacy commands"}`)
+        this.setActive(active)
     }
 
     setActive(active) {

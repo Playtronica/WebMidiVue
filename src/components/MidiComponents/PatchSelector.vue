@@ -12,7 +12,7 @@
                   :class="{ 'btn-outline-primary': this.button_state === 'Save', 'btn-outline-danger': this.button_state === 'Delete'}"
                   type="button"  data-bs-toggle="modal" @click="this.modelOpen"
                   :data-bs-target="this.button_state === 'Save' ? '#saveModal' : '#deleteModel'"
-                  :style="{display: active_button_enabled ? 'block' : 'none'}">
+                  :style="{display: active_button_enabled ? 'block' : 'none', minWidth: '5rem'}">
             {{ this.button_state }}</button>
       </div>
     </div>
